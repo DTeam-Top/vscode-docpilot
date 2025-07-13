@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { PdfLoadError } from '../utils/errors';
 import { Logger } from '../utils/logger';
 import { WebviewProvider } from '../webview/webviewProvider';
+import { WebviewUtils } from '../utils/webviewUtils';
 
 // biome-ignore lint/complexity/noStaticOnlyClass: This follows existing extension patterns
 export class OpenLocalPdfCommand {
@@ -45,15 +46,13 @@ export class OpenLocalPdfCommand {
       throw new PdfLoadError(filePath, new Error('Invalid PDF file'));
     }
 
-    // Create and show PDF viewer
-    const panel = WebviewProvider.createPdfViewer(filePath, context);
-
-    // Focus the panel
-    panel.reveal(vscode.ViewColumn.One);
-
-    OpenLocalPdfCommand.logger.info(`PDF viewer created for: ${filePath}`);
-
-    // Show success message
-    vscode.window.showInformationMessage(`Opened PDF: ${result[0].path.split('/').pop()}`);
+    // Create and show PDF viewer using shared utility
+    WebviewUtils.createAndRevealPdfViewer({
+      title: `📄 ${result[0].path.split('/').pop()}`,
+      source: filePath,
+      context,
+      viewColumn: vscode.ViewColumn.One,
+      successMessage: `Opened PDF: ${result[0].path.split('/').pop()}`,
+    });
   }
 }
