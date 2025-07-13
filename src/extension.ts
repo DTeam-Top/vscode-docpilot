@@ -2,7 +2,12 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 
+// Store active PDF viewers for text extraction
+const activePdfViewers = new Map<string, vscode.WebviewPanel>();
+
 export function activate(context: vscode.ExtensionContext) {
+  console.log('DocPilot extension activating...');
+
   const openLocalPdf = vscode.commands.registerCommand(
     'docpilot.openLocalPdf',
     async (uri?: vscode.Uri) => {
@@ -51,10 +56,318 @@ export function activate(context: vscode.ExtensionContext) {
     }
   });
 
-  context.subscriptions.push(openLocalPdf, openPdfFromUrl);
+  // Register chat participant
+  console.log('Registering chat participant: docpilot');
+  console.log('Available chat API:', !!vscode.chat);
+  console.log('Chat createChatParticipant function:', typeof vscode.chat?.createChatParticipant);
+
+  const chatParticipant = vscode.chat.createChatParticipant(
+    'docpilot.chat-participant',
+    (request, chatContext, stream, token) =>
+      handleChatRequest(request, chatContext, stream, token, context)
+  );
+
+  console.log('Chat participant registered successfully');
+  console.log('Chat participant ID:', chatParticipant.id);
+
+  // Set additional metadata for better discoverability
+  chatParticipant.iconPath = vscode.ThemeIcon.File;
+  chatParticipant.followupProvider = {
+    provideFollowups: () => [
+      {
+        prompt: '@docpilot /summarise',
+        label: 'Summarise a PDF file',
+        command: 'summarise',
+      },
+    ],
+  };
+
+  // Add additional debugging
+  chatParticipant.onDidReceiveFeedback((feedback) => {
+    console.log('Received feedback:', feedback);
+  });
+
+  context.subscriptions.push(openLocalPdf, openPdfFromUrl, chatParticipant);
+
+  console.log('DocPilot extension activation complete');
 }
 
-function showPdfViewer(_context: vscode.ExtensionContext, pdfSource: string, title: string) {
+async function handleChatRequest(
+  request: vscode.ChatRequest,
+  _context: vscode.ChatContext,
+  stream: vscode.ChatResponseStream,
+  token: vscode.CancellationToken,
+  extensionContext: vscode.ExtensionContext
+): Promise<vscode.ChatResult> {
+  console.log('Chat request received:', {
+    command: request.command,
+    prompt: request.prompt,
+  });
+
+  // Always respond with something to test if the handler is being called
+  stream.markdown('🤖 DocPilot is responding! ');
+
+  try {
+    if (request.command === 'summarise') {
+      console.log('Handling summarise command');
+      stream.markdown('Starting PDF summarisation...\n');
+      return await handleSummaryCommand(request, stream, token, extensionContext);
+    } else {
+      console.log('Unknown or missing command:', request.command, 'showing help');
+      stream.markdown(
+        'Available commands:\n- `/summarise <file>` - Summarise a PDF file\n\nUsage: `@docpilot /summarise path/to/file.pdf`'
+      );
+      return { metadata: { command: 'help' } };
+    }
+  } catch (error) {
+    console.error('Error in chat request handler:', error);
+    stream.markdown(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    return { metadata: { command: request.command, error: String(error) } };
+  }
+}
+
+async function handleSummaryCommand(
+  request: vscode.ChatRequest,
+  stream: vscode.ChatResponseStream,
+  token: vscode.CancellationToken,
+  extensionContext: vscode.ExtensionContext
+): Promise<vscode.ChatResult> {
+  console.log('handleSummaryCommand called with prompt:', request.prompt);
+
+  const prompt = request.prompt.trim();
+  let pdfPath: string;
+
+  if (!prompt) {
+    // Show file picker if no file specified
+    const result = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: false,
+      filters: { 'PDF Files': ['pdf'] },
+      title: 'Select PDF file to summarise',
+    });
+
+    if (!result || result.length === 0) {
+      stream.markdown('❌ No file selected');
+      return { metadata: { command: 'summarise', cancelled: true } };
+    }
+    pdfPath = result[0].fsPath;
+  } else if (prompt.startsWith('http')) {
+    // Handle URL
+    pdfPath = prompt;
+  } else {
+    // Handle file path - resolve relative to workspace
+    if (path.isAbsolute(prompt)) {
+      pdfPath = prompt;
+    } else {
+      const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+      if (!workspaceFolder) {
+        stream.markdown('❌ No workspace folder found. Please provide an absolute path.');
+        return { metadata: { command: 'summarise', error: 'No workspace' } };
+      }
+      pdfPath = path.join(workspaceFolder.uri.fsPath, prompt);
+    }
+
+    // Check if file exists for local files
+    if (!pdfPath.startsWith('http') && !fs.existsSync(pdfPath)) {
+      stream.markdown(`❌ File not found: ${pdfPath}`);
+      return { metadata: { command: 'summarise', error: 'File not found' } };
+    }
+  }
+
+  // Show progress
+  stream.markdown('📄 Opening PDF and extracting text...\n');
+
+  try {
+    // Open the PDF in DocPilot viewer
+    const fileName = pdfPath.startsWith('http') ? 'Remote PDF' : path.basename(pdfPath);
+    const panel = showPdfViewer(extensionContext, pdfPath, fileName);
+
+    // Wait a moment for the webview to load
+    stream.markdown('⏳ Waiting for PDF to load...\n');
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    // Extract text content from the PDF
+    stream.markdown('🔍 Extracting text content...\n');
+    const pdfText = await extractTextFromPdf(panel, pdfPath);
+
+    if (!pdfText || pdfText.trim().length === 0) {
+      stream.markdown(
+        '⚠️ No text content found in the PDF. The document may contain only images or be protected.'
+      );
+      return { metadata: { command: 'summarise', warning: 'No text content' } };
+    }
+
+    // Get available language models first
+    const models = await vscode.lm.selectChatModels({ vendor: 'copilot' });
+    if (models.length === 0) {
+      stream.markdown('❌ No language models available. Please make sure Copilot is enabled.');
+      return { metadata: { command: 'summarise', error: 'No models available' } };
+    }
+
+    const model = models[0];
+
+    // Estimate token count (rough approximation: 4 characters per token)
+    const estimatedTokens = Math.ceil(pdfText.length / 4);
+    const maxTokensForModel = model.maxInputTokens || 4000; // Conservative default
+    const promptOverhead = 500; // Tokens for our prompt template
+    const maxContentTokens = maxTokensForModel - promptOverhead;
+    const maxContentLength = maxContentTokens * 4; // Convert back to characters
+
+    stream.markdown('🤖 Generating summary...\n\n');
+
+    let textToSummarize: string;
+    let summaryStrategy: string;
+
+    if (pdfText.length <= maxContentLength) {
+      // Content fits within token limits
+      textToSummarize = pdfText;
+      summaryStrategy = 'full';
+    } else {
+      // Content is too large, use intelligent truncation
+      const pages = pdfText.split(/--- Page \d+ ---/);
+      const firstPages = pages.slice(0, Math.min(5, pages.length)).join('\n--- Page ---\n');
+      const lastPages = pages.slice(-2).join('\n--- Page ---\n');
+
+      textToSummarize =
+        firstPages + '\n\n[... Content from middle pages omitted for brevity ...]\n\n' + lastPages;
+
+      // If still too long, just take the beginning
+      if (textToSummarize.length > maxContentLength) {
+        textToSummarize =
+          pdfText.substring(0, maxContentLength) + '\n\n[Content truncated due to length...]';
+      }
+      summaryStrategy = 'truncated';
+    }
+
+    stream.markdown(
+      `📊 Processing ${pdfText.length} characters (${estimatedTokens} tokens estimated)\n\n`
+    );
+
+    // Create optimized prompt
+    const summaryPrompt = `Summarize this PDF document:
+
+**File:** ${fileName}
+**Strategy:** ${summaryStrategy === 'full' ? 'Full content analysis' : 'Key sections analysis'}
+
+**Content:**
+${textToSummarize}
+
+Provide:
+1. Brief overview
+2. Key points
+3. Main findings
+4. Document structure`;
+
+    try {
+      const summaryResponse = await model.sendRequest(
+        [vscode.LanguageModelChatMessage.User(summaryPrompt)],
+        {},
+        token
+      );
+
+      stream.markdown('## 📋 PDF Summary\n\n');
+
+      for await (const chunk of summaryResponse.text) {
+        stream.markdown(chunk);
+        if (token.isCancellationRequested) {
+          break;
+        }
+      }
+
+      if (summaryStrategy === 'truncated') {
+        stream.markdown(
+          '\n\n⚠️ *Note: This summary is based on selected sections due to document length.*'
+        );
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('token')) {
+        stream.markdown(
+          '❌ Document too large for summarization. Trying with smaller excerpt...\n\n'
+        );
+
+        // Fallback: use just the first 1000 characters
+        const shortExcerpt = pdfText.substring(0, 1000) + '...\n\n[Showing excerpt only]';
+        const fallbackPrompt = `Provide a brief summary of this PDF excerpt:\n\n${shortExcerpt}`;
+
+        try {
+          const fallbackResponse = await model.sendRequest(
+            [vscode.LanguageModelChatMessage.User(fallbackPrompt)],
+            {},
+            token
+          );
+
+          stream.markdown('## 📋 PDF Summary (Excerpt)\n\n');
+          for await (const chunk of fallbackResponse.text) {
+            stream.markdown(chunk);
+            if (token.isCancellationRequested) {
+              break;
+            }
+          }
+          stream.markdown(
+            '\n\n⚠️ *Note: Summary based on document excerpt only due to size constraints.*'
+          );
+        } catch {
+          throw error; // Re-throw original error if fallback also fails
+        }
+      } else {
+        throw error;
+      }
+    }
+
+    stream.markdown(
+      `\n\n---\n*PDF opened in DocPilot viewer. Text content: ${pdfText.length} characters*`
+    );
+
+    return {
+      metadata: {
+        command: 'summarise',
+        file: pdfPath,
+        textLength: pdfText.length,
+      },
+    };
+  } catch (error) {
+    stream.markdown(
+      `❌ Failed to process PDF: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+    return { metadata: { command: 'summarise', error: String(error) } };
+  }
+}
+
+async function extractTextFromPdf(panel: vscode.WebviewPanel, _pdfPath: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error('Text extraction timeout - PDF may not have loaded properly'));
+    }, 30000); // 30 second timeout
+
+    // Listen for messages from the webview
+    const disposable = panel.webview.onDidReceiveMessage((message) => {
+      console.log('Received message from webview:', message.type);
+
+      if (message.type === 'textExtracted') {
+        console.log('Text extraction successful, length:', message.text?.length || 0);
+        clearTimeout(timeout);
+        disposable.dispose();
+        resolve(message.text);
+      } else if (message.type === 'textExtractionError') {
+        console.log('Text extraction error:', message.error);
+        clearTimeout(timeout);
+        disposable.dispose();
+        reject(new Error(message.error));
+      }
+    });
+
+    // Request text extraction from the webview
+    console.log('Sending text extraction request to webview');
+    panel.webview.postMessage({ type: 'extractAllText' });
+  });
+}
+
+function showPdfViewer(
+  _context: vscode.ExtensionContext,
+  pdfSource: string,
+  title: string
+): vscode.WebviewPanel {
   const isUrl = pdfSource.startsWith('http');
   const webviewOptions: vscode.WebviewPanelOptions & vscode.WebviewOptions = {
     enableScripts: true,
@@ -70,6 +383,15 @@ function showPdfViewer(_context: vscode.ExtensionContext, pdfSource: string, tit
   );
 
   panel.webview.html = getWebviewContent(panel.webview, pdfSource);
+
+  // Register for text extraction
+  activePdfViewers.set(pdfSource, panel);
+
+  panel.onDidDispose(() => {
+    activePdfViewers.delete(pdfSource);
+  });
+
+  return panel;
 }
 
 function getWebviewContent(webview: vscode.Webview, pdfSource: string): string {
@@ -283,6 +605,10 @@ function getWebviewContent(webview: vscode.Webview, pdfSource: string): string {
     </div>
     
     <script>
+        // Make vscode API available first
+        const vscode = acquireVsCodeApi();
+        console.log('VSCode API initialized');
+        
         let pdfDoc = null;
         let scale = 1.0;
         let currentPage = 1;
@@ -316,10 +642,19 @@ function getWebviewContent(webview: vscode.Webview, pdfSource: string): string {
             updatePageInfo();
             initializeTextSelection();
             renderAllPages();
+            
+            // Signal that PDF is ready for text extraction
+            console.log('PDF loaded successfully, ready for text extraction');
         }).catch(function(error) {
             console.error('Error loading PDF:', error);
             pagesContainer.innerHTML = 
                 '<div class="error">Failed to load PDF. The file may be corrupted or inaccessible.</div>';
+            
+            // Notify extension of PDF loading error
+            vscode.postMessage({
+                type: 'textExtractionError',
+                error: 'Failed to load PDF: ' + error.message
+            });
         });
         
         function renderAllPages() {
@@ -794,6 +1129,69 @@ function getWebviewContent(webview: vscode.Webview, pdfSource: string): string {
                 console.log('Hover over text elements to see their content and positioning info');
             }
         }
+        
+        // Text extraction functionality for chat integration
+        async function extractAllTextContent() {
+            try {
+                let allText = '';
+                console.log('Starting text extraction for all pages...');
+                
+                for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+                    const page = await pdfDoc.getPage(pageNum);
+                    const textContent = await page.getTextContent();
+                    
+                    let pageText = '';
+                    textContent.items.forEach(item => {
+                        if (item.str && item.str.trim()) {
+                            pageText += item.str + ' ';
+                        }
+                    });
+                    
+                    if (pageText.trim()) {
+                        allText += \`\\n--- Page \${pageNum} ---\\n\${pageText.trim()}\\n\`;
+                    }
+                }
+                
+                console.log(\`Extracted \${allText.length} characters from \${pdfDoc.numPages} pages\`);
+                return allText.trim();
+            } catch (error) {
+                console.error('Error extracting text:', error);
+                throw error;
+            }
+        }
+        
+        // Listen for messages from the extension
+        window.addEventListener('message', async (event) => {
+            const message = event.data;
+            console.log('Webview received message:', message.type);
+            
+            if (message.type === 'extractAllText') {
+                try {
+                    console.log('Starting text extraction, PDF loaded:', !!pdfDoc);
+                    
+                    if (!pdfDoc) {
+                        throw new Error('PDF not loaded yet');
+                    }
+                    
+                    const extractedText = await extractAllTextContent();
+                    console.log('Text extraction completed, sending response');
+                    
+                    // Send the extracted text back to the extension
+                    vscode.postMessage({
+                        type: 'textExtracted',
+                        text: extractedText
+                    });
+                } catch (error) {
+                    console.error('Text extraction failed:', error);
+                    vscode.postMessage({
+                        type: 'textExtractionError',
+                        error: error.message || 'Unknown error during text extraction'
+                    });
+                }
+            }
+        });
+        
+        console.log('Webview script loaded and ready for messages');
         
         
     </script>
