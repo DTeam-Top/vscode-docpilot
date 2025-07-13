@@ -125,7 +125,7 @@ export class WebviewProvider {
     }
   }
 
-  private static getWebviewContent(
+  static getWebviewContent(
     webview: vscode.Webview,
     pdfSource: string,
     extensionContext: vscode.ExtensionContext

@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { ChatParticipant } from './chat/chatParticipant';
 import { OpenLocalPdfCommand } from './commands/openLocalPdf';
 import { OpenPdfFromUrlCommand } from './commands/openPdfFromUrl';
+import { PdfCustomEditorProvider } from './editors/pdfCustomEditor';
 import { Logger } from './utils/logger';
 
 /**
@@ -22,12 +23,18 @@ export function activate(context: vscode.ExtensionContext): void {
       OpenPdfFromUrlCommand.register(context)
     );
 
+    // Register custom PDF editor for automatic activation when opening PDFs via File -> Open
+    context.subscriptions.push(
+      PdfCustomEditorProvider.register(context)
+    );
+
     logger.info('DocPilot extension activated successfully');
 
     // Log activation telemetry (if needed)
     logger.info('Extension activation complete', {
       chatParticipantId: 'docpilot.chat-participant',
       commandsRegistered: ['docpilot.openLocalPdf', 'docpilot.openPdfFromUrl'],
+      customEditorRegistered: 'docpilot.pdfEditor',
       timestamp: Date.now(),
     });
   } catch (error) {

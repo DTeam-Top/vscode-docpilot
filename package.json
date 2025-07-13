@@ -49,6 +49,18 @@
           }
         ]
       }
+    ],
+    "customEditors": [
+      {
+        "viewType": "docpilot.pdfEditor",
+        "displayName": "DocPilot PDF Viewer",
+        "selector": [
+          {
+            "filenamePattern": "*.pdf"
+          }
+        ],
+        "priority": "default"
+      }
     ]
   },
   "scripts": {
