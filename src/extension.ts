@@ -140,6 +140,57 @@ function getWebviewContent(webview: vscode.Webview, pdfSource: string): string {
             max-width: 100%;
             height: auto;
         }
+        .pdf-page .textLayer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            color: transparent;
+            font-family: sans-serif;
+            line-height: 1;
+            overflow: hidden;
+            pointer-events: auto;
+            z-index: 2;
+            mix-blend-mode: normal;
+        }
+        .pdf-page .textLayer span {
+            color: transparent;
+            position: absolute;
+            white-space: pre;
+            cursor: text;
+            transform-origin: 0% 0%;
+            user-select: text;
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            line-height: 1;
+            font-family: sans-serif;
+        }
+        .pdf-page .textLayer span::selection {
+            background: rgba(0, 123, 255, 0.3);
+            color: transparent;
+        }
+        .pdf-page .textLayer span::-moz-selection {
+            background: rgba(0, 123, 255, 0.3);
+            color: transparent;
+        }
+        .pdf-page .textLayer.hidden {
+            display: none;
+        }
+        .pdf-page .textLayer.enabled {
+            display: block;
+        }
+        .warning-banner {
+            background-color: var(--vscode-inputValidation-warningBackground);
+            color: var(--vscode-inputValidation-warningForeground);
+            border: 1px solid var(--vscode-inputValidation-warningBorder);
+            padding: 8px 16px;
+            margin: 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            display: none;
+        }
         .controls {
             display: flex;
             align-items: center;
@@ -209,6 +260,8 @@ function getWebviewContent(webview: vscode.Webview, pdfSource: string): string {
         <div class="controls">
             <button onclick="fitToWidth()">Fit Width</button>
             <button onclick="fitToPage()">Fit Page</button>
+            <button id="textSelectionBtn" onclick="toggleTextSelection()">Enable Text Selection</button>
+            <button id="debugBtn" onclick="toggleDebug()" style="font-size: 10px;">Debug</button>
             <div class="zoom-controls">
                 <button onclick="zoomOut()">−</button>
                 <input type="range" id="zoomSlider" min="0.25" max="3" step="0.25" value="1" oninput="setZoom(this.value)">
@@ -216,6 +269,9 @@ function getWebviewContent(webview: vscode.Webview, pdfSource: string): string {
                 <span id="zoomLevel">100%</span>
             </div>
         </div>
+    </div>
+    <div class="warning-banner" id="warningBanner">
+        ⚠️ Large document detected. Text selection may impact performance.
     </div>
     <div class="pdf-container" id="pdfContainer">
         <div class="loading">
@@ -234,6 +290,17 @@ function getWebviewContent(webview: vscode.Webview, pdfSource: string): string {
         const pagesContainer = document.getElementById('pdfContainer');
         const progressFill = document.getElementById('progressFill');
         
+        // Text layer management
+        let textSelectionEnabled = false;
+        let debugMode = false; // Add debug mode for development
+        const textLayerStates = new Map(); // pageNum -> { textLayer, container, rendered }
+        const textLayerCache = new Map(); // LRU cache for text layers
+        const MAX_CACHED_TEXT_LAYERS = 10;
+        const VISIBLE_PAGE_BUFFER = 2;
+        const MAX_TEXT_DIVS_PER_PAGE = 50000;
+        let renderTimes = [];
+        const PERFORMANCE_THRESHOLD = 500; // 500ms
+        
         // Load PDF
         const loadingTask = pdfjsLib.getDocument('${pdfUri}');
         loadingTask.onProgress = function(progress) {
@@ -247,6 +314,7 @@ function getWebviewContent(webview: vscode.Webview, pdfSource: string): string {
             pdfDoc = pdf;
             pagesContainer.innerHTML = '<div class="pdf-pages" id="pdfPages"></div>';
             updatePageInfo();
+            initializeTextSelection();
             renderAllPages();
         }).catch(function(error) {
             console.error('Error loading PDF:', error);
@@ -284,6 +352,20 @@ function getWebviewContent(webview: vscode.Webview, pdfSource: string): string {
                 canvas.width = viewport.width;
                 
                 pageDiv.appendChild(canvas);
+                
+                // Create text layer container (but don't render yet)
+                const textContainer = document.createElement('div');
+                textContainer.className = 'textLayer hidden';
+                pageDiv.appendChild(textContainer);
+                
+                // Store text layer state
+                textLayerStates.set(pageNum, {
+                    textLayer: null,
+                    container: textContainer,
+                    rendered: false,
+                    page: page
+                });
+                
                 document.getElementById('pdfPages').appendChild(pageDiv);
                 
                 // Render canvas content
@@ -304,6 +386,10 @@ function getWebviewContent(webview: vscode.Webview, pdfSource: string): string {
                 clearTimeout(scrollTimeout);
                 scrollTimeout = setTimeout(() => {
                     updateCurrentPage();
+                    // Update text layer visibility when scrolling
+                    if (textSelectionEnabled) {
+                        renderVisibleTextLayers();
+                    }
                 }, 150);
             });
         }
@@ -363,6 +449,19 @@ function getWebviewContent(webview: vscode.Webview, pdfSource: string): string {
                             canvasContext: ctx,
                             viewport: viewport
                         };
+                        
+                        // If text selection is enabled, invalidate and re-render text layer
+                        if (textSelectionEnabled) {
+                            const state = textLayerStates.get(pageNum);
+                            if (state) {
+                                state.container.innerHTML = '';
+                                state.rendered = false;
+                                // Re-render text layer for visible pages
+                                if (shouldRenderTextLayer(pageNum)) {
+                                    renderTextLayer(pageNum);
+                                }
+                            }
+                        }
                         
                         return page.render(renderContext).promise;
                     });
@@ -448,6 +547,254 @@ function getWebviewContent(webview: vscode.Webview, pdfSource: string): string {
                 }
             }
         });
+        
+        // Text layer management functions
+        function initializeTextSelection() {
+            if (pdfDoc.numPages > 100) {
+                document.getElementById('warningBanner').style.display = 'block';
+                textSelectionEnabled = false;
+                document.getElementById('textSelectionBtn').textContent = 'Enable Text Selection';
+            } else {
+                textSelectionEnabled = false; // Start disabled, let user choose
+                document.getElementById('textSelectionBtn').textContent = 'Enable Text Selection';
+            }
+        }
+        
+        function toggleTextSelection() {
+            textSelectionEnabled = !textSelectionEnabled;
+            const btn = document.getElementById('textSelectionBtn');
+            btn.textContent = textSelectionEnabled ? 'Disable Text Selection' : 'Enable Text Selection';
+            btn.style.backgroundColor = textSelectionEnabled ? 
+                'var(--vscode-button-secondaryBackground)' : 
+                'var(--vscode-button-background)';
+            
+            if (textSelectionEnabled) {
+                console.log('Text selection enabled - rendering text layers for visible pages');
+                renderVisibleTextLayers();
+            } else {
+                console.log('Text selection disabled - hiding all text layers');
+                hideAllTextLayers();
+            }
+        }
+        
+        function getVisiblePageRange() {
+            const containerRect = pagesContainer.getBoundingClientRect();
+            const pages = document.querySelectorAll('.pdf-page');
+            let start = 1, end = 1;
+            
+            for (let i = 0; i < pages.length; i++) {
+                const pageRect = pages[i].getBoundingClientRect();
+                if (pageRect.bottom >= containerRect.top && pageRect.top <= containerRect.bottom) {
+                    if (start === 1) start = i + 1;
+                    end = i + 1;
+                }
+            }
+            
+            return { start, end };
+        }
+        
+        function shouldRenderTextLayer(pageNum) {
+            if (!textSelectionEnabled) return false;
+            const visibleRange = getVisiblePageRange();
+            return pageNum >= (visibleRange.start - VISIBLE_PAGE_BUFFER) && 
+                   pageNum <= (visibleRange.end + VISIBLE_PAGE_BUFFER);
+        }
+        
+        async function renderVisibleTextLayers() {
+            const visibleRange = getVisiblePageRange();
+            const promises = [];
+            
+            for (let pageNum = Math.max(1, visibleRange.start - VISIBLE_PAGE_BUFFER); 
+                 pageNum <= Math.min(pdfDoc.numPages, visibleRange.end + VISIBLE_PAGE_BUFFER); 
+                 pageNum++) {
+                if (shouldRenderTextLayer(pageNum)) {
+                    promises.push(renderTextLayer(pageNum));
+                }
+            }
+            
+            // Cleanup text layers outside visible range
+            textLayerStates.forEach((state, pageNum) => {
+                if (!shouldRenderTextLayer(pageNum)) {
+                    cleanupTextLayer(pageNum);
+                }
+            });
+            
+            await Promise.all(promises);
+        }
+        
+        async function renderTextLayer(pageNum) {
+            const state = textLayerStates.get(pageNum);
+            if (!state || state.rendered) return;
+            
+            try {
+                const startTime = performance.now();
+                
+                // Clear container
+                state.container.innerHTML = '';
+                state.container.className = 'textLayer enabled';
+                
+                // Get text content with safer options
+                const textContent = await state.page.getTextContent();
+                if (textContent.items.length > MAX_TEXT_DIVS_PER_PAGE) {
+                    console.warn(\`Page \${pageNum} has \${textContent.items.length} text items, skipping\`);
+                    state.container.className = 'textLayer hidden';
+                    return;
+                }
+                
+                const viewport = state.page.getViewport({scale: scale});
+                
+                // Create a document fragment for better performance
+                const fragment = document.createDocumentFragment();
+                
+                // Process text items with simplified positioning
+                textContent.items.forEach((textItem, index) => {
+                    if (!textItem.str || textItem.str.trim() === '') return;
+                    
+                    const textSpan = document.createElement('span');
+                    textSpan.textContent = textItem.str;
+                    textSpan.setAttribute('data-text-index', index);
+                    
+                    // Extract transformation matrix values
+                    const tx = textItem.transform;
+                    const [scaleX, skewY, skewX, scaleY, translateX, translateY] = tx;
+                    
+                    // Calculate position and font size
+                    const fontSize = Math.sqrt(scaleX * scaleX + skewY * skewY);
+                    const fontScale = fontSize * scale;
+                    
+                    // Apply positioning
+                    textSpan.style.left = (translateX * scale) + 'px';
+                    textSpan.style.top = (viewport.height - (translateY * scale) - fontScale) + 'px';
+                    textSpan.style.fontSize = fontScale + 'px';
+                    
+                    // Set font family if available
+                    if (textItem.fontName && textItem.fontName !== 'g_d0_f1') {
+                        if (textItem.fontName.includes('Bold')) {
+                            textSpan.style.fontWeight = 'bold';
+                        }
+                    }
+                    
+                    fragment.appendChild(textSpan);
+                });
+                
+                // Append all text spans at once
+                state.container.appendChild(fragment);
+                
+                state.textLayer = { cancel: () => {} };
+                state.rendered = true;
+                
+                const renderTime = performance.now() - startTime;
+                monitorTextLayerPerformance(renderTime);
+                
+                // Update cache
+                textLayerCache.set(pageNum, Date.now());
+                if (textLayerCache.size > MAX_CACHED_TEXT_LAYERS) {
+                    evictOldestTextLayer();
+                }
+                
+            } catch (error) {
+                console.error(\`Failed to render text layer for page \${pageNum}:\`, error);
+                state.container.className = 'textLayer hidden';
+            }
+        }
+        
+        function updateTextLayerViewport(pageNum, viewport) {
+            const state = textLayerStates.get(pageNum);
+            if (state && state.textLayer && state.rendered && textSelectionEnabled) {
+                try {
+                    // Clear and mark for re-render
+                    state.container.innerHTML = '';
+                    state.rendered = false;
+                } catch (error) {
+                    console.error(\`Failed to update text layer viewport for page \${pageNum}:\`, error);
+                }
+            }
+        }
+        
+        function hideAllTextLayers() {
+            console.log('Hiding all text layers');
+            textLayerStates.forEach((state, pageNum) => {
+                if (state.container) {
+                    state.container.className = 'textLayer hidden';
+                }
+            });
+        }
+        
+        function cleanupTextLayer(pageNum) {
+            const state = textLayerStates.get(pageNum);
+            if (state) {
+                if (state.textLayer) {
+                    state.textLayer.cancel();
+                }
+                if (state.container) {
+                    state.container.innerHTML = '';
+                    state.container.className = 'textLayer hidden';
+                }
+                state.textLayer = null;
+                state.rendered = false;
+                textLayerCache.delete(pageNum);
+            }
+        }
+        
+        function evictOldestTextLayer() {
+            let oldestPageNum = null;
+            let oldestTime = Date.now();
+            
+            textLayerCache.forEach((time, pageNum) => {
+                if (time < oldestTime) {
+                    oldestTime = time;
+                    oldestPageNum = pageNum;
+                }
+            });
+            
+            if (oldestPageNum !== null) {
+                cleanupTextLayer(oldestPageNum);
+            }
+        }
+        
+        function monitorTextLayerPerformance(renderTime) {
+            renderTimes.push(renderTime);
+            if (renderTimes.length > 5) renderTimes.shift();
+            
+            const avgTime = renderTimes.reduce((a, b) => a + b) / renderTimes.length;
+            if (avgTime > PERFORMANCE_THRESHOLD) {
+                console.warn(\`Text layer rendering too slow (avg: \${Math.round(avgTime)}ms), consider disabling\`);
+            }
+        }
+        
+        function toggleDebug() {
+            debugMode = !debugMode;
+            const btn = document.getElementById('debugBtn');
+            btn.textContent = debugMode ? 'Debug ON' : 'Debug';
+            btn.style.backgroundColor = debugMode ? '#ff6b6b' : 'var(--vscode-button-background)';
+            
+            // Update text layer styling for debug mode
+            textLayerStates.forEach((state, pageNum) => {
+                if (state.container && state.rendered) {
+                    const spans = state.container.querySelectorAll('span');
+                    spans.forEach((span, index) => {
+                        if (debugMode) {
+                            span.style.backgroundColor = 'rgba(255, 0, 0, 0.1)';
+                            span.style.border = '1px solid red';
+                            span.style.color = 'rgba(0, 0, 0, 0.5)';
+                            // Add tooltip with text content for debugging
+                            span.title = \`Text: "\${span.textContent}" | Index: \${index} | Font: \${span.style.fontSize}\`;
+                        } else {
+                            span.style.backgroundColor = '';
+                            span.style.border = '';
+                            span.style.color = 'transparent';
+                            span.title = '';
+                        }
+                    });
+                }
+            });
+            
+            console.log(\`Debug mode \${debugMode ? 'enabled' : 'disabled'}\`);
+            if (debugMode) {
+                console.log('Hover over text elements to see their content and positioning info');
+            }
+        }
+        
         
     </script>
 </body>
