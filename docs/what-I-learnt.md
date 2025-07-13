@@ -733,3 +733,108 @@ case WEBVIEW_MESSAGES.TEXT_EXTRACTION_ERROR:
 - Console logging in JavaScript functions
 - Message type validation between JS and TypeScript
 - Proper error propagation through webview communication
+
+---
+
+## 🏗️ Extension Architecture & Custom Editors (January 2025)
+
+### **Custom Editor Provider for Binary File Handling**
+
+**Problem:** Extension didn't activate automatically when opening PDFs via File → Open menu
+**Root Cause:** VS Code requires custom editor registration to handle binary files like PDFs
+**Solution:** Implemented `CustomReadonlyEditorProvider` with proper delegation
+
+**Key Technical Discovery:**
+- `CustomTextEditorProvider` fails with "binary or unsupported encoding" error for PDFs
+- `CustomReadonlyEditorProvider` with `openCustomDocument()` + `resolveCustomEditor()` handles binary files correctly
+- Custom editor registration in `package.json` enables automatic activation
+
+### **Code Reuse Architecture Pattern**
+
+**Anti-Pattern Identified:** Creating separate PDF viewers for different entry points
+**Problem:** Led to duplicate code and inconsistent user experience
+**Solution:** Custom editor as thin wrapper delegating to existing `WebviewProvider`
+
+```typescript
+// Clean delegation pattern
+webviewPanel.webview.html = WebviewProvider.getWebviewContent(
+  webviewPanel.webview,
+  document.uri.fsPath,
+  this.context
+);
+```
+
+**Result:** Unified experience across all PDF opening methods (commands, context menu, File → Open)
+
+### **Method Visibility Refactoring**
+
+**Change:** Made `WebviewProvider.getWebviewContent()` static and public
+**Reason:** Enable reuse from custom editor while maintaining single source of truth
+**Impact:** Consistent HTML generation across different activation paths
+
+### **Package.json Configuration Insights**
+
+**Critical Settings for File Association:**
+
+```json
+"customEditors": [{
+  "viewType": "docpilot.pdfEditor",
+  "displayName": "DocPilot PDF Viewer", 
+  "selector": [{"filenamePattern": "*.pdf"}],
+  "priority": "default"
+}]
+```
+
+**Learning:** `"priority": "default"` makes extension the primary handler, `"option"` requires user selection
+
+### **Path Handling Improvements**
+
+**Before:** Complex URI manipulation with verbose chaining
+```typescript
+vscode.Uri.file(document.uri.fsPath).with({ 
+  path: vscode.Uri.file(document.uri.fsPath).path.substring(...)
+})
+```
+
+**After:** Clean separation using Node.js path utilities
+```typescript
+const pdfDirectory = vscode.Uri.file(path.dirname(document.uri.fsPath));
+```
+
+### **Extension Activation Strategy**
+
+**Dual Activation Approach:**
+1. **Chat Participant:** `"onChatParticipant:docpilot.chat-participant"`
+2. **Custom Editor:** Automatic via file pattern matching
+
+**Lesson:** Custom editors provide transparent activation - users don't need to know about the extension, it just works
+
+### **Debugging Custom Editor Issues**
+
+**Common Problems:**
+- ID mismatches between `package.json` and code
+- Incorrect editor provider interface (Text vs ReadOnly)
+- Missing local resource roots configuration
+- Import optimization breaking message constants
+
+**Debug Strategy:**
+```typescript
+console.log('Custom editor resolved for:', document.uri.fsPath);
+console.log('Webview options:', webviewPanel.webview.options);
+console.log('Message handling setup complete');
+```
+
+### **Code Organization Principles Learned**
+
+1. **Single Responsibility:** Custom editor only handles VS Code integration, not PDF logic
+2. **Delegation Pattern:** Thin wrapper that delegates to existing functionality  
+3. **Consistent Configuration:** Same webview options across all entry points
+4. **Clean Imports:** Module-level imports prevent dynamic import duplication
+
+### **User Experience Insights**
+
+**Transparent Integration:** Users expect PDF files to "just open" - custom editors enable this expectation
+**Fallback Strategy:** Extension provides multiple ways to open PDFs (commands + file association)
+**Title Consistency:** Proper webview panel titles across all opening methods
+
+**Key Takeaway:** Custom editors are essential for seamless file type integration in VS Code. They should be lightweight wrappers that delegate to core functionality rather than reimplementing features.
