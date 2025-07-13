@@ -1,5 +1,5 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { WEBVIEW_MESSAGES } from '../utils/constants';
 import { Logger } from '../utils/logger';
@@ -64,8 +64,14 @@ export class WebviewProvider {
           WebviewProvider.logger.error('Webview summarization error:', message.error);
           vscode.window.showErrorMessage(`Summarization failed: ${message.error}`);
           break;
+        case WEBVIEW_MESSAGES.EXTRACT_ALL_TEXT:
+        case WEBVIEW_MESSAGES.TEXT_EXTRACTED:
+        case WEBVIEW_MESSAGES.TEXT_EXTRACTION_ERROR:
+          // These are handled by TextExtractor, just log for now
+          WebviewProvider.logger.debug('Text extraction message received:', message.type);
+          break;
         default:
-          // Handle other existing message types if needed
+          WebviewProvider.logger.debug('Unhandled webview message:', message.type);
           break;
       }
     });
@@ -74,9 +80,8 @@ export class WebviewProvider {
   private static async handleSummarizeRequest(
     panel: vscode.WebviewPanel,
     pdfSource: string,
-    // biome-ignore lint/correctness/noUnusedVariables: Message may be used for future enhancements
     _message: WebviewMessage,
-    extensionContext: vscode.ExtensionContext
+    _extensionContext: vscode.ExtensionContext
   ): Promise<void> {
     try {
       WebviewProvider.logger.info('Handling summarize request from webview', { pdfSource });
@@ -144,7 +149,7 @@ export class WebviewProvider {
     return webview.asWebviewUri(fileUri).toString();
   }
 
-  private static getFileName(pdfSource: string): string {
+  static getFileName(pdfSource: string): string {
     if (pdfSource.startsWith('http')) {
       return 'Remote PDF';
     }

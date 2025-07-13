@@ -500,6 +500,7 @@ const finalSummary = await consolidateSummaries(
 **Discovery:** Token estimation accuracy directly impacts processing efficiency
 
 **Evolution of Estimation:**
+
 - Initial: 4 chars/token (too conservative)
 - Research-based: 3.5 chars/token (better accuracy for English)
 - Context-aware: Adjust for document type and language
@@ -542,11 +543,13 @@ try {
 ### **Performance Insights from Real-World Testing**
 
 **Document Type Performance:**
+
 - **Technical PDFs (50+ pages):** 15-30 seconds processing time
 - **Research Papers (10-20 pages):** 5-10 seconds
 - **Simple Documents (<10 pages):** 2-3 seconds
 
 **Bottleneck Analysis:**
+
 1. **Text Extraction:** 1-3 seconds (webview communication)
 2. **Chunk Creation:** <1 second (client-side processing)
 3. **AI Processing:** 80% of total time (model inference)
@@ -556,6 +559,7 @@ try {
 
 **Problem:** Large document processing can cause memory pressure
 **Solutions Implemented:**
+
 - Streaming text processing (no full-document storage)
 - Chunk-by-chunk processing (bounded memory usage)
 - Immediate cleanup after each batch
@@ -565,6 +569,7 @@ try {
 **Critical UX Insight:** Progress transparency is essential for long operations
 
 **Implementation:**
+
 ```typescript
 stream.markdown(`📊 Processing ${pdfText.length} characters (~${estimatedTokens} tokens)\n\n`);
 stream.markdown(`🔄 Created ${chunks.length} semantic chunks\n\n`);
@@ -602,6 +607,7 @@ PDF Text → Semantic Chunking → Batch Processing → Individual Summaries →
 ```
 
 **Benefits:**
+
 - Each stage can be optimized independently
 - Error isolation and recovery
 - Progress tracking at each stage
@@ -623,6 +629,7 @@ console.log(`Created ${chunks.length} chunks:`, chunks.map(c =>
 ### **API Design Insights**
 
 **Function Signature Evolution:**
+
 ```typescript
 // Initial: Too many parameters
 function processDocument(text, fileName, model, stream, token, config, options)
@@ -641,6 +648,7 @@ function processDocumentWithChunking(
 
 **Challenge:** Chunking behavior varies dramatically with document structure
 **Approach:** Test with diverse document types
+
 - Technical documentation (structured)
 - Research papers (academic format)
 - Reports (mixed content)
@@ -653,6 +661,7 @@ function processDocumentWithChunking(
 ## 🎯 Chunking Strategy Key Takeaways
 
 ### **Technical Lessons**
+
 1. **Semantic boundaries > arbitrary splits** for context preservation
 2. **Overlap is essential** but must be tuned (10% is sweet spot)
 3. **Hierarchical processing** dramatically improves summary quality
@@ -660,6 +669,7 @@ function processDocumentWithChunking(
 5. **Batch processing** with concurrency control prevents API overload
 
 ### **Architecture Insights**
+
 1. **Pipeline design** enables independent optimization of each stage
 2. **Error isolation** prevents single failures from cascading
 3. **Progress streaming** transforms user experience for long operations
@@ -667,9 +677,59 @@ function processDocumentWithChunking(
 5. **Memory management** is crucial for large document processing
 
 ### **User Experience Discoveries**
+
 1. **Transparency beats speed** - users prefer to see progress
 2. **Fallback strategies** build user confidence
 3. **Processing statistics** help users understand system behavior
 4. **Error messages** should be actionable, not just informative
 
 **The chunking enhancement taught me that AI integration at scale requires thoughtful system design - it's not just about connecting to an API, but building a robust, transparent, and user-friendly processing pipeline that gracefully handles the complexity of real-world documents.**
+
+---
+
+## 🔧 Post-Refactoring Debugging (July 2025)
+
+### **Lint Refactoring Breaking HTML Onclick Handlers**
+
+**Problem:** After comprehensive Biome lint fixes (82→0 issues), summarize button and text selection stopped working
+**Root Cause:** Automatic lint fixes renamed JavaScript functions with underscore prefixes:
+
+- `summarizeDocument` → `_summarizeDocument`
+- `toggleTextSelection` → `_toggleTextSelection`  
+- `toggleDebug` → `_toggleDebug`
+- `fitToPage` → `_fitToPage`
+
+**Issue:** HTML onclick handlers couldn't find renamed functions - linter can't detect HTML dependencies
+
+```html
+<!-- This breaks after function rename -->
+<button onclick="summarizeDocument()">📝 Summarize</button>
+```
+
+**Fix Strategy:**
+
+1. Restored original function names
+2. Added `// biome-ignore lint/correctness/noUnusedVariables: Used by HTML onclick` comments
+3. Enhanced webview message handling for better debugging
+4. Added console.log statements for troubleshooting
+
+**Lesson:** Automated refactoring tools can break implicit dependencies between HTML and JavaScript. Always test functionality after major lint fixes.
+
+### **Webview Message Handling Enhancement**
+
+**Added comprehensive message type handling:**
+
+```typescript
+case WEBVIEW_MESSAGES.EXTRACT_ALL_TEXT:
+case WEBVIEW_MESSAGES.TEXT_EXTRACTED:
+case WEBVIEW_MESSAGES.TEXT_EXTRACTION_ERROR:
+  // These are handled by TextExtractor, just log for now
+  WebviewProvider.logger.debug('Text extraction message received:', message.type);
+  break;
+```
+
+**Debugging Strategy:**
+
+- Console logging in JavaScript functions
+- Message type validation between JS and TypeScript
+- Proper error propagation through webview communication

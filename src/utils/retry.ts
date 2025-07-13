@@ -1,34 +1,38 @@
 import type { RetryOptions } from '../types/interfaces';
 import { Logger } from './logger';
 
+// biome-ignore lint/complexity/noStaticOnlyClass: This follows existing extension patterns
 export class RetryPolicy {
   private static readonly logger = Logger.getInstance();
 
   static async withRetry<T>(operation: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
     const { maxAttempts = 3, backoffMs = 1000, shouldRetry = () => true } = options;
 
-    let lastError: Error;
+    let lastError: Error | null = null;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
-        this.logger.debug(`Attempt ${attempt}/${maxAttempts}`);
+        RetryPolicy.logger.debug(`Attempt ${attempt}/${maxAttempts}`);
         return await operation();
       } catch (error) {
         lastError = error as Error;
 
-        this.logger.warn(`Attempt ${attempt} failed: ${lastError.message}`);
+        RetryPolicy.logger.warn(`Attempt ${attempt} failed: ${lastError.message}`);
 
         if (attempt === maxAttempts || !shouldRetry(error)) {
           throw error;
         }
 
-        const delay = backoffMs * Math.pow(2, attempt - 1); // Exponential backoff
-        this.logger.debug(`Retrying in ${delay}ms...`);
-        await this.delay(delay);
+        const delay = backoffMs * 2 ** (attempt - 1); // Exponential backoff
+        RetryPolicy.logger.debug(`Retrying in ${delay}ms...`);
+        await RetryPolicy.delay(delay);
       }
     }
 
-    throw lastError!;
+    if (lastError) {
+      throw lastError;
+    }
+    throw new Error('Operation failed after all retries');
   }
 
   private static delay(ms: number): Promise<void> {

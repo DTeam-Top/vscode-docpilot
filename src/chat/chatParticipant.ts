@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import { SummaryHandler } from './summaryHandler';
-import { Logger } from '../utils/logger';
-import { ChatErrorHandler } from '../utils/errorHandler';
-import { CHAT_COMMANDS } from '../utils/constants';
 import type { ChatCommandResult } from '../types/interfaces';
+import { CHAT_COMMANDS } from '../utils/constants';
+import { ChatErrorHandler } from '../utils/errorHandler';
+import { Logger } from '../utils/logger';
+import { SummaryHandler } from './summaryHandler';
 
 export class ChatParticipant {
   private static readonly logger = Logger.getInstance();
@@ -33,13 +33,13 @@ export class ChatParticipant {
         participantHandler.provideFollowups(result, context, token),
     };
 
-    this.logger.info('Chat participant registered successfully');
+    ChatParticipant.logger.info('Chat participant registered successfully');
     return chatParticipant;
   }
 
   async handleRequest(
     request: vscode.ChatRequest,
-    context: vscode.ChatContext,
+    _context: vscode.ChatContext,
     stream: vscode.ChatResponseStream,
     token: vscode.CancellationToken
   ): Promise<ChatCommandResult> {
@@ -93,8 +93,8 @@ export class ChatParticipant {
 
   provideFollowups(
     result: vscode.ChatResult,
-    context: vscode.ChatContext,
-    token: vscode.CancellationToken
+    _context: vscode.ChatContext,
+    _token: vscode.CancellationToken
   ): vscode.ChatFollowup[] {
     const followups: vscode.ChatFollowup[] = [];
 

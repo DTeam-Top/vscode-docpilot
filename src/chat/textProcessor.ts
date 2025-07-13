@@ -4,7 +4,7 @@ import { TokenEstimator } from '../utils/tokenEstimator';
 import { Logger } from '../utils/logger';
 import { ChatErrorHandler } from '../utils/errorHandler';
 import { RetryPolicy } from '../utils/retry';
-import { ModelRequestError, ChunkProcessingError } from '../utils/errors';
+import { ModelRequestError } from '../utils/errors';
 import { CONFIG } from '../utils/constants';
 import type {
   ProcessDocumentOptions,
@@ -332,7 +332,7 @@ export class TextProcessor {
           timestamp: Date.now(),
         },
       };
-    } catch (fallbackError) {
+    } catch (_fallbackError) {
       stream.markdown(`❌ Both enhanced and fallback summarization failed: ${originalError}\n\n`);
       throw new ModelRequestError(`Summarization failed: ${originalError}`);
     }

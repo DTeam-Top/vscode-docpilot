@@ -1,8 +1,9 @@
-import { TokenEstimator } from '../utils/tokenEstimator';
-import { Logger } from '../utils/logger';
-import { CONFIG } from '../utils/constants';
 import type { ChunkingConfig, DocumentChunk } from '../types/interfaces';
+import { CONFIG } from '../utils/constants';
+import { Logger } from '../utils/logger';
+import { TokenEstimator } from '../utils/tokenEstimator';
 
+// biome-ignore lint/complexity/noStaticOnlyClass: This follows existing extension patterns
 export class ChunkingStrategy {
   private static readonly logger = Logger.getInstance();
 
@@ -18,7 +19,7 @@ export class ChunkingStrategy {
   }
 
   static createSemanticChunks(pdfText: string, config: ChunkingConfig): DocumentChunk[] {
-    this.logger.info('Creating semantic chunks', {
+    ChunkingStrategy.logger.info('Creating semantic chunks', {
       textLength: pdfText.length,
       config,
     });
@@ -39,7 +40,7 @@ export class ChunkingStrategy {
 
       // Split by paragraphs for semantic boundaries
       const paragraphs = config.paragraphBoundary
-        ? this.splitIntoParagraphs(pageContent)
+        ? ChunkingStrategy.splitIntoParagraphs(pageContent)
         : [pageContent];
 
       for (const paragraph of paragraphs) {
@@ -51,7 +52,7 @@ export class ChunkingStrategy {
         if (currentTokens + paragraphTokens > config.maxTokensPerChunk && currentChunk) {
           // Create chunk with current content
           chunks.push(
-            this.createChunk(
+            ChunkingStrategy.createChunk(
               currentChunk.trim(),
               chunkIndex++,
               chunkStartPage,
@@ -61,7 +62,7 @@ export class ChunkingStrategy {
           );
 
           // Start new chunk with overlap
-          const overlapContent = this.createOverlap(currentChunk, config.overlapRatio);
+          const overlapContent = ChunkingStrategy.createOverlap(currentChunk, config.overlapRatio);
           currentChunk = `${overlapContent}\n\n${paragraph}`;
           currentTokens = TokenEstimator.estimate(currentChunk);
           chunkStartPage = pageNumber;
@@ -81,7 +82,7 @@ export class ChunkingStrategy {
     // Add final chunk if there's remaining content
     if (currentChunk.trim()) {
       chunks.push(
-        this.createChunk(
+        ChunkingStrategy.createChunk(
           currentChunk.trim(),
           chunkIndex,
           chunkStartPage,
@@ -91,7 +92,7 @@ export class ChunkingStrategy {
       );
     }
 
-    this.logger.info(`Created ${chunks.length} semantic chunks`);
+    ChunkingStrategy.logger.info(`Created ${chunks.length} semantic chunks`);
     return chunks;
   }
 
@@ -135,7 +136,7 @@ export class ChunkingStrategy {
     for (const chunk of chunks) {
       if (chunk.tokens > config.maxTokensPerChunk * 1.1) {
         // Allow 10% tolerance
-        this.logger.warn(`Chunk ${chunk.index} exceeds token limit`, {
+        ChunkingStrategy.logger.warn(`Chunk ${chunk.index} exceeds token limit`, {
           chunkTokens: chunk.tokens,
           limit: config.maxTokensPerChunk,
         });

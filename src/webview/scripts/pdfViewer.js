@@ -1,3 +1,6 @@
+// Global variables provided by VS Code webview and PDF.js
+/* global acquireVsCodeApi, pdfjsLib, PDF_CONFIG */
+
 // Make vscode API available first
 const vscode = acquireVsCodeApi();
 console.log('VSCode API initialized');
@@ -25,7 +28,7 @@ const loadingTask = pdfjsLib.getDocument(PDF_CONFIG.pdfUri);
 loadingTask.onProgress = (progress) => {
   if (progress.total > 0) {
     const percent = (progress.loaded / progress.total) * 100;
-    progressFill.style.width = percent + '%';
+    progressFill.style.width = `${percent}%`;
   }
 };
 
@@ -48,12 +51,12 @@ loadingTask.promise
     // Notify extension of PDF loading error
     vscode.postMessage({
       type: 'textExtractionError',
-      error: 'Failed to load PDF: ' + error.message,
+      error: `Failed to load PDF: ${error.message}`,
     });
   });
 
 function renderAllPages() {
-  const pdfPages = document.getElementById('pdfPages');
+  const _pdfPages = document.getElementById('pdfPages');
   const promises = [];
 
   for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
@@ -73,7 +76,7 @@ function renderPage(pageNum) {
     // Create page container
     const pageDiv = document.createElement('div');
     pageDiv.className = 'pdf-page';
-    pageDiv.id = 'page-' + pageNum;
+    pageDiv.id = `page-${pageNum}`;
 
     // Create canvas
     const canvas = document.createElement('canvas');
@@ -223,6 +226,7 @@ function fitToWidth() {
   }
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: Used by HTML onclick
 function fitToPage() {
   const container = pagesContainer;
   const containerHeight = container.clientHeight - 40;
@@ -245,7 +249,7 @@ function updatePageInfo() {
 }
 
 function updateZoomInfo() {
-  document.getElementById('zoomLevel').textContent = Math.round(scale * 100) + '%';
+  document.getElementById('zoomLevel').textContent = `${Math.round(scale * 100)}%`;
 }
 
 // Keyboard shortcuts
@@ -288,7 +292,9 @@ function initializeTextSelection() {
   }
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: Used by HTML onclick
 function toggleTextSelection() {
+  console.log('Text selection button clicked - function called');
   textSelectionEnabled = !textSelectionEnabled;
   const btn = document.getElementById('textSelectionBtn');
   btn.textContent = textSelectionEnabled ? 'Disable Text Selection' : 'Enable Text Selection';
@@ -346,7 +352,7 @@ async function renderVisibleTextLayers() {
   }
 
   // Cleanup text layers outside visible range
-  textLayerStates.forEach((state, pageNum) => {
+  textLayerStates.forEach((_state, pageNum) => {
     if (!shouldRenderTextLayer(pageNum)) {
       cleanupTextLayer(pageNum);
     }
@@ -389,16 +395,16 @@ async function renderTextLayer(pageNum) {
 
       // Extract transformation matrix values
       const tx = textItem.transform;
-      const [scaleX, skewY, skewX, scaleY, translateX, translateY] = tx;
+      const [scaleX, skewY, _skewX, _scaleY, translateX, translateY] = tx;
 
       // Calculate position and font size
       const fontSize = Math.sqrt(scaleX * scaleX + skewY * skewY);
       const fontScale = fontSize * scale;
 
       // Apply positioning
-      textSpan.style.left = translateX * scale + 'px';
-      textSpan.style.top = viewport.height - translateY * scale - fontScale + 'px';
-      textSpan.style.fontSize = fontScale + 'px';
+      textSpan.style.left = `${translateX * scale}px`;
+      textSpan.style.top = `${viewport.height - translateY * scale - fontScale}px`;
+      textSpan.style.fontSize = `${fontScale}px`;
 
       // Set font family if available
       if (textItem.fontName && textItem.fontName !== 'g_d0_f1') {
@@ -413,7 +419,11 @@ async function renderTextLayer(pageNum) {
     // Append all text spans at once
     state.container.appendChild(fragment);
 
-    state.textLayer = { cancel: () => {} };
+    state.textLayer = {
+      cancel: () => {
+        /* No-op cancel function */
+      },
+    };
     state.rendered = true;
 
     const renderTime = performance.now() - startTime;
@@ -432,7 +442,7 @@ async function renderTextLayer(pageNum) {
 
 function hideAllTextLayers() {
   console.log('Hiding all text layers');
-  textLayerStates.forEach((state, pageNum) => {
+  textLayerStates.forEach((state, _pageNum) => {
     if (state.container) {
       state.container.className = 'textLayer hidden';
     }
@@ -483,6 +493,7 @@ function monitorTextLayerPerformance(renderTime) {
   }
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: Used by HTML onclick
 function toggleDebug() {
   debugMode = !debugMode;
   const btn = document.getElementById('debugBtn');
@@ -490,7 +501,7 @@ function toggleDebug() {
   btn.style.backgroundColor = debugMode ? '#ff6b6b' : 'var(--vscode-button-background)';
 
   // Update text layer styling for debug mode
-  textLayerStates.forEach((state, pageNum) => {
+  textLayerStates.forEach((state, _pageNum) => {
     if (state.container && state.rendered) {
       const spans = state.container.querySelectorAll('span');
       spans.forEach((span, index) => {
@@ -528,8 +539,8 @@ async function extractAllTextContent() {
 
       let pageText = '';
       textContent.items.forEach((item) => {
-        if (item.str && item.str.trim()) {
-          pageText += item.str + ' ';
+        if (item.str?.trim()) {
+          pageText += `${item.str} `;
         }
       });
 
@@ -578,7 +589,9 @@ window.addEventListener('message', async (event) => {
 });
 
 // Summarize document function
+// biome-ignore lint/correctness/noUnusedVariables: Used by HTML onclick
 async function summarizeDocument() {
+  console.log('Summarize button clicked - function called');
   const summarizeBtn = document.getElementById('summarizeBtn');
 
   if (!pdfDoc) {

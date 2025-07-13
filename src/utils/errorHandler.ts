@@ -1,8 +1,9 @@
-import * as vscode from 'vscode';
+import type * as vscode from 'vscode';
+import type { ChatCommandResult } from '../types/interfaces';
 import { DocPilotError } from './errors';
 import { Logger } from './logger';
-import type { ChatCommandResult } from '../types/interfaces';
 
+// biome-ignore lint/complexity/noStaticOnlyClass: This follows existing extension patterns
 export class ChatErrorHandler {
   private static readonly logger = Logger.getInstance();
 
@@ -11,12 +12,12 @@ export class ChatErrorHandler {
     stream: vscode.ChatResponseStream,
     context: string
   ): ChatCommandResult {
-    const errorInfo = this.analyzeError(error);
+    const errorInfo = ChatErrorHandler.analyzeError(error);
 
-    this.logger.error(`Error in ${context}`, error);
+    ChatErrorHandler.logger.error(`Error in ${context}`, error);
 
     // Send user-friendly message to chat
-    stream.markdown(`❌ ${this.getUserMessage(errorInfo, context)}`);
+    stream.markdown(`❌ ${ChatErrorHandler.getUserMessage(errorInfo, context)}`);
 
     // Add technical details for debugging
     if (errorInfo.isDocPilotError) {
@@ -92,13 +93,13 @@ export class ChatErrorHandler {
     context: string
   ): Promise<T> {
     return operation().catch(async (error) => {
-      this.logger.warn(`${context} failed, attempting fallback`, error);
+      ChatErrorHandler.logger.warn(`${context} failed, attempting fallback`, error);
       stream.markdown(`⚠️ ${context} encountered an issue, trying alternative approach...\n\n`);
 
       try {
         return await fallback();
       } catch (fallbackError) {
-        this.logger.error(`Fallback also failed for ${context}`, fallbackError);
+        ChatErrorHandler.logger.error(`Fallback also failed for ${context}`, fallbackError);
         throw error; // Throw original error
       }
     });

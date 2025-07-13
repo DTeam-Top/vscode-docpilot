@@ -1,17 +1,18 @@
 import * as vscode from 'vscode';
-import { WebviewProvider } from '../webview/webviewProvider';
+import { InvalidFilePathError } from '../utils/errors';
 import { Logger } from '../utils/logger';
-import { PdfLoadError, InvalidFilePathError } from '../utils/errors';
+import { WebviewProvider } from '../webview/webviewProvider';
 
+// biome-ignore lint/complexity/noStaticOnlyClass: This follows existing extension patterns
 export class OpenPdfFromUrlCommand {
   private static readonly logger = Logger.getInstance();
 
   static register(context: vscode.ExtensionContext): vscode.Disposable {
     return vscode.commands.registerCommand('docpilot.openPdfFromUrl', async () => {
       try {
-        await this.execute(context);
+        await OpenPdfFromUrlCommand.execute(context);
       } catch (error) {
-        this.logger.error('Failed to open PDF from URL', error);
+        OpenPdfFromUrlCommand.logger.error('Failed to open PDF from URL', error);
         vscode.window.showErrorMessage(
           `Failed to open PDF: ${error instanceof Error ? error.message : 'Unknown error'}`
         );
@@ -20,7 +21,7 @@ export class OpenPdfFromUrlCommand {
   }
 
   private static async execute(context: vscode.ExtensionContext): Promise<void> {
-    this.logger.info('Prompting for PDF URL');
+    OpenPdfFromUrlCommand.logger.info('Prompting for PDF URL');
 
     const url = await vscode.window.showInputBox({
       prompt: 'Enter PDF URL',
@@ -43,11 +44,11 @@ export class OpenPdfFromUrlCommand {
     });
 
     if (!url) {
-      this.logger.info('No URL provided');
+      OpenPdfFromUrlCommand.logger.info('No URL provided');
       return;
     }
 
-    this.logger.info(`Opening PDF from URL: ${url}`);
+    OpenPdfFromUrlCommand.logger.info(`Opening PDF from URL: ${url}`);
 
     try {
       // Validate URL format
@@ -66,7 +67,7 @@ export class OpenPdfFromUrlCommand {
     // Focus the panel
     panel.reveal(vscode.ViewColumn.One);
 
-    this.logger.info(`PDF viewer created for URL: ${url}`);
+    OpenPdfFromUrlCommand.logger.info(`PDF viewer created for URL: ${url}`);
 
     // Show success message
     vscode.window.showInformationMessage(`Opening PDF from: ${new URL(url).hostname}`);

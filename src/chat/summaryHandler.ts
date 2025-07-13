@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
-import * as fs from 'fs';
+import * as path from 'node:path';
+import * as fs from 'node:fs';
 import { WebviewProvider } from '../webview/webviewProvider';
 import { TextExtractor } from '../pdf/textExtractor';
 import { TextProcessor } from './textProcessor';
@@ -150,6 +150,6 @@ export class SummaryHandler {
   }
 
   private getFileName(pdfPath: string): string {
-    return WebviewProvider['getFileName'](pdfPath);
+    return WebviewProvider.getFileName(pdfPath);
   }
 }
