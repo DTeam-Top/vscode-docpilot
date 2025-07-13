@@ -1,9 +1,18 @@
-import * as vscode from 'vscode';
-import * as path from 'path';
 import * as fs from 'fs';
+import * as path from 'path';
+import * as vscode from 'vscode';
+import { WEBVIEW_MESSAGES } from '../utils/constants';
 import { Logger } from '../utils/logger';
-import type { PdfViewerState } from '../types/interfaces';
 
+interface WebviewMessage {
+  type: string;
+  error?: string;
+  fileName?: string;
+  isUrl?: boolean;
+  pdfUri?: string;
+}
+
+// biome-ignore lint/complexity/noStaticOnlyClass: This follows existing extension patterns
 export class WebviewProvider {
   private static readonly logger = Logger.getInstance();
 
@@ -11,7 +20,7 @@ export class WebviewProvider {
     pdfSource: string,
     extensionContext: vscode.ExtensionContext
   ): vscode.WebviewPanel {
-    const fileName = this.getFileName(pdfSource);
+    const fileName = WebviewProvider.getFileName(pdfSource);
 
     const panel = vscode.window.createWebviewPanel(
       'docpilotPdfViewer',
@@ -27,11 +36,88 @@ export class WebviewProvider {
       }
     );
 
-    panel.webview.html = this.getWebviewContent(panel.webview, pdfSource, extensionContext);
+    panel.webview.html = WebviewProvider.getWebviewContent(
+      panel.webview,
+      pdfSource,
+      extensionContext
+    );
 
-    this.logger.info(`Created PDF viewer for: ${pdfSource}`);
+    // Set up message handling for summarize requests
+    WebviewProvider.setupMessageHandling(panel, pdfSource, extensionContext);
+
+    WebviewProvider.logger.info(`Created PDF viewer for: ${pdfSource}`);
 
     return panel;
+  }
+
+  private static setupMessageHandling(
+    panel: vscode.WebviewPanel,
+    pdfSource: string,
+    extensionContext: vscode.ExtensionContext
+  ): void {
+    panel.webview.onDidReceiveMessage(async (message) => {
+      switch (message.type) {
+        case WEBVIEW_MESSAGES.SUMMARIZE_REQUEST:
+          await WebviewProvider.handleSummarizeRequest(panel, pdfSource, message, extensionContext);
+          break;
+        case WEBVIEW_MESSAGES.SUMMARIZE_ERROR:
+          WebviewProvider.logger.error('Webview summarization error:', message.error);
+          vscode.window.showErrorMessage(`Summarization failed: ${message.error}`);
+          break;
+        default:
+          // Handle other existing message types if needed
+          break;
+      }
+    });
+  }
+
+  private static async handleSummarizeRequest(
+    panel: vscode.WebviewPanel,
+    pdfSource: string,
+    // biome-ignore lint/correctness/noUnusedVariables: Message may be used for future enhancements
+    _message: WebviewMessage,
+    extensionContext: vscode.ExtensionContext
+  ): Promise<void> {
+    try {
+      WebviewProvider.logger.info('Handling summarize request from webview', { pdfSource });
+
+      // Notify webview that summarization has started
+      panel.webview.postMessage({
+        type: WEBVIEW_MESSAGES.SUMMARIZE_STARTED,
+      });
+
+      // Open chat view first
+      await vscode.commands.executeCommand('workbench.panel.chat.view.copilot.focus');
+
+      // Create and send a chat request
+      const chatInput = pdfSource.startsWith('http')
+        ? `@docpilot /summarise ${pdfSource}`
+        : `@docpilot /summarise ${pdfSource}`;
+
+      // Insert the chat command into the chat input
+      await vscode.commands.executeCommand('workbench.action.chat.open', {
+        query: chatInput,
+      });
+
+      // Notify webview that summarization completed
+      panel.webview.postMessage({
+        type: WEBVIEW_MESSAGES.SUMMARIZE_COMPLETED,
+      });
+
+      WebviewProvider.logger.info('Summarize request processed successfully');
+    } catch (error) {
+      WebviewProvider.logger.error('Failed to handle summarize request', error);
+
+      // Notify webview of error
+      panel.webview.postMessage({
+        type: WEBVIEW_MESSAGES.SUMMARIZE_ERROR,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      vscode.window.showErrorMessage(
+        `Failed to summarize PDF: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
   }
 
   private static getWebviewContent(
@@ -40,13 +126,13 @@ export class WebviewProvider {
     extensionContext: vscode.ExtensionContext
   ): string {
     const templateData = {
-      pdfUri: this.resolvePdfUri(webview, pdfSource),
+      pdfUri: WebviewProvider.resolvePdfUri(webview, pdfSource),
       isUrl: pdfSource.startsWith('http'),
-      fileName: this.getFileName(pdfSource),
-      scriptUri: this.getScriptUri(webview, extensionContext),
+      fileName: WebviewProvider.getFileName(pdfSource),
+      scriptUri: WebviewProvider.getScriptUri(webview, extensionContext),
     };
 
-    return this.renderTemplate(templateData, extensionContext);
+    return WebviewProvider.renderTemplate(templateData, extensionContext);
   }
 
   private static resolvePdfUri(webview: vscode.Webview, pdfSource: string): string {
@@ -97,13 +183,13 @@ export class WebviewProvider {
       // Simple template replacement
       template = template.replace(/{{pdfUri}}/g, data.pdfUri);
       template = template.replace(/{{isUrl}}/g, data.isUrl.toString());
-      template = template.replace(/{{fileName}}/g, this.escapeHtml(data.fileName));
+      template = template.replace(/{{fileName}}/g, WebviewProvider.escapeHtml(data.fileName));
       template = template.replace(/{{scriptUri}}/g, data.scriptUri);
 
       return template;
     } catch (error) {
-      this.logger.error('Failed to load webview template', error);
-      return this.getFallbackTemplate(data);
+      WebviewProvider.logger.error('Failed to load webview template', error);
+      return WebviewProvider.getFallbackTemplate(data);
     }
   }
 
@@ -131,14 +217,14 @@ export class WebviewProvider {
       <body>
         <div style="padding: 20px; text-align: center;">
           <h3>PDF Viewer</h3>
-          <p>Loading ${this.escapeHtml(data.fileName)}...</p>
+          <p>Loading ${WebviewProvider.escapeHtml(data.fileName)}...</p>
           <div id="pdfContainer"></div>
         </div>
         <script>
           const PDF_CONFIG = {
             pdfUri: '${data.pdfUri}',
             isUrl: ${data.isUrl},
-            fileName: '${this.escapeHtml(data.fileName)}'
+            fileName: '${WebviewProvider.escapeHtml(data.fileName)}'
           };
           // Basic PDF loading fallback
           const vscode = acquireVsCodeApi();
@@ -151,7 +237,7 @@ export class WebviewProvider {
 
   static validatePdfPath(pdfPath: string): boolean {
     if (pdfPath.startsWith('http')) {
-      return this.isValidUrl(pdfPath);
+      return WebviewProvider.isValidUrl(pdfPath);
     }
 
     return fs.existsSync(pdfPath) && pdfPath.toLowerCase().endsWith('.pdf');

@@ -17,12 +17,12 @@ const textLayerCache = new Map(); // LRU cache for text layers
 const MAX_CACHED_TEXT_LAYERS = 10;
 const VISIBLE_PAGE_BUFFER = 2;
 const MAX_TEXT_DIVS_PER_PAGE = 50000;
-let renderTimes = [];
+const renderTimes = [];
 const PERFORMANCE_THRESHOLD = 500; // 500ms
 
 // Load PDF
 const loadingTask = pdfjsLib.getDocument(PDF_CONFIG.pdfUri);
-loadingTask.onProgress = function (progress) {
+loadingTask.onProgress = (progress) => {
   if (progress.total > 0) {
     const percent = (progress.loaded / progress.total) * 100;
     progressFill.style.width = percent + '%';
@@ -30,7 +30,7 @@ loadingTask.onProgress = function (progress) {
 };
 
 loadingTask.promise
-  .then(function (pdf) {
+  .then((pdf) => {
     pdfDoc = pdf;
     pagesContainer.innerHTML = '<div class="pdf-pages" id="pdfPages"></div>';
     updatePageInfo();
@@ -40,7 +40,7 @@ loadingTask.promise
     // Signal that PDF is ready for text extraction
     console.log('PDF loaded successfully, ready for text extraction');
   })
-  .catch(function (error) {
+  .catch((error) => {
     console.error('Error loading PDF:', error);
     pagesContainer.innerHTML =
       '<div class="error">Failed to load PDF. The file may be corrupted or inaccessible.</div>';
@@ -67,7 +67,7 @@ function renderAllPages() {
 }
 
 function renderPage(pageNum) {
-  return pdfDoc.getPage(pageNum).then(function (page) {
+  return pdfDoc.getPage(pageNum).then((page) => {
     const viewport = page.getViewport({ scale: scale });
 
     // Create page container
@@ -112,7 +112,7 @@ function setupScrollListener() {
   const container = pagesContainer;
   let scrollTimeout;
 
-  container.addEventListener('scroll', function () {
+  container.addEventListener('scroll', () => {
     clearTimeout(scrollTimeout);
     scrollTimeout = setTimeout(() => {
       updateCurrentPage();
@@ -156,14 +156,14 @@ function setZoom(newScale, immediate = false) {
 
 function rerenderAllPages() {
   const pages = document.querySelectorAll('.pdf-page');
-  let renderPromises = [];
+  const renderPromises = [];
 
   // Re-render each page at the new scale
   pages.forEach((pageDiv, index) => {
     const pageNum = index + 1;
     const canvas = pageDiv.querySelector('canvas');
     if (canvas && pdfDoc) {
-      const promise = pdfDoc.getPage(pageNum).then(function (page) {
+      const promise = pdfDoc.getPage(pageNum).then((page) => {
         const viewport = page.getViewport({ scale: scale });
         const ctx = canvas.getContext('2d');
 
@@ -249,7 +249,7 @@ function updateZoomInfo() {
 }
 
 // Keyboard shortcuts
-document.addEventListener('keydown', function (e) {
+document.addEventListener('keydown', (e) => {
   if (e.ctrlKey || e.metaKey) {
     if (e.key === '=' || e.key === '+') {
       e.preventDefault();
@@ -265,7 +265,7 @@ document.addEventListener('keydown', function (e) {
 });
 
 // Only zoom on wheel when Ctrl is explicitly held down
-document.addEventListener('wheel', function (e) {
+document.addEventListener('wheel', (e) => {
   if (e.ctrlKey && !e.shiftKey && !e.altKey) {
     e.preventDefault();
     if (e.deltaY < 0) {
@@ -574,6 +574,73 @@ window.addEventListener('message', async (event) => {
         error: error.message || 'Unknown error during text extraction',
       });
     }
+  }
+});
+
+// Summarize document function
+async function summarizeDocument() {
+  const summarizeBtn = document.getElementById('summarizeBtn');
+
+  if (!pdfDoc) {
+    console.error('PDF not loaded yet');
+    return;
+  }
+
+  try {
+    // Disable button and show loading state
+    summarizeBtn.disabled = true;
+    summarizeBtn.innerHTML = '⏳ Summarizing...';
+    summarizeBtn.style.opacity = '0.6';
+
+    console.log('Starting document summarization...');
+
+    // Send summarize request to extension
+    vscode.postMessage({
+      type: 'summarizeRequest',
+      fileName: PDF_CONFIG.fileName,
+      isUrl: PDF_CONFIG.isUrl,
+      pdfUri: PDF_CONFIG.pdfUri,
+    });
+  } catch (error) {
+    console.error('Error starting summarization:', error);
+
+    // Reset button state
+    summarizeBtn.disabled = false;
+    summarizeBtn.innerHTML = '📝 Summarize';
+    summarizeBtn.style.opacity = '1';
+
+    vscode.postMessage({
+      type: 'summarizeError',
+      error: error.message || 'Failed to start summarization',
+    });
+  }
+}
+
+// Listen for summarization status updates
+window.addEventListener('message', (event) => {
+  const message = event.data;
+  const summarizeBtn = document.getElementById('summarizeBtn');
+
+  switch (message.type) {
+    case 'summarizeStarted':
+      console.log('Summarization started in extension');
+      break;
+
+    case 'summarizeCompleted':
+      console.log('Summarization completed');
+      // Reset button state
+      summarizeBtn.disabled = false;
+      summarizeBtn.innerHTML = '📝 Summarize';
+      summarizeBtn.style.opacity = '1';
+      break;
+
+    case 'summarizeError':
+      console.error('Summarization error:', message.error);
+      // Reset button state
+      summarizeBtn.disabled = false;
+      summarizeBtn.innerHTML = '📝 Summarize';
+      summarizeBtn.style.opacity = '1';
+      break;
   }
 });
 

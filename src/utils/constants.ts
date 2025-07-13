@@ -40,6 +40,10 @@ export const WEBVIEW_MESSAGES = {
   EXTRACT_ALL_TEXT: 'extractAllText',
   TEXT_EXTRACTED: 'textExtracted',
   TEXT_EXTRACTION_ERROR: 'textExtractionError',
+  SUMMARIZE_REQUEST: 'summarizeRequest',
+  SUMMARIZE_STARTED: 'summarizeStarted',
+  SUMMARIZE_COMPLETED: 'summarizeCompleted',
+  SUMMARIZE_ERROR: 'summarizeError',
 } as const;
 
 export const CHAT_COMMANDS = {
