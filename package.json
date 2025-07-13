@@ -1,0 +1,51 @@
+{
+  "name": "vscode-docpilot",
+  "displayName": "DocPilot",
+  "description": "View PDF files in VSCode from local files or remote URLs",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "docpilot.openLocalPdf",
+        "title": "Open Local PDF",
+        "category": "DocPilot"
+      },
+      {
+        "command": "docpilot.openPdfFromUrl",
+        "title": "Open PDF from URL",
+        "category": "DocPilot"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "docpilot.openLocalPdf",
+          "when": "resourceExtname == .pdf",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "biome lint src/",
+    "format": "biome format --write src/",
+    "check": "biome check src/"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.1.1",
+    "@types/node": "16.x",
+    "@types/vscode": "^1.74.0",
+    "typescript": "^4.9.4"
+  }
+}
