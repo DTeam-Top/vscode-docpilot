@@ -164,8 +164,14 @@ function getWebviewContent(webview: vscode.Webview, pdfSource: string): string {
             -webkit-user-select: text;
             -moz-user-select: text;
             -ms-user-select: text;
+            line-height: 1;
+            font-family: sans-serif;
         }
         .pdf-page .textLayer span::selection {
+            background: rgba(0, 123, 255, 0.3);
+            color: transparent;
+        }
+        .pdf-page .textLayer span::-moz-selection {
             background: rgba(0, 123, 255, 0.3);
             color: transparent;
         }
@@ -627,7 +633,7 @@ function getWebviewContent(webview: vscode.Webview, pdfSource: string): string {
                 state.container.innerHTML = '';
                 state.container.className = 'textLayer enabled';
                 
-                // Get text content
+                // Get text content with safer options
                 const textContent = await state.page.getTextContent();
                 if (textContent.items.length > MAX_TEXT_DIVS_PER_PAGE) {
                     console.warn(\`Page \${pageNum} has \${textContent.items.length} text items, skipping\`);
@@ -640,7 +646,7 @@ function getWebviewContent(webview: vscode.Webview, pdfSource: string): string {
                 // Create a document fragment for better performance
                 const fragment = document.createDocumentFragment();
                 
-                // Process text items with improved positioning
+                // Process text items with simplified positioning
                 textContent.items.forEach((textItem, index) => {
                     if (!textItem.str || textItem.str.trim() === '') return;
                     
@@ -656,21 +662,13 @@ function getWebviewContent(webview: vscode.Webview, pdfSource: string): string {
                     const fontSize = Math.sqrt(scaleX * scaleX + skewY * skewY);
                     const fontScale = fontSize * scale;
                     
-                    // Apply positioning with proper coordinate transformation
+                    // Apply positioning
                     textSpan.style.left = (translateX * scale) + 'px';
                     textSpan.style.top = (viewport.height - (translateY * scale) - fontScale) + 'px';
                     textSpan.style.fontSize = fontScale + 'px';
                     
-                    // Apply transformation matrix for rotation and scaling
-                    if (skewX !== 0 || skewY !== 0 || Math.abs(scaleX) !== Math.abs(scaleY)) {
-                        const angle = Math.atan2(skewY, scaleX) * 180 / Math.PI;
-                        const scaleAdjustment = fontScale / fontSize;
-                        textSpan.style.transform = \`rotate(\${angle}deg) scaleX(\${scaleX / fontSize * scaleAdjustment})\`;
-                    }
-                    
                     // Set font family if available
                     if (textItem.fontName && textItem.fontName !== 'g_d0_f1') {
-                        textSpan.style.fontFamily = textItem.fontName.includes('Bold') ? 'bold' : 'sans-serif';
                         if (textItem.fontName.includes('Bold')) {
                             textSpan.style.fontWeight = 'bold';
                         }
@@ -774,21 +772,27 @@ function getWebviewContent(webview: vscode.Webview, pdfSource: string): string {
             textLayerStates.forEach((state, pageNum) => {
                 if (state.container && state.rendered) {
                     const spans = state.container.querySelectorAll('span');
-                    spans.forEach(span => {
+                    spans.forEach((span, index) => {
                         if (debugMode) {
                             span.style.backgroundColor = 'rgba(255, 0, 0, 0.1)';
                             span.style.border = '1px solid red';
                             span.style.color = 'rgba(0, 0, 0, 0.5)';
+                            // Add tooltip with text content for debugging
+                            span.title = \`Text: "\${span.textContent}" | Index: \${index} | Font: \${span.style.fontSize}\`;
                         } else {
                             span.style.backgroundColor = '';
                             span.style.border = '';
                             span.style.color = 'transparent';
+                            span.title = '';
                         }
                     });
                 }
             });
             
             console.log(\`Debug mode \${debugMode ? 'enabled' : 'disabled'}\`);
+            if (debugMode) {
+                console.log('Hover over text elements to see their content and positioning info');
+            }
         }
         
         
