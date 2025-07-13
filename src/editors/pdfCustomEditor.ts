@@ -37,6 +37,16 @@ export class PdfCustomEditorProvider implements vscode.CustomReadonlyEditorProvi
   ): Promise<void> {
     PdfCustomEditorProvider.logger.info(`Opening PDF file via custom editor: ${document.uri.fsPath}`);
 
+    // Check if there's already a viewer for this file
+    const existingPanel = WebviewProvider.getExistingViewer(document.uri.fsPath);
+    if (existingPanel) {
+      // Close the new panel that VS Code created and reveal the existing one
+      webviewPanel.dispose();
+      existingPanel.reveal(vscode.ViewColumn.One);
+      PdfCustomEditorProvider.logger.info(`Reusing existing viewer for: ${document.uri.fsPath}`);
+      return;
+    }
+
     // Configure webview with proper options
     const pdfDirectory = vscode.Uri.file(path.dirname(document.uri.fsPath));
     
@@ -62,7 +72,15 @@ export class PdfCustomEditorProvider implements vscode.CustomReadonlyEditorProvi
     const fileName = path.basename(document.uri.fsPath);
     webviewPanel.title = `📄 ${fileName}`;
 
+    // Register this panel in the tracking system (important!)
+    this.registerPanelInTracking(webviewPanel, document.uri.fsPath);
+
     PdfCustomEditorProvider.logger.info(`PDF custom editor resolved for: ${document.uri.fsPath}`);
+  }
+
+  private registerPanelInTracking(panel: vscode.WebviewPanel, pdfPath: string): void {
+    // Register this panel in WebviewProvider's tracking system
+    WebviewProvider.registerExternalPanel(pdfPath, panel);
   }
 
   private setupMessageHandling(panel: vscode.WebviewPanel, pdfSource: string): void {

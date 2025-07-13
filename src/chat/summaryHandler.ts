@@ -102,11 +102,14 @@ export class SummaryHandler {
     stream: vscode.ChatResponseStream
   ): Promise<vscode.WebviewPanel> {
     try {
-      stream.markdown('📄 Opening PDF viewer...\n\n');
-
+      // Check if viewer already exists, otherwise create/reveal one
       const panel = WebviewProvider.createPdfViewer(pdfPath, this.extensionContext);
+      
+      // The createPdfViewer method now handles reuse internally, so we always get a valid panel
+      const action = panel.visible ? 'Reusing existing' : 'Opening';
+      stream.markdown(`📄 ${action} PDF viewer...\n\n`);
 
-      SummaryHandler.logger.info(`PDF viewer created for: ${pdfPath}`);
+      SummaryHandler.logger.info(`PDF viewer ready for: ${pdfPath}`);
       return panel;
     } catch (error) {
       throw new PdfLoadError(pdfPath, error as Error);

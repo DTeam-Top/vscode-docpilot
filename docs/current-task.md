@@ -2,54 +2,71 @@
 
 ## ✅ Recently Completed
 
-### Extension Architecture Cleanup & Restoration
+### Viewer Deduplication System Implementation
+- **Fixed duplicate viewer issue** - Same PDF now reuses existing viewer across all opening methods
+- **Integrated custom editor with tracking** - File → Open now checks for existing viewers
+- **Enhanced WebviewProvider API** - Added `registerExternalPanel()` for proper integration
+- **Improved path normalization** - Handles file:// URLs and edge cases consistently
+- **Added comprehensive logging** - Debug information for troubleshooting viewer lifecycle
+
+### Previous Session: Extension Architecture Cleanup & Restoration
 - **Fixed broken automatic PDF activation** after mistakenly removing custom editor
 - **Restored proper custom editor implementation** with clean delegation to WebviewProvider
 - **Updated package.json** with correct custom editor registration (`"priority": "default"`)
 - **Enhanced extension.ts** to register PdfCustomEditorProvider for File → Open activation
 
-### Code Quality Improvements
-- **Optimized imports** - Added WEBVIEW_MESSAGES import to prevent duplication
-- **Improved path handling** - Replaced complex URI manipulation with clean `path.dirname()`
-- **Added clear documentation** - Comments explaining custom editor purpose
-
 ## 🎯 Current System Architecture
 
-### Unified PDF Viewing System
-- **WebviewProvider**: Core PDF viewer functionality (HTML generation, message handling)
-- **Custom Editor**: Thin wrapper for File → Open integration, delegates to WebviewProvider
-- **Commands**: Manual PDF opening via command palette or context menu
-- **WebviewUtils**: Shared utility for consistent panel creation across entry points
+### Unified PDF Viewing System with Deduplication
+- **WebviewProvider**: Core PDF viewer with centralized panel tracking and deduplication
+- **Custom Editor**: Integrated with tracking system, checks for existing viewers before creation
+- **Commands**: Manual PDF opening via command palette or context menu (uses WebviewProvider)
+- **WebviewUtils**: Shared utility for consistent panel creation (uses WebviewProvider)
+- **Panel Tracking**: Centralized `activePanels` Map prevents duplicate viewers for same files
 
-### Activation Methods
-1. **Automatic**: File → Open on PDF files (via custom editor)
-2. **Manual Commands**: `docpilot.openLocalPdf`, `docpilot.openPdfFromUrl`
-3. **Context Menu**: Right-click on PDF files in explorer
-4. **Chat Integration**: `@docpilot /summarise` command
+### Activation Methods (All Deduplicated)
+1. **Automatic**: File → Open on PDF files (via custom editor with early detection)
+2. **Manual Commands**: `docpilot.openLocalPdf`, `docpilot.openPdfFromUrl` (via WebviewProvider)
+3. **Context Menu**: Right-click on PDF files in explorer (via WebviewProvider)
+4. **Chat Integration**: `@docpilot /summarise` command (via WebviewProvider)
+5. **Summarize Button**: In-viewer summarization (via chat integration)
 
 ## 📋 Next Potential Tasks
 
 ### Enhancement Opportunities
-- [ ] Implement proper WebviewProvider message delegation in custom editor (avoid code duplication)
-- [ ] Add comprehensive error handling for custom editor failures
-- [ ] Consider performance optimizations for large PDF files
-- [ ] Enhance text selection functionality based on user feedback
+- [ ] Performance optimizations for large PDF files (lazy loading, virtualization)
+- [ ] Enhanced text selection functionality based on user feedback
+- [ ] Search functionality within PDF documents
+- [ ] Bookmark and annotation support
+- [ ] Multiple panel view modes (side-by-side, split view)
 
 ### Technical Debt
-- [ ] Review webview resource root configuration for security best practices
-- [ ] Optimize bundle size by analyzing unused dependencies
-- [ ] Add comprehensive unit tests for custom editor provider
-- [ ] Document extension architecture for future maintainers
+- [ ] Add comprehensive unit tests for deduplication system
+- [ ] Performance monitoring and metrics collection
+- [ ] Memory usage optimization for multiple large PDFs
+- [ ] Bundle size optimization by analyzing unused dependencies
+- [ ] Comprehensive error recovery strategies
 
 ## 🚀 Current State
 
-**Status**: ✅ **Fully Functional**
-- Automatic PDF activation works correctly
-- All viewer features consistent across entry points
-- Clean architecture with proper separation of concerns
-- No compilation errors or linting issues
+**Status**: ✅ **Fully Functional with Enhanced Resource Management**
+- ✅ Automatic PDF activation works correctly across all methods
+- ✅ Viewer deduplication prevents duplicate tabs for same files
+- ✅ All viewer features consistent across entry points  
+- ✅ Clean architecture with centralized resource tracking
+- ✅ Proper memory management with automatic cleanup
+- ✅ No compilation errors or linting issues
 
-**Ready for**: User testing, feature enhancements, or deployment
+**Ready for**: User testing, performance optimization, or deployment
+
+### 🎯 Deduplication Test Results
+| Test Case | Status | Method |
+|---|---|---|
+| File → Open menu | ✅ **Fixed** | Custom editor early detection |
+| Command palette | ✅ Working | WebviewProvider tracking |
+| Context menu | ✅ Working | WebviewProvider tracking |
+| Chat integration | ✅ Working | WebviewProvider tracking |
+| Summarize button | ✅ Working | Chat → WebviewProvider |
 
 ---
 
@@ -71,3 +88,6 @@
 - ✅ Command logic refactoring with shared utilities
 - ✅ Custom editor implementation for automatic activation
 - ✅ Architecture cleanup and code organization
+- ✅ **Viewer deduplication system** - Fixed duplicate viewer creation
+- ✅ **Centralized resource management** - Single tracking system for all entry points
+- ✅ **Enhanced path normalization** - Robust handling of different path formats

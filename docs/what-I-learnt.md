@@ -838,3 +838,209 @@ console.log('Message handling setup complete');
 **Title Consistency:** Proper webview panel titles across all opening methods
 
 **Key Takeaway:** Custom editors are essential for seamless file type integration in VS Code. They should be lightweight wrappers that delegate to core functionality rather than reimplementing features.
+
+---
+
+## 🔄 Viewer Deduplication & Resource Management (January 2025)
+
+### **Duplicate Viewer Problem Discovery**
+
+**Issue Identified:** Multiple viewers opened for the same PDF file when using different opening methods
+**User Impact:** Cluttered workspace, increased memory usage, confusing user experience
+**Root Cause:** Custom editor provider bypassed WebviewProvider tracking system
+
+**Test Cases That Failed:**
+1. ❌ File → Open menu created new viewer even when file already open
+2. ✅ Command-based opening worked correctly (used WebviewProvider)
+3. ✅ Chat integration worked correctly (used WebviewProvider)
+
+### **Technical Root Cause Analysis**
+
+**Custom Editor Bypass Issue:**
+- VS Code's `CustomReadonlyEditorProvider.resolveCustomEditor()` receives pre-created webview panel
+- Custom editor configured panel directly without checking existing viewers
+- Panel tracking happened in `WebviewProvider.createPdfViewer()` but custom editor didn't use it
+
+**Architecture Gap:**
+```typescript
+// Problem: Custom editor bypassed tracking
+webviewPanel.webview.html = WebviewProvider.getWebviewContent(...);
+// Missing: Check for existing panels before configuration
+```
+
+### **Comprehensive Deduplication Solution**
+
+**1. Early Detection Pattern:**
+```typescript
+// Check before configuring new panel
+const existingPanel = WebviewProvider.getExistingViewer(document.uri.fsPath);
+if (existingPanel) {
+  webviewPanel.dispose(); // Close VS Code's new panel
+  existingPanel.reveal(vscode.ViewColumn.One); // Show existing
+  return;
+}
+```
+
+**2. Unified Panel Registration:**
+```typescript
+// New API for external panel integration
+static registerExternalPanel(pdfSource: string, panel: vscode.WebviewPanel): void {
+  const normalizedPath = WebviewProvider.normalizePath(pdfSource);
+  WebviewProvider.activePanels.set(normalizedPath, panel);
+  // Automatic cleanup on disposal
+}
+```
+
+**3. Enhanced Path Normalization:**
+```typescript
+private static normalizePath(pdfSource: string): string {
+  if (pdfSource.startsWith('http')) return pdfSource.toLowerCase();
+  
+  // Handle file:// URLs and regular paths
+  let filePath = pdfSource.startsWith('file://') 
+    ? pdfSource.substring(7) 
+    : pdfSource;
+  return path.resolve(filePath).toLowerCase();
+}
+```
+
+### **Integration Architecture**
+
+**Centralized Tracking System:**
+- `WebviewProvider.activePanels` - Single source of truth for all open viewers
+- `registerExternalPanel()` - Integration point for custom editors
+- `getExistingViewer()` - Check for duplicates before creation
+- Automatic cleanup on panel disposal
+
+**All Entry Points Now Unified:**
+1. **Commands** → `WebviewProvider.createPdfViewer()` → Built-in tracking
+2. **Custom Editor** → Early detection + `registerExternalPanel()` → Integrated tracking  
+3. **Chat Integration** → `WebviewProvider.createPdfViewer()` → Built-in tracking
+4. **Context Menu** → `WebviewUtils` → `WebviewProvider.createPdfViewer()` → Built-in tracking
+
+### **Memory Management Improvements**
+
+**Automatic Cleanup Strategy:**
+```typescript
+panel.onDidDispose(() => {
+  WebviewProvider.activePanels.delete(normalizedPath);
+  WebviewProvider.logger.info(`PDF viewer disposed for: ${pdfSource}`);
+});
+```
+
+**Resource Optimization:**
+- Single viewer per unique file reduces memory footprint
+- Panel reuse eliminates redundant PDF loading/parsing
+- Faster response times when accessing already-open files
+
+### **Debugging Enhancements**
+
+**Added Comprehensive Logging:**
+```typescript
+WebviewProvider.logger.info(`Reusing existing PDF viewer for: ${pdfSource} (normalized: ${normalizedPath})`);
+WebviewProvider.logger.info(`Created PDF viewer for: ${pdfSource} (normalized: ${normalizedPath})`);
+```
+
+**Path Normalization Visibility:**
+- Debug logs include both original and normalized paths
+- Easier troubleshooting of path matching issues
+- Clear indication of reuse vs creation
+
+### **Error Handling Robustness**
+
+**Panel Disposal Safety:**
+- Custom editor checks for existing panels before configuration
+- Graceful disposal of duplicate panels created by VS Code
+- No resource leaks from untracked panels
+
+**Edge Case Coverage:**
+- `file://` URL handling in normalization
+- Case-insensitive path matching
+- Absolute path resolution for consistency
+
+### **Performance Impact Analysis**
+
+**Before Deduplication:**
+- Multiple PDF.js instances for same file
+- Duplicate HTML rendering and JavaScript execution
+- Increased memory per duplicate viewer
+
+**After Deduplication:**
+- Single PDF.js instance per unique file
+- Panel reveal operations (fast) instead of creation (slow)
+- Reduced memory footprint and CPU usage
+
+### **User Experience Improvements**
+
+**Behavior Consistency:**
+- All opening methods now behave identically
+- No more confusion about which viewer to use
+- Cleaner VS Code tab bar without duplicates
+
+**Response Time:**
+- Opening already-loaded PDFs is nearly instantaneous
+- Reduced extension activation overhead
+- Better perceived performance
+
+### **API Design Lessons**
+
+**Proper Encapsulation:**
+- `registerExternalPanel()` provides clean integration point
+- Internal tracking map remains private
+- Consistent cleanup handling across all registration methods
+
+**Separation of Concerns:**
+- Custom editor handles VS Code integration
+- WebviewProvider handles viewer lifecycle
+- Clear boundaries between components
+
+### **Testing Strategy for Deduplication**
+
+**Test Matrix Coverage:**
+| Opening Method | Entry Point | Tracking | Result |
+|---|---|---|---|
+| File → Open | Custom Editor | ✅ Early detection | ✅ Reuses viewer |
+| Command Palette | WebviewProvider | ✅ Built-in | ✅ Reuses viewer |
+| Context Menu | WebviewUtils → WebviewProvider | ✅ Built-in | ✅ Reuses viewer |
+| Chat Integration | WebviewProvider | ✅ Built-in | ✅ Reuses viewer |
+| Summarize Button | Chat → WebviewProvider | ✅ Built-in | ✅ Reuses viewer |
+
+### **Architecture Pattern: Centralized Resource Management**
+
+**Key Insight:** Resource deduplication requires a single point of truth
+**Implementation:** All viewer creation flows through or registers with WebviewProvider
+**Benefit:** Consistent behavior regardless of entry point
+
+```typescript
+// Pattern: Check before create
+const existing = ResourceManager.getExisting(resource);
+if (existing) {
+  return existing.reveal();
+}
+const newResource = ResourceManager.create(resource);
+ResourceManager.track(newResource);
+```
+
+### **Lessons for Extension Development**
+
+**1. Custom Editors Need Special Handling**
+- VS Code creates panels before provider methods are called
+- Must check for existing resources early in lifecycle
+- Cannot prevent initial panel creation, but can dispose duplicates
+
+**2. Centralized State Management**
+- All resource creation should go through single tracking system
+- External integrations need explicit registration methods
+- Cleanup should be automatic and consistent
+
+**3. Path Normalization is Critical**
+- Different VS Code APIs may provide paths in different formats
+- Normalization must handle edge cases (`file://`, relative paths)
+- Case sensitivity varies by platform
+
+**4. Debug Logging for Complex Flows**
+- Multi-entry point systems need comprehensive logging
+- Include both original and processed identifiers
+- Clear indication of reuse vs creation decisions
+
+**The deduplication implementation demonstrates that resource management in VS Code extensions requires careful consideration of all entry points and lifecycle events. A centralized tracking system with proper integration APIs ensures consistent behavior while maintaining clean separation of concerns.**

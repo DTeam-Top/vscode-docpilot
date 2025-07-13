@@ -15,11 +15,23 @@ interface WebviewMessage {
 // biome-ignore lint/complexity/noStaticOnlyClass: This follows existing extension patterns
 export class WebviewProvider {
   private static readonly logger = Logger.getInstance();
+  private static readonly activePanels = new Map<string, vscode.WebviewPanel>();
 
   static createPdfViewer(
     pdfSource: string,
     extensionContext: vscode.ExtensionContext
   ): vscode.WebviewPanel {
+    // Check if panel already exists for this PDF
+    const normalizedPath = WebviewProvider.normalizePath(pdfSource);
+    const existingPanel = WebviewProvider.activePanels.get(normalizedPath);
+    
+    if (existingPanel) {
+      // Reveal existing panel instead of creating new one
+      existingPanel.reveal(vscode.ViewColumn.One);
+      WebviewProvider.logger.info(`Reusing existing PDF viewer for: ${pdfSource} (normalized: ${normalizedPath})`);
+      return existingPanel;
+    }
+
     const fileName = WebviewProvider.getFileName(pdfSource);
 
     const panel = vscode.window.createWebviewPanel(
@@ -45,9 +57,50 @@ export class WebviewProvider {
     // Set up message handling for summarize requests
     WebviewProvider.setupMessageHandling(panel, pdfSource, extensionContext);
 
-    WebviewProvider.logger.info(`Created PDF viewer for: ${pdfSource}`);
+    // Track this panel and clean up when disposed
+    WebviewProvider.activePanels.set(normalizedPath, panel);
+    panel.onDidDispose(() => {
+      WebviewProvider.activePanels.delete(normalizedPath);
+      WebviewProvider.logger.info(`PDF viewer disposed for: ${pdfSource}`);
+    });
+
+    WebviewProvider.logger.info(`Created PDF viewer for: ${pdfSource} (normalized: ${normalizedPath})`);
 
     return panel;
+  }
+
+  private static normalizePath(pdfSource: string): string {
+    // Normalize file paths for consistent tracking
+    if (pdfSource.startsWith('http')) {
+      return pdfSource.toLowerCase();
+    }
+    // For file paths, resolve to absolute path and normalize
+    // Handle both file:// URLs and regular file paths
+    let filePath = pdfSource;
+    if (filePath.startsWith('file://')) {
+      filePath = filePath.substring(7);
+    }
+    return path.resolve(filePath).toLowerCase();
+  }
+
+  static getExistingViewer(pdfSource: string): vscode.WebviewPanel | undefined {
+    const normalizedPath = WebviewProvider.normalizePath(pdfSource);
+    return WebviewProvider.activePanels.get(normalizedPath);
+  }
+
+  static getAllActiveViewers(): Map<string, vscode.WebviewPanel> {
+    return new Map(WebviewProvider.activePanels);
+  }
+
+  static registerExternalPanel(pdfSource: string, panel: vscode.WebviewPanel): void {
+    const normalizedPath = WebviewProvider.normalizePath(pdfSource);
+    WebviewProvider.activePanels.set(normalizedPath, panel);
+    
+    // Set up cleanup when panel is disposed
+    panel.onDidDispose(() => {
+      WebviewProvider.activePanels.delete(normalizedPath);
+      WebviewProvider.logger.info(`External panel disposed for: ${pdfSource}`);
+    });
   }
 
   private static setupMessageHandling(
