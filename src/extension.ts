@@ -126,6 +126,318 @@ async function handleChatRequest(
   }
 }
 
+interface ChunkingConfig {
+  maxTokensPerChunk: number;
+  overlapRatio: number;
+  sentenceBoundary: boolean;
+  paragraphBoundary: boolean;
+}
+
+interface ProcessingResult {
+  success: boolean;
+  fallbackRequired: boolean;
+  error?: string;
+}
+
+interface DocumentChunk {
+  content: string;
+  index: number;
+  startPage: number;
+  endPage: number;
+  tokens: number;
+}
+
+function getDefaultChunkingConfig(maxInputTokens: number): ChunkingConfig {
+  const promptOverhead = 500;
+  const maxTokensPerChunk = Math.floor((maxInputTokens - promptOverhead) * 0.8);
+
+  return {
+    maxTokensPerChunk,
+    overlapRatio: 0.1,
+    sentenceBoundary: true,
+    paragraphBoundary: true,
+  };
+}
+
+function estimateTokens(text: string): number {
+  // Improved token estimation: average ~3.5 characters per token for English
+  return Math.ceil(text.length / 3.5);
+}
+
+function createSemanticChunks(pdfText: string, config: ChunkingConfig): DocumentChunk[] {
+  const chunks: DocumentChunk[] = [];
+  const pages = pdfText.split(/--- Page (\d+) ---/);
+
+  let currentChunk = '';
+  let currentTokens = 0;
+  let chunkStartPage = 1;
+  let chunkIndex = 0;
+
+  for (let i = 1; i < pages.length; i += 2) {
+    const pageNumber = parseInt(pages[i]);
+    const pageContent = pages[i + 1]?.trim() || '';
+
+    if (!pageContent) continue;
+
+    // Split by paragraphs for semantic boundaries
+    const paragraphs = config.paragraphBoundary ? pageContent.split(/\n\s*\n+/) : [pageContent];
+
+    for (const paragraph of paragraphs) {
+      if (!paragraph.trim()) continue;
+
+      const paragraphTokens = estimateTokens(paragraph);
+
+      // Check if adding this paragraph would exceed chunk size
+      if (currentTokens + paragraphTokens > config.maxTokensPerChunk && currentChunk) {
+        // Create chunk with current content
+        chunks.push({
+          content: currentChunk.trim(),
+          index: chunkIndex++,
+          startPage: chunkStartPage,
+          endPage: pageNumber - 1,
+          tokens: currentTokens,
+        });
+
+        // Start new chunk with overlap
+        const overlapSize = Math.floor(currentChunk.length * config.overlapRatio);
+        currentChunk = `${currentChunk.slice(-overlapSize)}\n\n${paragraph}`;
+        currentTokens = estimateTokens(currentChunk);
+        chunkStartPage = pageNumber;
+      } else {
+        // Add paragraph to current chunk
+        if (currentChunk) {
+          currentChunk += `\n\n${paragraph}`;
+        } else {
+          currentChunk = paragraph;
+          chunkStartPage = pageNumber;
+        }
+        currentTokens += paragraphTokens;
+      }
+    }
+  }
+
+  // Add final chunk if there's remaining content
+  if (currentChunk.trim()) {
+    chunks.push({
+      content: currentChunk.trim(),
+      index: chunkIndex,
+      startPage: chunkStartPage,
+      endPage: parseInt(pages[pages.length - 2]) || chunkStartPage,
+      tokens: currentTokens,
+    });
+  }
+
+  return chunks;
+}
+
+async function summarizeChunk(
+  chunk: DocumentChunk,
+  fileName: string,
+  model: vscode.LanguageModelChat,
+  token: vscode.CancellationToken
+): Promise<string> {
+  const prompt = `Summarize this section of the PDF document:
+
+**File:** ${fileName}
+**Section:** Pages ${chunk.startPage}-${chunk.endPage} (Chunk ${chunk.index + 1})
+**Content:**
+${chunk.content}
+
+Provide a comprehensive summary focusing on:
+1. Main topics and themes
+2. Key information and findings
+3. Important details
+4. Context and structure
+
+Keep the summary detailed enough to preserve important information for later consolidation.`;
+
+  try {
+    const response = await model.sendRequest(
+      [vscode.LanguageModelChatMessage.User(prompt)],
+      {},
+      token
+    );
+
+    let summary = '';
+    for await (const textChunk of response.text) {
+      summary += textChunk;
+      if (token.isCancellationRequested) {
+        break;
+      }
+    }
+
+    return summary.trim();
+  } catch (error) {
+    console.error(`Error summarizing chunk ${chunk.index}:`, error);
+    return `[Error summarizing pages ${chunk.startPage}-${chunk.endPage}: ${error instanceof Error ? error.message : 'Unknown error'}]`;
+  }
+}
+
+async function consolidateSummaries(
+  chunkSummaries: string[],
+  fileName: string,
+  totalPages: number,
+  model: vscode.LanguageModelChat,
+  token: vscode.CancellationToken
+): Promise<string> {
+  const combinedSummaries = chunkSummaries
+    .map((summary, index) => `## Section ${index + 1}\n${summary}`)
+    .join('\n\n');
+
+  const prompt = `Create a comprehensive final summary from these section summaries of a PDF document:
+
+**File:** ${fileName}
+**Total Pages:** ${totalPages}
+**Section Summaries:**
+${combinedSummaries}
+
+Create a unified summary that:
+1. Provides a clear overview of the entire document
+2. Synthesizes key themes and findings across all sections
+3. Maintains logical flow and coherence
+4. Highlights the most important information
+5. Notes the document structure and organization
+
+The final summary should be comprehensive yet concise, giving readers a complete understanding of the document's content and significance.`;
+
+  try {
+    const response = await model.sendRequest(
+      [vscode.LanguageModelChatMessage.User(prompt)],
+      {},
+      token
+    );
+
+    let finalSummary = '';
+    for await (const textChunk of response.text) {
+      finalSummary += textChunk;
+      if (token.isCancellationRequested) {
+        break;
+      }
+    }
+
+    return finalSummary.trim();
+  } catch (error) {
+    console.error('Error consolidating summaries:', error);
+    // Fallback: return combined summaries
+    return `# Document Summary\n\n${combinedSummaries}\n\n*Note: Automatic consolidation failed, showing section summaries.*`;
+  }
+}
+
+async function processDocumentWithChunking(
+  pdfText: string,
+  fileName: string,
+  model: vscode.LanguageModelChat,
+  stream: vscode.ChatResponseStream,
+  token: vscode.CancellationToken
+): Promise<ProcessingResult> {
+  try {
+    const estimatedTokens = estimateTokens(pdfText);
+    const maxTokensForModel = model.maxInputTokens || 4000;
+    const config = getDefaultChunkingConfig(maxTokensForModel);
+
+    stream.markdown(`📊 Processing ${pdfText.length} characters (~${estimatedTokens} tokens)\n\n`);
+
+    // Check if document fits in single chunk
+    if (estimatedTokens <= config.maxTokensPerChunk) {
+      stream.markdown('🚀 Document fits in single chunk, processing directly...\n\n');
+
+      const prompt = `Summarize this PDF document:
+
+**File:** ${fileName}
+**Strategy:** Full content analysis
+
+**Content:**
+${pdfText}
+
+Provide:
+1. Brief overview
+2. Key points
+3. Main findings
+4. Document structure`;
+
+      const response = await model.sendRequest(
+        [vscode.LanguageModelChatMessage.User(prompt)],
+        {},
+        token
+      );
+
+      stream.markdown('## 📋 PDF Summary\n\n');
+      for await (const chunk of response.text) {
+        stream.markdown(chunk);
+        if (token.isCancellationRequested) {
+          break;
+        }
+      }
+
+      return { success: true, fallbackRequired: false };
+    }
+
+    // Document is large, use chunking strategy
+    stream.markdown(
+      `📚 Document is large (~${estimatedTokens} tokens), using intelligent chunking...\n\n`
+    );
+
+    const chunks = createSemanticChunks(pdfText, config);
+    stream.markdown(`🔄 Created ${chunks.length} semantic chunks\n\n`);
+
+    // Process chunks in batches to avoid overwhelming the API
+    const chunkSummaries: string[] = [];
+    const batchSize = 3; // Process 3 chunks at a time
+
+    for (let i = 0; i < chunks.length; i += batchSize) {
+      const batch = chunks.slice(i, i + batchSize);
+      const batchPromises = batch.map((chunk) => {
+        stream.markdown(`📄 Processing pages ${chunk.startPage}-${chunk.endPage}...\n`);
+        return summarizeChunk(chunk, fileName, model, token);
+      });
+
+      const batchResults = await Promise.all(batchPromises);
+      chunkSummaries.push(...batchResults);
+
+      stream.markdown(
+        `✅ Completed ${Math.min(i + batchSize, chunks.length)}/${chunks.length} chunks\n\n`
+      );
+
+      if (token.isCancellationRequested) {
+        return { success: false, fallbackRequired: false, error: 'Cancelled' };
+      }
+    }
+
+    // Consolidate all chunk summaries
+    stream.markdown('🔄 Consolidating summaries...\n\n');
+
+    const totalPages = chunks.length > 0 ? chunks[chunks.length - 1].endPage : 0;
+    const finalSummary = await consolidateSummaries(
+      chunkSummaries,
+      fileName,
+      totalPages,
+      model,
+      token
+    );
+
+    stream.markdown('## 📋 Comprehensive PDF Summary\n\n');
+    stream.markdown(finalSummary);
+    stream.markdown(
+      `\n\n📊 **Processing Stats:** ${chunks.length} chunks processed, ${totalPages} pages analyzed\n`
+    );
+    stream.markdown(
+      '✨ *Summary generated using semantic chunking and hierarchical consolidation*\n'
+    );
+
+    return { success: true, fallbackRequired: false };
+  } catch (error) {
+    console.error('Error in chunking process:', error);
+    stream.markdown(
+      `❌ Error in enhanced summarization: ${error instanceof Error ? error.message : 'Unknown error'}\n\n`
+    );
+    return {
+      success: false,
+      fallbackRequired: true,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
 async function handleSummaryCommand(
   request: vscode.ChatRequest,
   stream: vscode.ChatResponseStream,
@@ -207,111 +519,33 @@ async function handleSummaryCommand(
 
     const model = models[0];
 
-    // Estimate token count (rough approximation: 4 characters per token)
-    const estimatedTokens = Math.ceil(pdfText.length / 4);
-    const maxTokensForModel = model.maxInputTokens || 4000; // Conservative default
-    const promptOverhead = 500; // Tokens for our prompt template
-    const maxContentTokens = maxTokensForModel - promptOverhead;
-    const maxContentLength = maxContentTokens * 4; // Convert back to characters
+    // Use enhanced chunking strategy for large documents
+    const result = await processDocumentWithChunking(pdfText, fileName, model, stream, token);
+    if (!result.success && result.fallbackRequired) {
+      // Fallback: use just the first 1000 characters
+      const shortExcerpt = `${pdfText.substring(0, 1000)}...\n\n[Showing excerpt only]`;
+      const fallbackPrompt = `Provide a brief summary of this PDF excerpt:\n\n${shortExcerpt}`;
 
-    stream.markdown('🤖 Generating summary...\n\n');
-
-    let textToSummarize: string;
-    let summaryStrategy: string;
-
-    if (pdfText.length <= maxContentLength) {
-      // Content fits within token limits
-      textToSummarize = pdfText;
-      summaryStrategy = 'full';
-    } else {
-      // Content is too large, use intelligent truncation
-      const pages = pdfText.split(/--- Page \d+ ---/);
-      const firstPages = pages.slice(0, Math.min(5, pages.length)).join('\n--- Page ---\n');
-      const lastPages = pages.slice(-2).join('\n--- Page ---\n');
-
-      textToSummarize =
-        firstPages + '\n\n[... Content from middle pages omitted for brevity ...]\n\n' + lastPages;
-
-      // If still too long, just take the beginning
-      if (textToSummarize.length > maxContentLength) {
-        textToSummarize =
-          pdfText.substring(0, maxContentLength) + '\n\n[Content truncated due to length...]';
-      }
-      summaryStrategy = 'truncated';
-    }
-
-    stream.markdown(
-      `📊 Processing ${pdfText.length} characters (${estimatedTokens} tokens estimated)\n\n`
-    );
-
-    // Create optimized prompt
-    const summaryPrompt = `Summarize this PDF document:
-
-**File:** ${fileName}
-**Strategy:** ${summaryStrategy === 'full' ? 'Full content analysis' : 'Key sections analysis'}
-
-**Content:**
-${textToSummarize}
-
-Provide:
-1. Brief overview
-2. Key points
-3. Main findings
-4. Document structure`;
-
-    try {
-      const summaryResponse = await model.sendRequest(
-        [vscode.LanguageModelChatMessage.User(summaryPrompt)],
-        {},
-        token
-      );
-
-      stream.markdown('## 📋 PDF Summary\n\n');
-
-      for await (const chunk of summaryResponse.text) {
-        stream.markdown(chunk);
-        if (token.isCancellationRequested) {
-          break;
-        }
-      }
-
-      if (summaryStrategy === 'truncated') {
-        stream.markdown(
-          '\n\n⚠️ *Note: This summary is based on selected sections due to document length.*'
-        );
-      }
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('token')) {
-        stream.markdown(
-          '❌ Document too large for summarization. Trying with smaller excerpt...\n\n'
+      try {
+        const fallbackResponse = await model.sendRequest(
+          [vscode.LanguageModelChatMessage.User(fallbackPrompt)],
+          {},
+          token
         );
 
-        // Fallback: use just the first 1000 characters
-        const shortExcerpt = pdfText.substring(0, 1000) + '...\n\n[Showing excerpt only]';
-        const fallbackPrompt = `Provide a brief summary of this PDF excerpt:\n\n${shortExcerpt}`;
-
-        try {
-          const fallbackResponse = await model.sendRequest(
-            [vscode.LanguageModelChatMessage.User(fallbackPrompt)],
-            {},
-            token
-          );
-
-          stream.markdown('## 📋 PDF Summary (Excerpt)\n\n');
-          for await (const chunk of fallbackResponse.text) {
-            stream.markdown(chunk);
-            if (token.isCancellationRequested) {
-              break;
-            }
+        stream.markdown('## 📋 PDF Summary (Excerpt)\n\n');
+        for await (const chunk of fallbackResponse.text) {
+          stream.markdown(chunk);
+          if (token.isCancellationRequested) {
+            break;
           }
-          stream.markdown(
-            '\n\n⚠️ *Note: Summary based on document excerpt only due to size constraints.*'
-          );
-        } catch {
-          throw error; // Re-throw original error if fallback also fails
         }
-      } else {
-        throw error;
+        stream.markdown(
+          '\n\n⚠️ *Note: Summary based on document excerpt only due to size constraints.*'
+        );
+      } catch (_fallbackError) {
+        stream.markdown(`❌ Both enhanced and fallback summarization failed: ${result.error}\n\n`);
+        throw new Error(`Summarization failed: ${result.error}`);
       }
     }
 

@@ -1,17 +1,20 @@
-# DocPilot - VSCode PDF Viewer Extension
+# DocPilot - AI-Powered PDF Assistant for VSCode
 
-A powerful VSCode extension for viewing PDF files with smooth scrolling, crisp zoom controls, and an intuitive interface.
+A comprehensive VSCode extension that combines advanced PDF viewing with intelligent AI summarization capabilities. View, navigate, and understand PDF documents through seamless Copilot Chat integration.
 
-## ✨ Features
+## ✨ Core Features
 
-- **📄 Open Local PDFs** - Browse and open PDF files from your filesystem
-- **🌐 Remote PDF Support** - View PDFs from URLs
-- **🤖 AI Chat Integration** - Summarise PDFs using `@docpilot /summarise <file>` in Copilot Chat
-- **🔍 Crisp Zoom Controls** - Zoom in/out with buttons, slider, or keyboard shortcuts
-- **📏 Smart Fitting** - Fit to width or fit to page with one click
-- **📜 Continuous Scrolling** - Natural scrolling through multi-page documents
-- **🎨 VSCode Theme Integration** - Matches your VSCode theme colors
-- **⚡ High Performance** - Optimized rendering with PDF.js
+### 📄 Advanced PDF Viewing
+- **Local & Remote Support** - Open files from filesystem or URLs
+- **Crisp Rendering** - High-quality display with PDF.js engine
+- **Smart Navigation** - Zoom, fit-to-width/page, continuous scrolling
+- **VSCode Integration** - Seamless theme matching and UI consistency
+
+### 🤖 AI-Powered Analysis
+- **Intelligent Summarization** - Comprehensive document analysis via Copilot Chat
+- **Semantic Chunking** - Advanced processing for documents of any size
+- **Hierarchical Processing** - Multi-level summarization with context preservation
+- **Progress Tracking** - Real-time status updates during analysis
 
 ## 🚀 Installation
 
@@ -42,34 +45,26 @@ Will be available on VSCode Marketplace
 - Press `F1` → Type "DocPilot: Open PDF from URL"
 - Enter the PDF URL when prompted
 
-### AI Chat Integration
+### 🤖 AI Chat Integration
 
-**Summarise PDFs with Copilot:**
+**Quick Start:**
+1. Open Copilot Chat (`Ctrl+Alt+I` / `Cmd+Alt+I`)
+2. Type `@docpilot /summarise [file-path-or-url]`
+3. Get comprehensive AI analysis with document viewer
 
-- Open Copilot Chat (`Ctrl+Alt+I` / `Cmd+Alt+I`)
-- Type `@docpilot` to select the DocPilot participant
-- Then use `/summarise path/to/file.pdf` for local files
-- Or use `/summarise https://example.com/doc.pdf` for remote URLs
-- Or simply `/summarise` to open a file picker
-- The PDF will open in DocPilot viewer and AI will provide a comprehensive summary
-
-**Features:**
-
-- ✅ **Smart Token Management** - Automatically handles large documents with intelligent truncation
-- ✅ **Automatic Text Extraction** - Extracts text content from all PDF pages
-- ✅ **Intelligent Content Summarisation** - Provides structured summaries with key points
-- ✅ **Document Structure Analysis** - Analyzes document organization and main topics
-- ✅ **Multi-Strategy Processing** - Full analysis for small docs, key sections for large docs
-- ✅ **Progress Feedback** - Real-time status updates during processing
-- ✅ **Error Handling** - Graceful fallbacks for very large documents
-
-**Example Usage:**
-
+**Supported Formats:**
 ```bash
-@docpilot /summarise docs/report.pdf
-@docpilot /summarise https://example.com/whitepaper.pdf
-@docpilot /summarise  # Opens file picker
+@docpilot /summarise docs/report.pdf        # Local file
+@docpilot /summarise https://example.com/doc.pdf  # Remote URL
+@docpilot /summarise                        # File picker dialog
 ```
+
+**Advanced Capabilities:**
+- **🧠 Semantic Chunking** - Preserves context across document boundaries
+- **⚡ Batch Processing** - Handles large documents through intelligent segmentation
+- **🔄 Hierarchical Summarization** - Multi-stage analysis for comprehensive understanding
+- **📊 Processing Analytics** - Detailed stats on chunks processed and pages analyzed
+- **🛡️ Error Resilience** - Multiple fallback strategies ensure reliable operation
 
 ### Controls
 
@@ -105,10 +100,11 @@ vscode-docpilot/
 
 ### Key Technologies
 
-- **TypeScript** - Main development language
-- **PDF.js** - PDF rendering engine
-- **VSCode Extension API** - Integration with VSCode
-- **HTML5 Canvas** - High-quality PDF rendering
+- **TypeScript** - Type-safe development with modern language features
+- **PDF.js v3.11.174** - Mozilla's robust PDF rendering engine
+- **VSCode Extension API** - Deep IDE integration and Chat participant support
+- **Language Model API** - Copilot integration for AI-powered analysis
+- **HTML5 Canvas** - Hardware-accelerated PDF rendering
 
 ### Build Commands
 
@@ -142,14 +138,33 @@ vsce package
 
 ### Performance Optimizations
 
-- Throttled zoom updates during slider usage
-- Parallel page rendering
-- Efficient scroll event handling
+**Rendering:**
+- Throttled zoom updates and parallel page rendering
+- Efficient scroll event handling with viewport optimization
 
-## 🐛 Known Issues
+**AI Processing:**
+- Token-aware chunking with configurable overlap (10% default)
+- Batch processing (3 chunks concurrently) to prevent API overload
+- Memory-efficient streaming with real-time progress updates
 
-- Large PDFs may take time to load initially
-- Very high zoom levels (>300%) may impact performance
+## 🔧 Technical Highlights
+
+**Intelligent Document Processing:**
+- Automatic token estimation (3.5 chars/token) for accurate chunking
+- Paragraph-aware semantic boundaries to preserve context
+- Configurable overlap between chunks maintains narrative flow
+- Multi-tier processing: single-chunk → semantic chunking → excerpt fallback
+
+**Robust Error Handling:**
+- Graceful degradation for oversized documents
+- Comprehensive timeout management (30s for text extraction)
+- Detailed error reporting with actionable feedback
+
+## ⚠️ Limitations
+
+- Initial load time increases with document size
+- Very high zoom levels (>300%) may impact rendering performance
+- AI summarization requires active Copilot subscription
 
 ## 🤝 Contributing
 

@@ -64,15 +64,6 @@ The extension is built as a VSCode webview-based solution that renders PDFs usin
 1. Use async/await pattern for asynchronous operations.
 1. Properly dispose of resources (event listeners, webviews, etc.).
 
-### Testing
-
-1. Test all commands in the Extension Development Host.
-1. Test with both local PDF files and remote URLs.
-1. Verify zoom, fit, and scroll functionality works correctly.
-1. Test error scenarios (invalid files, network issues, etc.).
-1. Ensure the extension works with different VSCode themes.
-1. Test keyboard shortcuts and context menu integration.
-
 ### Troubleshooting
 
 1. If you encounter VSCode API issues, check the official VSCode Extension API documentation.
