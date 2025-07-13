@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Viewer</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            font-family: var(--vscode-font-family);
+            background-color: #525659;
+        }
+        .toolbar {
+            background-color: var(--vscode-editor-background);
+            border-bottom: 1px solid var(--vscode-panel-border);
+            padding: 8px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--vscode-foreground);
+            z-index: 100;
+            position: sticky;
+            top: 0;
+        }
+        .pdf-container {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: auto;
+            background-color: #525659;
+            position: relative;
+            padding: 20px 0;
+        }
+        .pdf-pages {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            min-height: 100%;
+        }
+        .pdf-page {
+            position: relative;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            background: white;
+            margin-bottom: 10px;
+        }
+        .pdf-page canvas {
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+        .pdf-page .textLayer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            color: transparent;
+            font-family: sans-serif;
+            line-height: 1;
+            overflow: hidden;
+            pointer-events: auto;
+            z-index: 2;
+            mix-blend-mode: normal;
+        }
+        .pdf-page .textLayer span {
+            color: transparent;
+            position: absolute;
+            white-space: pre;
+            cursor: text;
+            transform-origin: 0% 0%;
+            user-select: text;
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            line-height: 1;
+            font-family: sans-serif;
+        }
+        .pdf-page .textLayer span::selection {
+            background: rgba(0, 123, 255, 0.3);
+            color: transparent;
+        }
+        .pdf-page .textLayer span::-moz-selection {
+            background: rgba(0, 123, 255, 0.3);
+            color: transparent;
+        }
+        .pdf-page .textLayer.hidden {
+            display: none;
+        }
+        .pdf-page .textLayer.enabled {
+            display: block;
+        }
+        .warning-banner {
+            background-color: var(--vscode-inputValidation-warningBackground);
+            color: var(--vscode-inputValidation-warningForeground);
+            border: 1px solid var(--vscode-inputValidation-warningBorder);
+            padding: 8px 16px;
+            margin: 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            display: none;
+        }
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        button {
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            padding: 6px 12px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        button:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .zoom-controls {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        input[type="range"] {
+            width: 100px;
+        }
+        .page-info {
+            font-size: 12px;
+            color: var(--vscode-descriptionForeground);
+        }
+        .error, .loading {
+            color: var(--vscode-foreground);
+            text-align: center;
+            padding: 40px 20px;
+            background-color: var(--vscode-editor-background);
+            margin: 20px;
+            border-radius: 4px;
+        }
+        .loading {
+            color: var(--vscode-descriptionForeground);
+        }
+        .progress-bar {
+            width: 100%;
+            height: 2px;
+            background-color: var(--vscode-progressBar-background);
+            position: absolute;
+            bottom: 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: var(--vscode-progressBar-background);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body>
+    <div class="toolbar">
+        <div class="file-info">
+            <span>📄 {{fileName}}</span>
+            <span class="page-info" id="pageInfo">Loading...</span>
+        </div>
+        <div class="controls">
+            <button onclick="fitToWidth()">Fit Width</button>
+            <button onclick="fitToPage()">Fit Page</button>
+            <button id="textSelectionBtn" onclick="toggleTextSelection()">Enable Text Selection</button>
+            <button id="debugBtn" onclick="toggleDebug()" style="font-size: 10px;">Debug</button>
+            <div class="zoom-controls">
+                <button onclick="zoomOut()">−</button>
+                <input type="range" id="zoomSlider" min="0.25" max="3" step="0.25" value="1" oninput="setZoom(this.value)">
+                <button onclick="zoomIn()">+</button>
+                <span id="zoomLevel">100%</span>
+            </div>
+        </div>
+    </div>
+    <div class="warning-banner" id="warningBanner">
+        ⚠️ Large document detected. Text selection may impact performance.
+    </div>
+    <div class="pdf-container" id="pdfContainer">
+        <div class="loading">
+            Loading PDF...
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Configuration from template
+        const PDF_CONFIG = {
+            pdfUri: '{{pdfUri}}',
+            isUrl: {{isUrl}},
+            fileName: '{{fileName}}'
+        };
+    </script>
+    <script src="{{scriptUri}}"></script>
+</body>
+</html>
