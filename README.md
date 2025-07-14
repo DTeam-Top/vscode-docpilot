@@ -13,9 +13,11 @@ A comprehensive VSCode extension that combines advanced PDF viewing with intelli
 
 ### 🤖 AI-Powered Analysis
 - **Intelligent Summarization** - Comprehensive document analysis via Copilot Chat
+- **Smart Caching** - Instant results for previously processed documents
 - **Semantic Chunking** - Advanced processing for documents of any size
 - **Hierarchical Processing** - Multi-level summarization with context preservation
 - **Progress Tracking** - Real-time status updates during analysis
+- **Automatic Cache Invalidation** - Fresh summaries when files are modified
 
 ## 🚀 Installation
 
@@ -55,19 +57,22 @@ Will be available on VSCode Marketplace
 2. Type `@docpilot /summarise [file-path-or-url]`
 3. Get comprehensive AI analysis with document viewer
 
-**Supported Formats:**
+**Supported Commands:**
 ```bash
 @docpilot /summarise docs/report.pdf        # Local file
 @docpilot /summarise https://example.com/doc.pdf  # Remote URL
 @docpilot /summarise                        # File picker dialog
+@docpilot /cache-stats                      # View cache statistics
+@docpilot /clear-cache                      # Clear all cached summaries
 ```
 
 **Advanced Capabilities:**
 - **🧠 Semantic Chunking** - Preserves context across document boundaries
-- **⚡ Batch Processing** - Handles large documents through intelligent segmentation
+- **⚡ Intelligent Caching** - Instant retrieval of previously processed summaries
 - **🔄 Hierarchical Summarization** - Multi-stage analysis for comprehensive understanding
 - **📊 Processing Analytics** - Detailed stats on chunks processed and pages analyzed
 - **🛡️ Error Resilience** - Multiple fallback strategies ensure reliable operation
+- **🔄 Auto Cache Invalidation** - File modification detection for fresh content
 
 ### Controls
 
@@ -96,6 +101,7 @@ Will be available on VSCode Marketplace
 vscode-docpilot/
 ├── src/
 │   ├── extension.ts          # Main extension activation
+│   ├── cache/                # Summary caching system
 │   ├── chat/                 # AI chat participant
 │   ├── commands/             # PDF opening commands
 │   ├── editors/              # Custom PDF editor provider
@@ -168,6 +174,8 @@ vsce package
 - Token-aware chunking with configurable overlap (10% default)
 - Batch processing (3 chunks concurrently) to prevent API overload
 - Memory-efficient streaming with real-time progress updates
+- Intelligent caching with file modification detection
+- Persistent cache storage across VS Code sessions
 
 ## 🔧 Technical Highlights
 

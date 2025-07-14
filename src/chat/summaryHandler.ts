@@ -4,6 +4,8 @@ import * as fs from 'node:fs';
 import { WebviewProvider } from '../webview/webviewProvider';
 import { TextExtractor } from '../pdf/textExtractor';
 import { TextProcessor } from './textProcessor';
+import { SummaryCache } from '../cache/summaryCache';
+import { FileWatcher } from '../cache/fileWatcher';
 import { Logger } from '../utils/logger';
 import { ChatErrorHandler } from '../utils/errorHandler';
 import { InvalidFilePathError, PdfLoadError } from '../utils/errors';
@@ -12,9 +14,13 @@ import type { ChatCommandResult } from '../types/interfaces';
 export class SummaryHandler {
   private static readonly logger = Logger.getInstance();
   private readonly textProcessor: TextProcessor;
+  private readonly summaryCache: SummaryCache;
+  private readonly fileWatcher: FileWatcher;
 
   constructor(private readonly extensionContext: vscode.ExtensionContext) {
     this.textProcessor = new TextProcessor();
+    this.summaryCache = new SummaryCache(extensionContext);
+    this.fileWatcher = new FileWatcher(this.summaryCache);
   }
 
   async handle(
@@ -24,17 +30,51 @@ export class SummaryHandler {
   ): Promise<ChatCommandResult> {
     try {
       const pdfPath = await this.resolvePdfPath(request.prompt, stream);
+      
+      // Check cache first
+      const cachedSummary = await this.summaryCache.getCachedSummary(pdfPath);
+      if (cachedSummary) {
+        stream.markdown('⚡ Found cached summary!\n\n');
+        stream.markdown('## 📋 PDF Summary (Cached)\n\n');
+        stream.markdown(cachedSummary);
+        stream.markdown('\n\n---\n*This summary was retrieved from cache for faster response.*');
+        
+        return {
+          metadata: {
+            command: 'summarise',
+            file: this.getFileName(pdfPath),
+            processingStrategy: 'cached',
+            timestamp: Date.now(),
+          },
+        };
+      }
+
       const panel = await this.createPdfViewer(pdfPath, stream);
       const text = await this.extractText(panel, pdfPath, stream);
       const fileName = this.getFileName(pdfPath);
 
-      return await this.textProcessor.processDocument({
+      const result = await this.textProcessor.processDocument({
         text,
         fileName,
         model: await this.getLanguageModel(),
         stream,
         cancellationToken: token,
       });
+
+      // Cache the result if processing was successful
+      if (result.metadata && !result.metadata.error && result.summaryText) {
+        await this.summaryCache.setCachedSummary(
+          pdfPath,
+          result.summaryText,
+          String(result.metadata.processingStrategy) || 'unknown',
+          Number(result.metadata.textLength) || text.length
+        );
+        
+        // Start watching the file for changes to invalidate cache
+        this.fileWatcher.watchFile(pdfPath);
+      }
+
+      return result;
     } catch (error) {
       SummaryHandler.logger.error('Summary handler error', error);
       return ChatErrorHandler.handle(error, stream, 'PDF summarization');
@@ -154,5 +194,17 @@ export class SummaryHandler {
 
   private getFileName(pdfPath: string): string {
     return WebviewProvider.getFileName(pdfPath);
+  }
+
+  dispose(): void {
+    this.fileWatcher.dispose();
+  }
+
+  getCacheStats() {
+    return this.summaryCache.getCacheStats();
+  }
+
+  async clearCache(): Promise<void> {
+    await this.summaryCache.clearCache();
   }
 }

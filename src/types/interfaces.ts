@@ -40,6 +40,7 @@ export interface ProcessingResult {
   success: boolean;
   fallbackRequired: boolean;
   error?: string;
+  summaryText?: string;
 }
 
 // Summary interfaces
@@ -107,6 +108,7 @@ export interface TimeoutConfig {
 // Chat participant types
 export interface ChatCommandResult {
   readonly metadata: Record<string, unknown>;
+  readonly summaryText?: string;
 }
 
 export interface RetryOptions {

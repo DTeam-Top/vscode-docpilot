@@ -46,6 +46,14 @@
           {
             "name": "summarise",
             "description": "Summarise a PDF file and display it in the viewer"
+          },
+          {
+            "name": "cache-stats",
+            "description": "Show summary cache statistics"
+          },
+          {
+            "name": "clear-cache",
+            "description": "Clear all cached summaries"
           }
         ]
       }

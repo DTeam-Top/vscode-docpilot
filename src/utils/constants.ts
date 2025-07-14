@@ -48,4 +48,6 @@ export const WEBVIEW_MESSAGES = {
 
 export const CHAT_COMMANDS = {
   SUMMARISE: 'summarise',
+  CACHE_STATS: 'cache-stats',
+  CLEAR_CACHE: 'clear-cache',
 } as const;
