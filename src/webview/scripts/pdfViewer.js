@@ -657,10 +657,51 @@ async function summarizeDocument() {
   }
 }
 
-// Listen for summarization status updates
+// biome-ignore lint/correctness/noUnusedVariables: Used by HTML onclick
+async function exportText() {
+  console.log('Export button clicked - function called');
+  const exportBtn = document.getElementById('exportBtn');
+
+  if (!pdfDoc) {
+    console.error('PDF not loaded yet');
+    return;
+  }
+
+  try {
+    // Disable button and show loading state
+    exportBtn.disabled = true;
+    exportBtn.innerHTML = '⏳ Exporting...';
+    exportBtn.style.opacity = '0.6';
+
+    console.log('Starting PDF export...');
+
+    // Send export request to extension
+    vscode.postMessage({
+      type: 'exportText',
+      fileName: PDF_CONFIG.fileName,
+      isUrl: PDF_CONFIG.isUrl,
+      pdfUri: PDF_CONFIG.pdfUri,
+    });
+  } catch (error) {
+    console.error('Error starting export:', error);
+
+    // Reset button state
+    exportBtn.disabled = false;
+    exportBtn.innerHTML = '📄 Export';
+    exportBtn.style.opacity = '1';
+
+    vscode.postMessage({
+      type: 'exportError',
+      error: error.message || 'Failed to start export',
+    });
+  }
+}
+
+// Listen for summarization and export status updates
 window.addEventListener('message', (event) => {
   const message = event.data;
   const summarizeBtn = document.getElementById('summarizeBtn');
+  const exportBtn = document.getElementById('exportBtn');
 
   switch (message.type) {
     case 'summarizeStarted':
@@ -681,6 +722,26 @@ window.addEventListener('message', (event) => {
       summarizeBtn.disabled = false;
       summarizeBtn.innerHTML = '📝 Summarize';
       summarizeBtn.style.opacity = '1';
+      break;
+
+    case 'exportStarted':
+      console.log('Export started in extension');
+      break;
+
+    case 'exportCompleted':
+      console.log('Export completed');
+      // Reset button state
+      exportBtn.disabled = false;
+      exportBtn.innerHTML = '📄 Export';
+      exportBtn.style.opacity = '1';
+      break;
+
+    case 'exportError':
+      console.error('Export error:', message.error);
+      // Reset button state
+      exportBtn.disabled = false;
+      exportBtn.innerHTML = '📄 Export';
+      exportBtn.style.opacity = '1';
       break;
   }
 });

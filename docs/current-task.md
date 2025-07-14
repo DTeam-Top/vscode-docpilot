@@ -2,7 +2,22 @@
 
 ## ✅ Recently Completed
 
-### Summary Viewer Opening Bug Fix (Latest)
+### AI Model Compatibility & Logger Fixes (Latest)
+- **Multi-model AI support** - Fixed hardcoded GPT-4 restriction, now supports Gemini and all Copilot models
+- **Enhanced model logging** - Added detailed model information (name, tokens, vendor, family) for debugging
+- **AI rejection detection** - Added pattern recognition for model content policy rejections with clear error messages
+- **Logger cleanup** - Fixed "undefined" console entries by conditional parameter passing
+- **Improved error handling** - Better user feedback when AI models reject content due to policy restrictions
+
+### PDF Text Export Feature Implementation
+- **Built comprehensive PDF export system** - Extract text content from any open PDF
+- **Honest feature naming** - Changed from misleading "Export to Markdown" to accurate "Export Text"
+- **Unified message handling** - Fixed export button stuck issue by adding handlers to both WebviewProvider and PdfCustomEditorProvider
+- **Seamless user experience** - Export button in PDF viewer toolbar with progress feedback
+- **Clean text output** - Simple text format with metadata header, supports .txt and .md extensions
+- **Consistent behavior** - Export works regardless of how PDF was opened (File → Open, commands, chat)
+
+### Summary Viewer Opening Bug Fix 
 - **Fixed cached summary regression** - `@docpilot /summary` now opens viewer for both cached and new results
 - **Restored expected user experience** - Viewer consistently opens alongside summaries
 - **Maintained cache performance benefits** - Cache optimization preserved while fixing UX issue
@@ -40,13 +55,14 @@
 - **WebviewUtils**: Shared utility for consistent panel creation (uses WebviewProvider)
 - **Panel Tracking**: Centralized `activePanels` Map prevents duplicate viewers for same files
 
-### Activation Methods (All Deduplicated + Cached)
+### Activation Methods (All Deduplicated + Cached + Export-Enabled)
 1. **Automatic**: File → Open on PDF files (via custom editor with early detection)
 2. **Manual Commands**: `docpilot.openLocalPdf`, `docpilot.openPdfFromUrl` (via WebviewProvider)
 3. **Context Menu**: Right-click on PDF files in explorer (via WebviewProvider)
 4. **Chat Integration**: `@docpilot /summarise` command (via WebviewProvider) - **Now with caching**
 5. **Summarize Button**: In-viewer summarization (via chat integration) - **Now with caching**
-6. **Cache Management**: `@docpilot /cache-stats` and `@docpilot /clear-cache` commands
+6. **Export Button**: In-viewer text export (via both WebviewProvider and PdfCustomEditorProvider) - **New feature**
+7. **Cache Management**: `@docpilot /cache-stats` and `@docpilot /clear-cache` commands
 
 ## 📋 Next Potential Tasks
 
@@ -67,12 +83,17 @@
 
 ## 🚀 Current State
 
-**Status**: ✅ **Fully Functional with Intelligent Caching & Resource Management**
+**Status**: ✅ **Fully Functional with Multi-Model AI Support, Intelligent Caching & Text Export**
 - ✅ Automatic PDF activation works correctly across all methods
 - ✅ Viewer deduplication prevents duplicate tabs for same files
+- ✅ **Multi-model AI compatibility** - Supports GPT-4, Gemini, and all Copilot models
+- ✅ **Enhanced AI error handling** - Clear feedback for model content policy rejections
+- ✅ **Clean logging system** - No more "undefined" console entries
 - ✅ **Intelligent summary caching** provides instant results for repeated documents
 - ✅ **Automatic cache invalidation** ensures fresh content when files change
 - ✅ **Cache management commands** give users control over cache behavior
+- ✅ **PDF text export functionality** - Extract content from any open PDF
+- ✅ **Unified export message handling** - Works across all PDF opening methods
 - ✅ All viewer features consistent across entry points  
 - ✅ Clean architecture with centralized resource tracking
 - ✅ Proper memory management with automatic cleanup
@@ -100,6 +121,17 @@
 | VS Code restart | ✅ Working | Cache persists across sessions |
 | Cache management commands | ✅ Working | `/cache-stats` and `/clear-cache` |
 | File system monitoring | ✅ Working | Real-time invalidation on changes |
+
+#### Export Test Matrix
+| Test Case | Status | Method |
+|---|---|---|
+| Export via File → Open PDF | ✅ Working | PdfCustomEditorProvider message handling |
+| Export via Command Palette PDF | ✅ Working | WebviewProvider message handling |
+| Export via Context Menu PDF | ✅ Working | WebviewProvider message handling |
+| Export via Chat Integration PDF | ✅ Working | WebviewProvider message handling |
+| Text extraction and formatting | ✅ Working | Clean text output with metadata |
+| File save dialog (.txt default) | ✅ Working | Supports both .txt and .md extensions |
+| Auto-open exported file | ✅ Working | Optional immediate file opening |
 
 ---
 
