@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import { SummaryHandler } from './summaryHandler';
-import { Logger } from '../utils/logger';
-import { ChatErrorHandler } from '../utils/errorHandler';
-import { CHAT_COMMANDS } from '../utils/constants';
 import type { ChatCommandResult } from '../types/interfaces';
+import { CHAT_COMMANDS } from '../utils/constants';
+import { ChatErrorHandler } from '../utils/errorHandler';
+import { Logger } from '../utils/logger';
+import { SummaryHandler } from './summaryHandler';
 
 export class ChatParticipant {
   private static readonly logger = Logger.getInstance();
@@ -33,13 +33,15 @@ export class ChatParticipant {
         participantHandler.provideFollowups(result, context, token),
     };
 
-    this.logger.info('Chat participant registered successfully');
+    // Note: Slash commands are automatically registered based on the commands handled in handleRequest
+
+    ChatParticipant.logger.info('Chat participant registered successfully');
     return chatParticipant;
   }
 
   async handleRequest(
     request: vscode.ChatRequest,
-    context: vscode.ChatContext,
+    _context: vscode.ChatContext,
     stream: vscode.ChatResponseStream,
     token: vscode.CancellationToken
   ): Promise<ChatCommandResult> {
@@ -56,6 +58,12 @@ export class ChatParticipant {
       switch (request.command) {
         case CHAT_COMMANDS.SUMMARISE:
           return await this.summaryHandler.handle(request, stream, token);
+
+        case CHAT_COMMANDS.CACHE_STATS:
+          return this.handleCacheStats(stream);
+
+        case CHAT_COMMANDS.CLEAR_CACHE:
+          return await this.handleClearCache(stream);
 
         default:
           return this.handleUnknownCommand(request, stream);
@@ -76,10 +84,14 @@ export class ChatParticipant {
     stream.markdown(`  - \`/summarise path/to/file.pdf\` - Summarize local file\n`);
     stream.markdown(`  - \`/summarise https://example.com/doc.pdf\` - Summarize remote PDF\n`);
     stream.markdown(`  - \`/summarise\` - Open file picker\n\n`);
+    stream.markdown(`- **\`/cache-stats\`** - Show summary cache statistics\n`);
+    stream.markdown(`- **\`/clear-cache\`** - Clear all cached summaries\n\n`);
     stream.markdown(`### Examples\n\n`);
     stream.markdown(`\`\`\`\n`);
     stream.markdown(`@docpilot /summarise docs/report.pdf\n`);
     stream.markdown(`@docpilot /summarise https://example.com/whitepaper.pdf\n`);
+    stream.markdown(`@docpilot /cache-stats\n`);
+    stream.markdown(`@docpilot /clear-cache\n`);
     stream.markdown(`\`\`\`\n\n`);
     stream.markdown(`*DocPilot uses advanced semantic chunking to process documents of any size.*`);
 
@@ -91,10 +103,49 @@ export class ChatParticipant {
     };
   }
 
+  private handleCacheStats(stream: vscode.ChatResponseStream): ChatCommandResult {
+    const stats = this.summaryHandler.getCacheStats();
+    
+    stream.markdown(`## 📊 Summary Cache Statistics\n\n`);
+    stream.markdown(`- **Total Entries:** ${stats.totalEntries}\n`);
+    stream.markdown(`- **Total Size:** ${stats.totalSizeKB} KB\n`);
+    
+    if (stats.oldestEntry) {
+      stream.markdown(`- **Oldest Entry:** ${stats.oldestEntry.toLocaleDateString()}\n`);
+    }
+    
+    if (stats.totalEntries === 0) {
+      stream.markdown(`\n*Cache is empty. Summaries will be cached after processing PDFs.*\n`);
+    } else {
+      stream.markdown(`\n*Cached summaries provide instant results for previously processed documents.*\n`);
+    }
+
+    return {
+      metadata: {
+        command: CHAT_COMMANDS.CACHE_STATS,
+        cacheStats: stats,
+      },
+    };
+  }
+
+  private async handleClearCache(stream: vscode.ChatResponseStream): Promise<ChatCommandResult> {
+    await this.summaryHandler.clearCache();
+    
+    stream.markdown(`## 🗑️ Cache Cleared\n\n`);
+    stream.markdown(`All cached summaries have been removed. Future PDF summarizations will process documents fresh and cache new results.\n`);
+
+    return {
+      metadata: {
+        command: CHAT_COMMANDS.CLEAR_CACHE,
+        timestamp: Date.now(),
+      },
+    };
+  }
+
   provideFollowups(
     result: vscode.ChatResult,
-    context: vscode.ChatContext,
-    token: vscode.CancellationToken
+    _context: vscode.ChatContext,
+    _token: vscode.CancellationToken
   ): vscode.ChatFollowup[] {
     const followups: vscode.ChatFollowup[] = [];
 

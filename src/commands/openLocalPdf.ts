@@ -1,17 +1,19 @@
 import * as vscode from 'vscode';
-import { WebviewProvider } from '../webview/webviewProvider';
-import { Logger } from '../utils/logger';
 import { PdfLoadError } from '../utils/errors';
+import { Logger } from '../utils/logger';
+import { WebviewProvider } from '../webview/webviewProvider';
+import { WebviewUtils } from '../utils/webviewUtils';
 
+// biome-ignore lint/complexity/noStaticOnlyClass: This follows existing extension patterns
 export class OpenLocalPdfCommand {
   private static readonly logger = Logger.getInstance();
 
   static register(context: vscode.ExtensionContext): vscode.Disposable {
     return vscode.commands.registerCommand('docpilot.openLocalPdf', async () => {
       try {
-        await this.execute(context);
+        await OpenLocalPdfCommand.execute(context);
       } catch (error) {
-        this.logger.error('Failed to open local PDF', error);
+        OpenLocalPdfCommand.logger.error('Failed to open local PDF', error);
         vscode.window.showErrorMessage(
           `Failed to open PDF: ${error instanceof Error ? error.message : 'Unknown error'}`
         );
@@ -20,7 +22,7 @@ export class OpenLocalPdfCommand {
   }
 
   private static async execute(context: vscode.ExtensionContext): Promise<void> {
-    this.logger.info('Opening local PDF file picker');
+    OpenLocalPdfCommand.logger.info('Opening local PDF file picker');
 
     const result = await vscode.window.showOpenDialog({
       canSelectFiles: true,
@@ -33,26 +35,24 @@ export class OpenLocalPdfCommand {
     });
 
     if (!result || result.length === 0) {
-      this.logger.info('No file selected');
+      OpenLocalPdfCommand.logger.info('No file selected');
       return;
     }
 
     const filePath = result[0].fsPath;
-    this.logger.info(`Selected PDF file: ${filePath}`);
+    OpenLocalPdfCommand.logger.info(`Selected PDF file: ${filePath}`);
 
     if (!WebviewProvider.validatePdfPath(filePath)) {
       throw new PdfLoadError(filePath, new Error('Invalid PDF file'));
     }
 
-    // Create and show PDF viewer
-    const panel = WebviewProvider.createPdfViewer(filePath, context);
-
-    // Focus the panel
-    panel.reveal(vscode.ViewColumn.One);
-
-    this.logger.info(`PDF viewer created for: ${filePath}`);
-
-    // Show success message
-    vscode.window.showInformationMessage(`Opened PDF: ${result[0].path.split('/').pop()}`);
+    // Create and show PDF viewer using shared utility
+    WebviewUtils.createAndRevealPdfViewer({
+      title: `📄 ${result[0].path.split('/').pop()}`,
+      source: filePath,
+      context,
+      viewColumn: vscode.ViewColumn.One,
+      successMessage: `Opened PDF: ${result[0].path.split('/').pop()}`,
+    });
   }
 }

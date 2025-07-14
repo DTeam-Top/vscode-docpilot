@@ -4,7 +4,7 @@ import { TokenEstimator } from '../utils/tokenEstimator';
 import { Logger } from '../utils/logger';
 import { ChatErrorHandler } from '../utils/errorHandler';
 import { RetryPolicy } from '../utils/retry';
-import { ModelRequestError, ChunkProcessingError } from '../utils/errors';
+import { ModelRequestError } from '../utils/errors';
 import { CONFIG } from '../utils/constants';
 import type {
   ProcessDocumentOptions,
@@ -52,6 +52,7 @@ export class TextProcessor {
           processingStrategy: result.success ? 'enhanced' : 'fallback',
           timestamp: Date.now(),
         },
+        summaryText: result.summaryText,
       };
     } catch (error) {
       TextProcessor.logger.error('Document processing failed', error);
@@ -116,14 +117,16 @@ export class TextProcessor {
 
     stream.markdown('## 📋 PDF Summary\n\n');
 
+    let summaryText = '';
     for await (const chunk of response.text) {
+      summaryText += chunk;
       stream.markdown(chunk);
       if (token.isCancellationRequested) {
         break;
       }
     }
 
-    return { success: true, fallbackRequired: false };
+    return { success: true, fallbackRequired: false, summaryText: summaryText.trim() };
   }
 
   private async processMultipleChunks(
@@ -177,7 +180,7 @@ export class TextProcessor {
       '✨ *Summary generated using semantic chunking and hierarchical consolidation*\n'
     );
 
-    return { success: true, fallbackRequired: false };
+    return { success: true, fallbackRequired: false, summaryText: finalSummary };
   }
 
   private async processChunksInBatches(
@@ -312,7 +315,10 @@ export class TextProcessor {
       );
 
       stream.markdown('## 📋 PDF Summary (Excerpt)\n\n');
+      
+      let fallbackSummaryText = '';
       for await (const chunk of fallbackResponse.text) {
+        fallbackSummaryText += chunk;
         stream.markdown(chunk);
         if (token.isCancellationRequested) {
           break;
@@ -331,8 +337,9 @@ export class TextProcessor {
           originalError,
           timestamp: Date.now(),
         },
+        summaryText: fallbackSummaryText.trim(),
       };
-    } catch (fallbackError) {
+    } catch (_fallbackError) {
       stream.markdown(`❌ Both enhanced and fallback summarization failed: ${originalError}\n\n`);
       throw new ModelRequestError(`Summarization failed: ${originalError}`);
     }

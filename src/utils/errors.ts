@@ -1,5 +1,5 @@
-import { CONFIG } from './constants';
 import type { ErrorContext } from '../types/interfaces';
+import { CONFIG } from './constants';
 
 export abstract class DocPilotError extends Error {
   abstract readonly code: string;
@@ -26,6 +26,7 @@ export class PdfLoadError extends DocPilotError {
       additionalInfo: { path, originalError: cause?.message },
     });
     if (cause) {
+      // biome-ignore lint/suspicious/noExplicitAny: Error.cause is not well-typed in current Node.js types
       (this as any).cause = cause;
     }
   }
@@ -47,6 +48,7 @@ export class TextExtractionError extends DocPilotError {
   constructor(reason: string, cause?: Error) {
     super(`Text extraction failed: ${reason}`);
     if (cause) {
+      // biome-ignore lint/suspicious/noExplicitAny: Error.cause is not well-typed in current Node.js types
       (this as any).cause = cause;
     }
   }
@@ -59,6 +61,7 @@ export class ModelRequestError extends DocPilotError {
   constructor(message: string, cause?: Error) {
     super(`AI model request failed: ${message}`);
     if (cause) {
+      // biome-ignore lint/suspicious/noExplicitAny: Error.cause is not well-typed in current Node.js types
       (this as any).cause = cause;
     }
   }
@@ -71,6 +74,7 @@ export class ChunkProcessingError extends DocPilotError {
   constructor(chunkIndex: number, cause?: Error) {
     super(`Failed to process chunk ${chunkIndex}`);
     if (cause) {
+      // biome-ignore lint/suspicious/noExplicitAny: Error.cause is not well-typed in current Node.js types
       (this as any).cause = cause;
     }
   }

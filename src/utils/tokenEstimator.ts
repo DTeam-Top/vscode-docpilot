@@ -1,6 +1,7 @@
-import { CONFIG } from './constants';
 import type { TokenEstimationResult } from '../types/interfaces';
+import { CONFIG } from './constants';
 
+// biome-ignore lint/complexity/noStaticOnlyClass: This follows existing extension patterns
 export class TokenEstimator {
   static estimate(text: string): number {
     const baseTokens = Math.ceil(text.length / CONFIG.TEXT_PROCESSING.CHARS_PER_TOKEN);
@@ -8,13 +9,13 @@ export class TokenEstimator {
   }
 
   static estimateWithMetadata(text: string): TokenEstimationResult {
-    const tokens = this.estimate(text);
+    const tokens = TokenEstimator.estimate(text);
 
     return {
       tokens,
       characters: text.length,
       estimationMethod: 'character-based',
-      confidence: this.calculateConfidence(text),
+      confidence: TokenEstimator.calculateConfidence(text),
     };
   }
 

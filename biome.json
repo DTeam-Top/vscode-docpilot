@@ -77,6 +77,7 @@
     }
   },
   "javascript": {
+    "globals": ["acquireVsCodeApi", "pdfjsLib", "PDF_CONFIG"],
     "formatter": {
       "jsxQuoteStyle": "double",
       "quoteProperties": "asNeeded",

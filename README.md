@@ -5,6 +5,7 @@ A comprehensive VSCode extension that combines advanced PDF viewing with intelli
 ## ✨ Core Features
 
 ### 📄 Advanced PDF Viewing
+- **Automatic Activation** - Opens PDFs seamlessly via File → Open menu
 - **Local & Remote Support** - Open files from filesystem or URLs
 - **Crisp Rendering** - High-quality display with PDF.js engine
 - **Smart Navigation** - Zoom, fit-to-width/page, continuous scrolling
@@ -12,9 +13,11 @@ A comprehensive VSCode extension that combines advanced PDF viewing with intelli
 
 ### 🤖 AI-Powered Analysis
 - **Intelligent Summarization** - Comprehensive document analysis via Copilot Chat
+- **Smart Caching** - Instant results for previously processed documents
 - **Semantic Chunking** - Advanced processing for documents of any size
 - **Hierarchical Processing** - Multi-level summarization with context preservation
 - **Progress Tracking** - Real-time status updates during analysis
+- **Automatic Cache Invalidation** - Fresh summaries when files are modified
 
 ## 🚀 Installation
 
@@ -35,13 +38,15 @@ Will be available on VSCode Marketplace
 
 ### Opening PDFs
 
-**Local Files:**
+**Automatic Activation (Easiest):**
+- File → Open → Select any PDF file - DocPilot opens automatically!
+- Double-click PDF files in VS Code Explorer
 
+**Manual Commands:**
 - Press `F1` → Type "DocPilot: Open Local PDF"
 - Right-click any `.pdf` file in Explorer → "Open Local PDF"
 
 **Remote URLs:**
-
 - Press `F1` → Type "DocPilot: Open PDF from URL"
 - Enter the PDF URL when prompted
 
@@ -52,19 +57,22 @@ Will be available on VSCode Marketplace
 2. Type `@docpilot /summarise [file-path-or-url]`
 3. Get comprehensive AI analysis with document viewer
 
-**Supported Formats:**
+**Supported Commands:**
 ```bash
 @docpilot /summarise docs/report.pdf        # Local file
 @docpilot /summarise https://example.com/doc.pdf  # Remote URL
 @docpilot /summarise                        # File picker dialog
+@docpilot /cache-stats                      # View cache statistics
+@docpilot /clear-cache                      # Clear all cached summaries
 ```
 
 **Advanced Capabilities:**
 - **🧠 Semantic Chunking** - Preserves context across document boundaries
-- **⚡ Batch Processing** - Handles large documents through intelligent segmentation
+- **⚡ Intelligent Caching** - Instant retrieval of previously processed summaries
 - **🔄 Hierarchical Summarization** - Multi-stage analysis for comprehensive understanding
 - **📊 Processing Analytics** - Detailed stats on chunks processed and pages analyzed
 - **🛡️ Error Resilience** - Multiple fallback strategies ensure reliable operation
+- **🔄 Auto Cache Invalidation** - File modification detection for fresh content
 
 ### Controls
 
@@ -92,7 +100,13 @@ Will be available on VSCode Marketplace
 ```text
 vscode-docpilot/
 ├── src/
-│   └── extension.ts          # Main extension logic
+│   ├── extension.ts          # Main extension activation
+│   ├── cache/                # Summary caching system
+│   ├── chat/                 # AI chat participant
+│   ├── commands/             # PDF opening commands
+│   ├── editors/              # Custom PDF editor provider
+│   ├── webview/              # PDF viewer implementation
+│   └── utils/                # Shared utilities
 ├── package.json              # Extension manifest
 ├── tsconfig.json            # TypeScript configuration
 └── README.md                # This file
@@ -124,6 +138,20 @@ vsce package
 
 ## 🎯 Architecture
 
+### Unified PDF Viewing System
+
+- **WebviewProvider**: Core PDF viewer with HTML generation and message handling
+- **Custom Editor**: Automatic activation for File → Open, delegates to WebviewProvider
+- **Commands**: Manual PDF opening via command palette and context menu
+- **WebviewUtils**: Shared utilities for consistent panel creation across entry points
+
+### Multiple Activation Methods
+
+1. **Automatic**: File → Open on PDF files (via custom editor registration)
+2. **Manual Commands**: `docpilot.openLocalPdf`, `docpilot.openPdfFromUrl`
+3. **Context Menu**: Right-click on PDF files in Explorer
+4. **Chat Integration**: `@docpilot /summarise` command
+
 ### PDF Rendering
 
 - Uses PDF.js for reliable cross-platform PDF parsing
@@ -132,9 +160,9 @@ vsce package
 
 ### VSCode Integration
 
-- Webview panels for PDF display
-- File system access for local PDFs
-- Theme integration for consistent UI
+- Custom editor provider for seamless file association
+- Webview panels for PDF display with theme integration
+- File system access for local PDFs and URL support
 
 ### Performance Optimizations
 
@@ -146,6 +174,8 @@ vsce package
 - Token-aware chunking with configurable overlap (10% default)
 - Batch processing (3 chunks concurrently) to prevent API overload
 - Memory-efficient streaming with real-time progress updates
+- Intelligent caching with file modification detection
+- Persistent cache storage across VS Code sessions
 
 ## 🔧 Technical Highlights
 

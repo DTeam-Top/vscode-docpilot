@@ -1,3 +1,6 @@
+// Global variables provided by VS Code webview and PDF.js
+/* global acquireVsCodeApi, pdfjsLib, PDF_CONFIG */
+
 // Make vscode API available first
 const vscode = acquireVsCodeApi();
 console.log('VSCode API initialized');
@@ -17,20 +20,20 @@ const textLayerCache = new Map(); // LRU cache for text layers
 const MAX_CACHED_TEXT_LAYERS = 10;
 const VISIBLE_PAGE_BUFFER = 2;
 const MAX_TEXT_DIVS_PER_PAGE = 50000;
-let renderTimes = [];
+const renderTimes = [];
 const PERFORMANCE_THRESHOLD = 500; // 500ms
 
 // Load PDF
 const loadingTask = pdfjsLib.getDocument(PDF_CONFIG.pdfUri);
-loadingTask.onProgress = function (progress) {
+loadingTask.onProgress = (progress) => {
   if (progress.total > 0) {
     const percent = (progress.loaded / progress.total) * 100;
-    progressFill.style.width = percent + '%';
+    progressFill.style.width = `${percent}%`;
   }
 };
 
 loadingTask.promise
-  .then(function (pdf) {
+  .then((pdf) => {
     pdfDoc = pdf;
     pagesContainer.innerHTML = '<div class="pdf-pages" id="pdfPages"></div>';
     updatePageInfo();
@@ -40,7 +43,7 @@ loadingTask.promise
     // Signal that PDF is ready for text extraction
     console.log('PDF loaded successfully, ready for text extraction');
   })
-  .catch(function (error) {
+  .catch((error) => {
     console.error('Error loading PDF:', error);
     pagesContainer.innerHTML =
       '<div class="error">Failed to load PDF. The file may be corrupted or inaccessible.</div>';
@@ -48,12 +51,12 @@ loadingTask.promise
     // Notify extension of PDF loading error
     vscode.postMessage({
       type: 'textExtractionError',
-      error: 'Failed to load PDF: ' + error.message,
+      error: `Failed to load PDF: ${error.message}`,
     });
   });
 
 function renderAllPages() {
-  const pdfPages = document.getElementById('pdfPages');
+  const _pdfPages = document.getElementById('pdfPages');
   const promises = [];
 
   for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
@@ -67,13 +70,13 @@ function renderAllPages() {
 }
 
 function renderPage(pageNum) {
-  return pdfDoc.getPage(pageNum).then(function (page) {
+  return pdfDoc.getPage(pageNum).then((page) => {
     const viewport = page.getViewport({ scale: scale });
 
     // Create page container
     const pageDiv = document.createElement('div');
     pageDiv.className = 'pdf-page';
-    pageDiv.id = 'page-' + pageNum;
+    pageDiv.id = `page-${pageNum}`;
 
     // Create canvas
     const canvas = document.createElement('canvas');
@@ -112,7 +115,7 @@ function setupScrollListener() {
   const container = pagesContainer;
   let scrollTimeout;
 
-  container.addEventListener('scroll', function () {
+  container.addEventListener('scroll', () => {
     clearTimeout(scrollTimeout);
     scrollTimeout = setTimeout(() => {
       updateCurrentPage();
@@ -156,14 +159,14 @@ function setZoom(newScale, immediate = false) {
 
 function rerenderAllPages() {
   const pages = document.querySelectorAll('.pdf-page');
-  let renderPromises = [];
+  const renderPromises = [];
 
   // Re-render each page at the new scale
   pages.forEach((pageDiv, index) => {
     const pageNum = index + 1;
     const canvas = pageDiv.querySelector('canvas');
     if (canvas && pdfDoc) {
-      const promise = pdfDoc.getPage(pageNum).then(function (page) {
+      const promise = pdfDoc.getPage(pageNum).then((page) => {
         const viewport = page.getViewport({ scale: scale });
         const ctx = canvas.getContext('2d');
 
@@ -223,6 +226,7 @@ function fitToWidth() {
   }
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: Used by HTML onclick
 function fitToPage() {
   const container = pagesContainer;
   const containerHeight = container.clientHeight - 40;
@@ -245,11 +249,11 @@ function updatePageInfo() {
 }
 
 function updateZoomInfo() {
-  document.getElementById('zoomLevel').textContent = Math.round(scale * 100) + '%';
+  document.getElementById('zoomLevel').textContent = `${Math.round(scale * 100)}%`;
 }
 
 // Keyboard shortcuts
-document.addEventListener('keydown', function (e) {
+document.addEventListener('keydown', (e) => {
   if (e.ctrlKey || e.metaKey) {
     if (e.key === '=' || e.key === '+') {
       e.preventDefault();
@@ -265,7 +269,7 @@ document.addEventListener('keydown', function (e) {
 });
 
 // Only zoom on wheel when Ctrl is explicitly held down
-document.addEventListener('wheel', function (e) {
+document.addEventListener('wheel', (e) => {
   if (e.ctrlKey && !e.shiftKey && !e.altKey) {
     e.preventDefault();
     if (e.deltaY < 0) {
@@ -288,7 +292,9 @@ function initializeTextSelection() {
   }
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: Used by HTML onclick
 function toggleTextSelection() {
+  console.log('Text selection button clicked - function called');
   textSelectionEnabled = !textSelectionEnabled;
   const btn = document.getElementById('textSelectionBtn');
   btn.textContent = textSelectionEnabled ? 'Disable Text Selection' : 'Enable Text Selection';
@@ -346,7 +352,7 @@ async function renderVisibleTextLayers() {
   }
 
   // Cleanup text layers outside visible range
-  textLayerStates.forEach((state, pageNum) => {
+  textLayerStates.forEach((_state, pageNum) => {
     if (!shouldRenderTextLayer(pageNum)) {
       cleanupTextLayer(pageNum);
     }
@@ -389,16 +395,16 @@ async function renderTextLayer(pageNum) {
 
       // Extract transformation matrix values
       const tx = textItem.transform;
-      const [scaleX, skewY, skewX, scaleY, translateX, translateY] = tx;
+      const [scaleX, skewY, _skewX, _scaleY, translateX, translateY] = tx;
 
       // Calculate position and font size
       const fontSize = Math.sqrt(scaleX * scaleX + skewY * skewY);
       const fontScale = fontSize * scale;
 
       // Apply positioning
-      textSpan.style.left = translateX * scale + 'px';
-      textSpan.style.top = viewport.height - translateY * scale - fontScale + 'px';
-      textSpan.style.fontSize = fontScale + 'px';
+      textSpan.style.left = `${translateX * scale}px`;
+      textSpan.style.top = `${viewport.height - translateY * scale - fontScale}px`;
+      textSpan.style.fontSize = `${fontScale}px`;
 
       // Set font family if available
       if (textItem.fontName && textItem.fontName !== 'g_d0_f1') {
@@ -413,7 +419,11 @@ async function renderTextLayer(pageNum) {
     // Append all text spans at once
     state.container.appendChild(fragment);
 
-    state.textLayer = { cancel: () => {} };
+    state.textLayer = {
+      cancel: () => {
+        /* No-op cancel function */
+      },
+    };
     state.rendered = true;
 
     const renderTime = performance.now() - startTime;
@@ -432,7 +442,7 @@ async function renderTextLayer(pageNum) {
 
 function hideAllTextLayers() {
   console.log('Hiding all text layers');
-  textLayerStates.forEach((state, pageNum) => {
+  textLayerStates.forEach((state, _pageNum) => {
     if (state.container) {
       state.container.className = 'textLayer hidden';
     }
@@ -483,6 +493,7 @@ function monitorTextLayerPerformance(renderTime) {
   }
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: Used by HTML onclick
 function toggleDebug() {
   debugMode = !debugMode;
   const btn = document.getElementById('debugBtn');
@@ -490,7 +501,7 @@ function toggleDebug() {
   btn.style.backgroundColor = debugMode ? '#ff6b6b' : 'var(--vscode-button-background)';
 
   // Update text layer styling for debug mode
-  textLayerStates.forEach((state, pageNum) => {
+  textLayerStates.forEach((state, _pageNum) => {
     if (state.container && state.rendered) {
       const spans = state.container.querySelectorAll('span');
       spans.forEach((span, index) => {
@@ -528,8 +539,8 @@ async function extractAllTextContent() {
 
       let pageText = '';
       textContent.items.forEach((item) => {
-        if (item.str && item.str.trim()) {
-          pageText += item.str + ' ';
+        if (item.str?.trim()) {
+          pageText += `${item.str} `;
         }
       });
 
@@ -574,6 +585,75 @@ window.addEventListener('message', async (event) => {
         error: error.message || 'Unknown error during text extraction',
       });
     }
+  }
+});
+
+// Summarize document function
+// biome-ignore lint/correctness/noUnusedVariables: Used by HTML onclick
+async function summarizeDocument() {
+  console.log('Summarize button clicked - function called');
+  const summarizeBtn = document.getElementById('summarizeBtn');
+
+  if (!pdfDoc) {
+    console.error('PDF not loaded yet');
+    return;
+  }
+
+  try {
+    // Disable button and show loading state
+    summarizeBtn.disabled = true;
+    summarizeBtn.innerHTML = '⏳ Summarizing...';
+    summarizeBtn.style.opacity = '0.6';
+
+    console.log('Starting document summarization...');
+
+    // Send summarize request to extension
+    vscode.postMessage({
+      type: 'summarizeRequest',
+      fileName: PDF_CONFIG.fileName,
+      isUrl: PDF_CONFIG.isUrl,
+      pdfUri: PDF_CONFIG.pdfUri,
+    });
+  } catch (error) {
+    console.error('Error starting summarization:', error);
+
+    // Reset button state
+    summarizeBtn.disabled = false;
+    summarizeBtn.innerHTML = '📝 Summarize';
+    summarizeBtn.style.opacity = '1';
+
+    vscode.postMessage({
+      type: 'summarizeError',
+      error: error.message || 'Failed to start summarization',
+    });
+  }
+}
+
+// Listen for summarization status updates
+window.addEventListener('message', (event) => {
+  const message = event.data;
+  const summarizeBtn = document.getElementById('summarizeBtn');
+
+  switch (message.type) {
+    case 'summarizeStarted':
+      console.log('Summarization started in extension');
+      break;
+
+    case 'summarizeCompleted':
+      console.log('Summarization completed');
+      // Reset button state
+      summarizeBtn.disabled = false;
+      summarizeBtn.innerHTML = '📝 Summarize';
+      summarizeBtn.style.opacity = '1';
+      break;
+
+    case 'summarizeError':
+      console.error('Summarization error:', message.error);
+      // Reset button state
+      summarizeBtn.disabled = false;
+      summarizeBtn.innerHTML = '📝 Summarize';
+      summarizeBtn.style.opacity = '1';
+      break;
   }
 });
 
