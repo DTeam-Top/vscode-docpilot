@@ -25,7 +25,7 @@ The project is a well-structured VS Code extension for viewing and summarizing P
 
 * **`src/chat/`**: This module is the core of the AI functionality and has been enhanced with caching.
   * `chatParticipant.ts`: Effectively handles command routing. The new commands for cache management (`/cache-stats`, `/clear-cache`) are well-implemented and give users important control over the cache.
-  * `summaryHandler.ts`: The workflow is now even better. It seamlessly integrates the caching logic, checking for a cached summary before performing expensive processing. Caching the result and initiating file watching on a successful summary is the correct approach.
+  * `summaryHandler.ts`: The workflow is excellent. It seamlessly integrates the caching logic, checking for a cached summary before performing expensive processing. A recent refinement ensures the PDF viewer is opened immediately, even when a cached summary is available, which improves the user experience by providing immediate visual context. Caching the result and initiating file watching on a successful summary remains the correct and robust approach.
   * `textProcessor.ts`: This is the most impressive part of the codebase. The implementation of semantic chunking, batch processing, and a hierarchical summary consolidation strategy is sophisticated and shows a deep understanding of how to work with large language models. The inclusion of a `RetryPolicy` and a fallback mechanism makes it very robust.
 
 * **`src/commands/`**: The commands for opening local and remote PDFs are straightforward and user-friendly, with proper input validation.

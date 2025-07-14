@@ -30,7 +30,10 @@ export class SummaryHandler {
   ): Promise<ChatCommandResult> {
     try {
       const pdfPath = await this.resolvePdfPath(request.prompt, stream);
-      
+
+      // Always create PDF viewer first
+      const panel = await this.createPdfViewer(pdfPath, stream);
+
       // Check cache first
       const cachedSummary = await this.summaryCache.getCachedSummary(pdfPath);
       if (cachedSummary) {
@@ -38,7 +41,7 @@ export class SummaryHandler {
         stream.markdown('## 📋 PDF Summary (Cached)\n\n');
         stream.markdown(cachedSummary);
         stream.markdown('\n\n---\n*This summary was retrieved from cache for faster response.*');
-        
+
         return {
           metadata: {
             command: 'summarise',
@@ -49,7 +52,6 @@ export class SummaryHandler {
         };
       }
 
-      const panel = await this.createPdfViewer(pdfPath, stream);
       const text = await this.extractText(panel, pdfPath, stream);
       const fileName = this.getFileName(pdfPath);
 
@@ -69,7 +71,7 @@ export class SummaryHandler {
           String(result.metadata.processingStrategy) || 'unknown',
           Number(result.metadata.textLength) || text.length
         );
-        
+
         // Start watching the file for changes to invalidate cache
         this.fileWatcher.watchFile(pdfPath);
       }
@@ -144,7 +146,7 @@ export class SummaryHandler {
     try {
       // Check if viewer already exists, otherwise create/reveal one
       const panel = WebviewProvider.createPdfViewer(pdfPath, this.extensionContext);
-      
+
       // The createPdfViewer method now handles reuse internally, so we always get a valid panel
       const action = panel.visible ? 'Reusing existing' : 'Opening';
       stream.markdown(`📄 ${action} PDF viewer...\n\n`);
