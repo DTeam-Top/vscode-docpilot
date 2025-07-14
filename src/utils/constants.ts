@@ -44,6 +44,10 @@ export const WEBVIEW_MESSAGES = {
   SUMMARIZE_STARTED: 'summarizeStarted',
   SUMMARIZE_COMPLETED: 'summarizeCompleted',
   SUMMARIZE_ERROR: 'summarizeError',
+  EXPORT_TEXT: 'exportText',
+  EXPORT_STARTED: 'exportStarted',
+  EXPORT_COMPLETED: 'exportCompleted',
+  EXPORT_ERROR: 'exportError',
 } as const;
 
 export const CHAT_COMMANDS = {

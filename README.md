@@ -9,6 +9,7 @@ A comprehensive VSCode extension that combines advanced PDF viewing with intelli
 - **Local & Remote Support** - Open files from filesystem or URLs
 - **Crisp Rendering** - High-quality display with PDF.js engine
 - **Smart Navigation** - Zoom, fit-to-width/page, continuous scrolling
+- **Text Export** - Extract PDF content as clean text files
 - **VSCode Integration** - Seamless theme matching and UI consistency
 
 ### 🤖 AI-Powered Analysis
@@ -92,6 +93,13 @@ Will be available on VSCode Marketplace
 
 - **Scroll**: Mouse wheel or trackpad for natural scrolling
 - **Page Info**: Shows current page number in toolbar
+
+**Text Export:**
+
+- **Export Button**: Click "📄 Export" in the PDF viewer toolbar
+- **File Format**: Exports as clean text (.txt) with optional markdown (.md) support
+- **Content**: Extracts all text content with document metadata header
+- **Auto-Open**: Option to immediately open exported file in VSCode
 
 ## 🛠️ Development
 
