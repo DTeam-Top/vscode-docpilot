@@ -3,6 +3,7 @@ import { InvalidFilePathError } from '../utils/errors';
 import { Logger } from '../utils/logger';
 import { WebviewProvider } from '../webview/webviewProvider';
 import { WebviewUtils } from '../utils/webviewUtils';
+import { PdfProxy } from '../utils/pdfProxy';
 
 // biome-ignore lint/complexity/noStaticOnlyClass: This follows existing extension patterns
 export class OpenPdfFromUrlCommand {
@@ -62,13 +63,82 @@ export class OpenPdfFromUrlCommand {
       throw new InvalidFilePathError(`URL does not appear to be a PDF: ${url}`);
     }
 
-    // Create and show PDF viewer using shared utility
-    WebviewUtils.createAndRevealPdfViewer({
-      title: `📄 Remote PDF`,
-      source: url,
-      context,
-      viewColumn: vscode.ViewColumn.One,
-      successMessage: `Opening PDF from: ${new URL(url).hostname}`,
+    // Try to open PDF directly first, with fallback to proxy
+    try {
+      // Create and show PDF viewer using shared utility
+      const panel = WebviewUtils.createAndRevealPdfViewer({
+        title: `📄 Remote PDF`,
+        source: url,
+        context,
+        viewColumn: vscode.ViewColumn.One,
+        successMessage: `Opening PDF from: ${new URL(url).hostname}`,
+      });
+
+      // Set up message handling for fallback actions
+      OpenPdfFromUrlCommand.setupFallbackHandling(panel, url, context);
+      
+      // Clean up old cached PDFs
+      PdfProxy.cleanupCache();
+    } catch (error) {
+      OpenPdfFromUrlCommand.logger.error('Failed to open PDF directly, trying proxy', error);
+      await OpenPdfFromUrlCommand.tryProxyDownload(url, context);
+    }
+  }
+
+  private static setupFallbackHandling(
+    panel: vscode.WebviewPanel,
+    originalUrl: string,
+    context: vscode.ExtensionContext
+  ): void {
+    panel.webview.onDidReceiveMessage(async (message) => {
+      switch (message.type) {
+        case 'downloadPdfFallback':
+          await OpenPdfFromUrlCommand.tryProxyDownload(originalUrl, context);
+          break;
+        case 'openInBrowser':
+          await vscode.env.openExternal(vscode.Uri.parse(originalUrl));
+          break;
+        case 'textExtractionError':
+          // Handle CORS errors by automatically trying proxy
+          if (message.isCorsError && message.isUrl) {
+            OpenPdfFromUrlCommand.logger.info('CORS error detected, attempting proxy download');
+            await OpenPdfFromUrlCommand.tryProxyDownload(originalUrl, context);
+          }
+          break;
+      }
     });
+  }
+
+  private static async tryProxyDownload(url: string, context: vscode.ExtensionContext): Promise<void> {
+    try {
+      OpenPdfFromUrlCommand.logger.info(`Attempting to download PDF via proxy: ${url}`);
+      
+      // Show progress indicator
+      await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: 'Downloading PDF...',
+        cancellable: false
+      }, async (progress) => {
+        progress.report({ message: 'Downloading from server...' });
+        
+        const localPath = await PdfProxy.downloadPdf(url);
+        
+        progress.report({ message: 'Opening PDF...' });
+        
+        // Create PDF viewer with local path
+        WebviewUtils.createAndRevealPdfViewer({
+          title: `📄 ${new URL(url).hostname}`,
+          source: localPath,
+          context,
+          viewColumn: vscode.ViewColumn.One,
+          successMessage: `PDF downloaded and opened from: ${new URL(url).hostname}`,
+        });
+      });
+    } catch (error) {
+      OpenPdfFromUrlCommand.logger.error('Failed to download PDF via proxy', error);
+      vscode.window.showErrorMessage(
+        `Failed to download PDF: ${error instanceof Error ? error.message : 'Unknown error'}. Try opening the PDF directly in your browser.`
+      );
+    }
   }
 }
