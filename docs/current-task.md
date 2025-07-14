@@ -2,7 +2,13 @@
 
 ## ✅ Recently Completed
 
-### Summary Caching System Implementation (Latest)
+### Summary Viewer Opening Bug Fix (Latest)
+- **Fixed cached summary regression** - `@docpilot /summary` now opens viewer for both cached and new results
+- **Restored expected user experience** - Viewer consistently opens alongside summaries
+- **Maintained cache performance benefits** - Cache optimization preserved while fixing UX issue
+- **Applied clean architecture fix** - Moved viewer creation before cache check for consistent behavior
+
+### Summary Caching System Implementation
 - **Intelligent Summary Caching** - Instant retrieval for previously processed documents (95% speed improvement)
 - **Automatic Cache Invalidation** - File modification detection with real-time monitoring
 - **Persistent Cache Storage** - Survives VS Code restarts using global storage

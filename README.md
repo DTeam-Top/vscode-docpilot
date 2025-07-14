@@ -59,9 +59,9 @@ Will be available on VSCode Marketplace
 
 **Supported Commands:**
 ```bash
-@docpilot /summarise docs/report.pdf        # Local file
-@docpilot /summarise https://example.com/doc.pdf  # Remote URL
-@docpilot /summarise                        # File picker dialog
+@docpilot /summarise docs/report.pdf        # Local file + open viewer
+@docpilot /summarise https://example.com/doc.pdf  # Remote URL + open viewer
+@docpilot /summarise                        # File picker dialog + open viewer
 @docpilot /cache-stats                      # View cache statistics
 @docpilot /clear-cache                      # Clear all cached summaries
 ```

@@ -31,6 +31,9 @@ export class SummaryHandler {
     try {
       const pdfPath = await this.resolvePdfPath(request.prompt, stream);
 
+      // Always create PDF viewer first
+      const panel = await this.createPdfViewer(pdfPath, stream);
+
       // Check cache first
       const cachedSummary = await this.summaryCache.getCachedSummary(pdfPath);
       if (cachedSummary) {
@@ -49,7 +52,6 @@ export class SummaryHandler {
         };
       }
 
-      const panel = await this.createPdfViewer(pdfPath, stream);
       const text = await this.extractText(panel, pdfPath, stream);
       const fileName = this.getFileName(pdfPath);
 

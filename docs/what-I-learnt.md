@@ -1405,3 +1405,343 @@ dispose() { this.cleanupWatchers(); }
 - **User-Centric Design** - Building features that users actually need and understand
 
 **The caching implementation represents a significant evolution in thinking about performance optimization in VS Code extensions. It demonstrates that effective caching requires consideration of user workflows, file lifecycle management, and transparent integration with existing functionality. The result is a system that dramatically improves performance while remaining completely transparent to users until they need visibility into its operation.**
+
+---
+
+## 🔧 Cache vs Viewer Opening Bug Fix (January 2025)
+
+### **Summary Viewer Opening Regression**
+
+**Problem:** After adding intelligent caching, `@docpilot /summary $file` stopped opening the PDF viewer when returning cached results
+**User Impact:** Users lost visual access to documents when getting cached summaries
+**Root Cause:** Caching optimization bypassed viewer creation for performance
+
+**Original Flow (Working):**
+```typescript
+// commit 7239300 - Always opened viewer
+const panel = await this.createPdfViewer(pdfPath, stream);
+const text = await this.extractText(panel, pdfPath, stream);
+return await this.processDocument(text, ...);
+```
+
+**Broken Flow (After Caching):**
+```typescript
+// Early return for cached results skipped viewer creation
+const cachedSummary = await this.summaryCache.getCachedSummary(pdfPath);
+if (cachedSummary) {
+  return { /* cached result */ }; // No viewer opened
+}
+const panel = await this.createPdfViewer(pdfPath, stream); // Only for new processing
+```
+
+### **Technical Fix Applied**
+
+**Solution:** Create PDF viewer before cache check to ensure consistent behavior
+
+```typescript
+// Fixed: Always create viewer regardless of cache status
+const panel = await this.createPdfViewer(pdfPath, stream);
+
+const cachedSummary = await this.summaryCache.getCachedSummary(pdfPath);
+if (cachedSummary) {
+  // Return cached result with viewer open
+  return { /* cached result */ };
+}
+
+// Continue with full processing using existing panel
+const text = await this.extractText(panel, pdfPath, stream);
+```
+
+### **Implementation Details**
+
+**File Changed:** `src/chat/summaryHandler.ts:35`
+- Moved `createPdfViewer()` call before cache check
+- Removed duplicate viewer creation after cache miss
+- Preserved existing panel reference for text extraction
+
+**Behavior Restored:**
+- ✅ Cached summaries now open viewer + return summary
+- ✅ New processing opens viewer + processes document
+- ✅ Consistent user experience across cache states
+
+### **Key Insights**
+
+**1. Cache Optimization vs User Experience**
+- Performance optimizations shouldn't change user-visible behavior
+- "Invisible" caching should maintain expected UI interactions
+- Cache hits should enhance, not replace, core functionality
+
+**2. Feature Integration Complexity**
+- Adding new features (caching) can inadvertently break existing behavior
+- Need systematic testing of all user-facing workflows after changes
+- Early returns in optimized code paths require careful consideration
+
+**3. Git History Analysis for Debugging**
+- Comparing current vs previous working versions reveals exact changes
+- `git show HEAD~N:file.ts` effective for identifying regression points
+- Commit messages help identify when features were added/modified
+
+### **Testing Strategy**
+
+**Verification Steps:**
+1. Test `@docpilot /summary` with fresh (uncached) documents → Viewer opens + processes
+2. Test `@docpilot /summary` with cached documents → Viewer opens + returns cached result  
+3. Verify cache statistics and invalidation still work correctly
+4. Confirm no performance regression from early viewer creation
+
+**Result:** ✅ All test cases pass - viewer opens consistently while maintaining cache performance benefits
+
+### **Architecture Lesson**
+
+**Anti-Pattern:** Optimizing for performance at the cost of user experience consistency
+**Best Practice:** Maintain user-visible behavior while optimizing internal operations
+**Implementation:** Create viewer early, use caching for summary generation only
+
+This fix demonstrates that feature additions should enhance existing workflows, not replace them. The cache system now provides performance benefits while preserving the expected user experience of having document viewers open alongside summaries.
+
+---
+
+## 🌐 Remote PDF Loading System Enhancement
+
+### **Comprehensive Remote PDF Support Implementation**
+
+**Challenge:** Users needed seamless access to PDFs hosted on remote servers, but web security restrictions (CORS) often blocked direct access
+**Solution:** Multi-tier remote PDF loading system with intelligent fallback mechanisms
+
+### **Technical Architecture**
+
+**Core Components:**
+1. **Direct URL Loading** - Primary approach using PDF.js with remote URLs
+2. **Proxy Download System** - Fallback for CORS-blocked PDFs
+3. **Intelligent Caching** - 24-hour cache with MD5-based keys
+4. **Error Recovery** - Graceful degradation with user-friendly options
+
+### **Key Implementation Details**
+
+#### **1. URL Validation and Processing**
+**Location:** `src/commands/openPdfFromUrl.ts`
+
+```typescript
+// Robust URL validation
+if (!trimmedUrl.startsWith('http')) {
+  throw new Error('URL must start with http:// or https://');
+}
+if (!trimmedUrl.toLowerCase().endsWith('.pdf')) {
+  throw new Error('URL must point to a PDF file');
+}
+```
+
+**Learning:** URL validation should be strict but informative - clear error messages guide users toward correct input
+
+#### **2. CORS Detection and Fallback**
+**Location:** `src/utils/pdfProxy.ts`
+
+```typescript
+// Automatic CORS detection
+try {
+  // Attempt direct PDF loading
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Direct access failed');
+} catch (error) {
+  // Fallback to proxy download
+  return await this.downloadPdfToCache(url);
+}
+```
+
+**Discovery:** CORS errors are common with remote PDFs - need automatic detection and seamless fallback
+
+#### **3. Intelligent Caching Strategy**
+
+**Cache Key Generation:**
+```typescript
+// MD5-based cache keys prevent conflicts
+const cacheKey = crypto.createHash('md5').update(url).digest('hex');
+const cachedPath = path.join(this.cacheDir, `${cacheKey}.pdf`);
+```
+
+**Cache Expiry Management:**
+```typescript
+// 24-hour cache expiry balances performance vs freshness
+const CACHE_EXPIRY_HOURS = 24;
+const isExpired = (Date.now() - stats.mtime.getTime()) > (CACHE_EXPIRY_HOURS * 60 * 60 * 1000);
+```
+
+**Learning:** Cache duration should balance performance (longer) vs content freshness (shorter) - 24 hours works well for PDFs
+
+#### **4. Enhanced User Experience**
+
+**Progress Indication:**
+```typescript
+// Clear user feedback during download
+vscode.window.withProgress({
+  location: vscode.ProgressLocation.Notification,
+  title: "Downloading PDF...",
+  cancellable: false
+}, async (progress) => {
+  // Download with progress updates
+});
+```
+
+**Fallback Options:**
+- **Download PDF Button** - User can manually download if automatic fails
+- **Open in Browser Button** - Direct browser access as last resort
+- **Clear Error Messages** - Specific guidance for different failure modes
+
+### **Integration with Existing Systems**
+
+#### **Unified Viewer Experience**
+- Remote PDFs use same viewer interface as local files
+- Deduplication system prevents duplicate viewers for same URLs
+- All PDF features work identically (zoom, text selection, summarization)
+
+#### **Chat Integration Enhancement**
+```typescript
+// Seamless chat support for remote PDFs
+@docpilot /summarise https://example.com/document.pdf
+```
+
+**Implementation:** `src/chat/summaryHandler.ts` handles URL input transparently
+**Result:** Users can summarize remote PDFs as easily as local files
+
+#### **WebView Message Handling**
+```typescript
+// Enhanced webview communication for remote PDFs
+case 'fallback-download':
+  await this.handleFallbackDownload(message.url);
+  break;
+case 'fallback-browser':
+  await vscode.env.openExternal(vscode.Uri.parse(message.url));
+  break;
+```
+
+### **Performance Optimizations**
+
+#### **Cache Management**
+- **Automatic Cleanup** - Expired cache files removed on startup
+- **Size Limits** - Cache directory monitored to prevent disk space issues
+- **Collision Prevention** - MD5 hashing ensures unique cache keys
+
+#### **Network Efficiency**
+- **User-Agent Headers** - Proper browser identification for compatibility
+- **Content-Type Validation** - Ensures downloaded content is actually PDF
+- **Streaming Downloads** - Memory-efficient for large remote PDFs
+
+### **Error Handling Strategy**
+
+#### **Graceful Degradation Levels**
+1. **Direct Loading** - Fastest, preferred method
+2. **Proxy Download** - Fallback for CORS issues
+3. **User Download** - Manual fallback option
+4. **Browser Opening** - Last resort for access
+
+#### **User-Friendly Error Messages**
+```typescript
+// Specific error guidance instead of generic failures
+if (error.message.includes('CORS')) {
+  return 'Unable to access PDF due to website restrictions. Trying alternative method...';
+}
+if (error.message.includes('404')) {
+  return 'PDF not found at the specified URL. Please check the link.';
+}
+```
+
+### **Security Considerations**
+
+#### **URL Sanitization**
+- Input validation prevents malicious URLs
+- Content-type verification ensures legitimate PDFs
+- Temporary cache prevents persistent security risks
+
+#### **Network Safety**
+- Proper error handling prevents information leakage
+- User consent for fallback operations
+- Clean separation between network and local operations
+
+### **Testing and Validation**
+
+#### **Test Cases Covered**
+- ✅ Direct URL loading for accessible PDFs
+- ✅ CORS-blocked PDF handling with fallback
+- ✅ Cache hit/miss scenarios
+- ✅ Network failure recovery
+- ✅ Invalid URL handling
+- ✅ Integration with summarization and text selection
+
+#### **Real-World Testing**
+- Academic papers from various repositories
+- Corporate documents with different security policies
+- Large PDFs testing cache performance
+- Various domain configurations and restrictions
+
+### **Key Architectural Insights**
+
+#### **1. Fallback Strategy Design**
+**Learning:** Web resources require multiple access strategies - always have Plan B (and C)
+**Implementation:** Progressive degradation from optimal to functional
+
+#### **2. Cache Architecture for Network Resources**
+**Learning:** Remote resource caching needs expiry management unlike local file caching
+**Implementation:** Time-based expiry with content validation
+
+#### **3. User Experience in Network Operations**
+**Learning:** Network operations feel slow - provide progress feedback and alternatives
+**Implementation:** Progress indicators + fallback buttons + clear error messages
+
+#### **4. Integration Complexity**
+**Learning:** Remote resources should work identically to local ones from user perspective
+**Implementation:** Unified APIs with transparent remote/local handling
+
+### **Performance Impact**
+
+#### **Before Remote PDF Enhancement**
+- ❌ No remote PDF support
+- ❌ Users had to manually download PDFs
+- ❌ Broken workflow for web-based documents
+
+#### **After Remote PDF Enhancement**
+- ✅ Seamless remote PDF access
+- ✅ Automatic CORS handling
+- ✅ Intelligent caching (24-hour performance boost)
+- ✅ Full feature compatibility (summarization, text selection)
+- ✅ User-friendly error recovery
+
+### **Development Lessons**
+
+#### **Network Programming in Extensions**
+- **Async/Await Patterns** - Essential for network operations
+- **Error Boundary Design** - Network failures should be contained
+- **Progress Communication** - User feedback critical for network operations
+- **Resource Cleanup** - Temporary files and cache management
+
+#### **VS Code Extension API Usage**
+- **Progress API** - `vscode.window.withProgress` for long operations
+- **External URI** - `vscode.env.openExternal` for browser fallback
+- **File System** - Proper temp directory usage and cleanup
+
+#### **User Experience Design**
+- **Transparent Operation** - Users shouldn't need to understand complexity
+- **Clear Feedback** - Specific error messages with actionable suggestions
+- **Graceful Degradation** - Always provide working alternatives
+
+### **Business Impact**
+
+#### **User Workflow Enhancement**
+- **Academic Researchers** - Direct access to paper repositories
+- **Corporate Users** - Seamless document sharing across teams
+- **Content Creators** - Easy reference to web-hosted materials
+- **Developers** - Quick access to documentation and specifications
+
+#### **Feature Completeness**
+- Extension now handles both local and remote PDFs equally
+- No workflow disruption for users working with web-based documents
+- Competitive advantage over local-only PDF viewers
+
+### **Future Considerations**
+
+#### **Potential Enhancements**
+- **Authentication Support** - Handle password-protected remote PDFs
+- **Batch Download** - Multiple remote PDFs in single operation
+- **Sync Integration** - Cloud storage provider integration
+- **Bandwidth Optimization** - Partial download for large remote PDFs
+
+**The remote PDF loading system demonstrates that modern extensions must handle web resources as first-class citizens. The key is providing a seamless user experience while handling the complexity of network operations, security restrictions, and performance optimization behind the scenes.**
