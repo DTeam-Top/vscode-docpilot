@@ -93,7 +93,7 @@ export class OpenPdfFromUrlCommand {
     panel.webview.onDidReceiveMessage(async (message) => {
       switch (message.type) {
         case 'downloadPdfFallback':
-          await OpenPdfFromUrlCommand.tryProxyDownload(originalUrl, context);
+          await OpenPdfFromUrlCommand.tryProxyDownload(originalUrl, context, panel);
           break;
         case 'openInBrowser':
           await vscode.env.openExternal(vscode.Uri.parse(originalUrl));
@@ -102,14 +102,14 @@ export class OpenPdfFromUrlCommand {
           // Handle CORS errors by automatically trying proxy
           if (message.isCorsError && message.isUrl) {
             OpenPdfFromUrlCommand.logger.info('CORS error detected, attempting proxy download');
-            await OpenPdfFromUrlCommand.tryProxyDownload(originalUrl, context);
+            await OpenPdfFromUrlCommand.tryProxyDownload(originalUrl, context, panel);
           }
           break;
       }
     });
   }
 
-  private static async tryProxyDownload(url: string, context: vscode.ExtensionContext): Promise<void> {
+  private static async tryProxyDownload(url: string, context: vscode.ExtensionContext, originalPanel?: vscode.WebviewPanel): Promise<void> {
     try {
       OpenPdfFromUrlCommand.logger.info(`Attempting to download PDF via proxy: ${url}`);
       
@@ -133,6 +133,12 @@ export class OpenPdfFromUrlCommand {
           viewColumn: vscode.ViewColumn.One,
           successMessage: `PDF downloaded and opened from: ${new URL(url).hostname}`,
         });
+        
+        // Close the original panel that showed the error
+        if (originalPanel) {
+          originalPanel.dispose();
+          OpenPdfFromUrlCommand.logger.info('Closed original PDF viewer after successful proxy download');
+        }
       });
     } catch (error) {
       OpenPdfFromUrlCommand.logger.error('Failed to download PDF via proxy', error);

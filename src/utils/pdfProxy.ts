@@ -1,6 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as crypto from 'node:crypto';
+import * as os from 'node:os';
 import { Logger } from './logger';
 
 // Use built-in fetch for Node.js 18+
@@ -8,7 +9,7 @@ const fetch = (globalThis as any).fetch;
 
 export class PdfProxy {
   private static readonly logger = Logger.getInstance();
-  private static readonly CACHE_DIR = path.join(__dirname, '..', '..', 'temp', 'pdf-cache');
+  private static readonly CACHE_DIR = path.join(os.tmpdir(), 'vscode-docpilot-pdf-cache');
   private static readonly CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
 
   static async downloadPdf(url: string): Promise<string> {
