@@ -45,11 +45,11 @@ loadingTask.promise
   })
   .catch((error) => {
     console.error('Error loading PDF:', error);
-    
+
     // Determine error type and show appropriate message
     let errorMessage = 'Failed to load PDF. The file may be corrupted or inaccessible.';
     let isCorsError = false;
-    
+
     if (error.message?.includes('CORS') || error.message?.includes('fetch')) {
       errorMessage = 'Failed to load PDF due to cross-origin restrictions.';
       isCorsError = true;
@@ -58,9 +58,9 @@ loadingTask.promise
     } else if (error.message?.includes('InvalidPDFException')) {
       errorMessage = 'The file is not a valid PDF or is corrupted.';
     }
-    
+
     let errorHtml = `<div class="error">${errorMessage}</div>`;
-    
+
     // Add specific suggestions for CORS errors on remote PDFs
     if (isCorsError && PDF_CONFIG.isUrl) {
       errorHtml += `
@@ -71,7 +71,7 @@ loadingTask.promise
         </div>
       `;
     }
-    
+
     pagesContainer.innerHTML = errorHtml;
 
     // Notify extension of PDF loading error
@@ -79,7 +79,7 @@ loadingTask.promise
       type: 'textExtractionError',
       error: `Failed to load PDF: ${error.message}`,
       isCorsError: isCorsError,
-      isUrl: PDF_CONFIG.isUrl
+      isUrl: PDF_CONFIG.isUrl,
     });
   });
 
@@ -691,7 +691,7 @@ function downloadPdfFallback() {
   console.log('Download PDF fallback requested');
   vscode.postMessage({
     type: 'downloadPdfFallback',
-    url: PDF_CONFIG.pdfUri
+    url: PDF_CONFIG.pdfUri,
   });
 }
 
@@ -700,7 +700,7 @@ function openInBrowser() {
   console.log('Open in browser requested');
   vscode.postMessage({
     type: 'openInBrowser',
-    url: PDF_CONFIG.pdfUri
+    url: PDF_CONFIG.pdfUri,
   });
 }
 

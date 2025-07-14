@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { SummaryCache } from './summaryCache';
+import type { SummaryCache } from './summaryCache';
 import { Logger } from '../utils/logger';
 
 export class FileWatcher {
@@ -49,7 +49,7 @@ export class FileWatcher {
   private async handleFileChange(filePath: string): Promise<void> {
     FileWatcher.logger.info(`File changed, invalidating cache: ${filePath}`);
     await this.summaryCache.invalidateFile(filePath);
-    
+
     // Show a notification to the user about cache invalidation
     vscode.window.showInformationMessage(
       `PDF file was modified. Cached summary will be regenerated on next request.`,

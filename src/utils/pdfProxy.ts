@@ -5,8 +5,10 @@ import * as os from 'node:os';
 import { Logger } from './logger';
 
 // Use built-in fetch for Node.js 18+
+// biome-ignore lint/suspicious/noExplicitAny: globalThis.fetch typing is complex
 const fetch = (globalThis as any).fetch;
 
+// biome-ignore lint/complexity/noStaticOnlyClass: This follows existing extension patterns
 export class PdfProxy {
   private static readonly logger = Logger.getInstance();
   private static readonly CACHE_DIR = path.join(os.tmpdir(), 'vscode-docpilot-pdf-cache');
@@ -36,8 +38,9 @@ export class PdfProxy {
       // Download PDF using fetch
       const response = await fetch(url, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        },
       });
 
       if (!response.ok) {
@@ -66,8 +69,8 @@ export class PdfProxy {
       const response = await fetch(url, {
         method: 'HEAD',
         headers: {
-          'Origin': 'vscode-webview://vscode-webview'
-        }
+          Origin: 'vscode-webview://vscode-webview',
+        },
       });
 
       // Check for CORS headers
@@ -91,7 +94,7 @@ export class PdfProxy {
       for (const file of files) {
         const filePath = path.join(PdfProxy.CACHE_DIR, file);
         const stats = fs.statSync(filePath);
-        
+
         if (now - stats.mtime.getTime() > PdfProxy.CACHE_EXPIRY) {
           fs.unlinkSync(filePath);
           PdfProxy.logger.debug(`Cleaned up expired cache file: ${file}`);

@@ -24,11 +24,13 @@ export class WebviewProvider {
     // Check if panel already exists for this PDF
     const normalizedPath = WebviewProvider.normalizePath(pdfSource);
     const existingPanel = WebviewProvider.activePanels.get(normalizedPath);
-    
+
     if (existingPanel) {
       // Reveal existing panel instead of creating new one
       existingPanel.reveal(vscode.ViewColumn.One);
-      WebviewProvider.logger.info(`Reusing existing PDF viewer for: ${pdfSource} (normalized: ${normalizedPath})`);
+      WebviewProvider.logger.info(
+        `Reusing existing PDF viewer for: ${pdfSource} (normalized: ${normalizedPath})`
+      );
       return existingPanel;
     }
 
@@ -64,7 +66,9 @@ export class WebviewProvider {
       WebviewProvider.logger.info(`PDF viewer disposed for: ${pdfSource}`);
     });
 
-    WebviewProvider.logger.info(`Created PDF viewer for: ${pdfSource} (normalized: ${normalizedPath})`);
+    WebviewProvider.logger.info(
+      `Created PDF viewer for: ${pdfSource} (normalized: ${normalizedPath})`
+    );
 
     return panel;
   }
@@ -95,7 +99,7 @@ export class WebviewProvider {
   static registerExternalPanel(pdfSource: string, panel: vscode.WebviewPanel): void {
     const normalizedPath = WebviewProvider.normalizePath(pdfSource);
     WebviewProvider.activePanels.set(normalizedPath, panel);
-    
+
     // Set up cleanup when panel is disposed
     panel.onDidDispose(() => {
       WebviewProvider.activePanels.delete(normalizedPath);

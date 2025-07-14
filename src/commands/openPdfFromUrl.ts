@@ -76,7 +76,7 @@ export class OpenPdfFromUrlCommand {
 
       // Set up message handling for fallback actions
       OpenPdfFromUrlCommand.setupFallbackHandling(panel, url, context);
-      
+
       // Clean up old cached PDFs
       PdfProxy.cleanupCache();
     } catch (error) {
@@ -109,37 +109,46 @@ export class OpenPdfFromUrlCommand {
     });
   }
 
-  private static async tryProxyDownload(url: string, context: vscode.ExtensionContext, originalPanel?: vscode.WebviewPanel): Promise<void> {
+  private static async tryProxyDownload(
+    url: string,
+    context: vscode.ExtensionContext,
+    originalPanel?: vscode.WebviewPanel
+  ): Promise<void> {
     try {
       OpenPdfFromUrlCommand.logger.info(`Attempting to download PDF via proxy: ${url}`);
-      
+
       // Show progress indicator
-      await vscode.window.withProgress({
-        location: vscode.ProgressLocation.Notification,
-        title: 'Downloading PDF...',
-        cancellable: false
-      }, async (progress) => {
-        progress.report({ message: 'Downloading from server...' });
-        
-        const localPath = await PdfProxy.downloadPdf(url);
-        
-        progress.report({ message: 'Opening PDF...' });
-        
-        // Create PDF viewer with local path
-        WebviewUtils.createAndRevealPdfViewer({
-          title: `📄 ${new URL(url).hostname}`,
-          source: localPath,
-          context,
-          viewColumn: vscode.ViewColumn.One,
-          successMessage: `PDF downloaded and opened from: ${new URL(url).hostname}`,
-        });
-        
-        // Close the original panel that showed the error
-        if (originalPanel) {
-          originalPanel.dispose();
-          OpenPdfFromUrlCommand.logger.info('Closed original PDF viewer after successful proxy download');
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: 'Downloading PDF...',
+          cancellable: false,
+        },
+        async (progress) => {
+          progress.report({ message: 'Downloading from server...' });
+
+          const localPath = await PdfProxy.downloadPdf(url);
+
+          progress.report({ message: 'Opening PDF...' });
+
+          // Create PDF viewer with local path
+          WebviewUtils.createAndRevealPdfViewer({
+            title: `📄 ${new URL(url).hostname}`,
+            source: localPath,
+            context,
+            viewColumn: vscode.ViewColumn.One,
+            successMessage: `PDF downloaded and opened from: ${new URL(url).hostname}`,
+          });
+
+          // Close the original panel that showed the error
+          if (originalPanel) {
+            originalPanel.dispose();
+            OpenPdfFromUrlCommand.logger.info(
+              'Closed original PDF viewer after successful proxy download'
+            );
+          }
         }
-      });
+      );
     } catch (error) {
       OpenPdfFromUrlCommand.logger.error('Failed to download PDF via proxy', error);
       vscode.window.showErrorMessage(

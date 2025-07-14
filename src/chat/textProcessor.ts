@@ -315,7 +315,7 @@ export class TextProcessor {
       );
 
       stream.markdown('## 📋 PDF Summary (Excerpt)\n\n');
-      
+
       let fallbackSummaryText = '';
       for await (const chunk of fallbackResponse.text) {
         fallbackSummaryText += chunk;

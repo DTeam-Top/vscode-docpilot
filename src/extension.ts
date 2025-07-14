@@ -24,9 +24,7 @@ export function activate(context: vscode.ExtensionContext): void {
     );
 
     // Register custom PDF editor for automatic activation when opening PDFs via File -> Open
-    context.subscriptions.push(
-      PdfCustomEditorProvider.register(context)
-    );
+    context.subscriptions.push(PdfCustomEditorProvider.register(context));
 
     logger.info('DocPilot extension activated successfully');
 

@@ -83,7 +83,7 @@ export class SummaryCache {
   ): Promise<void> {
     try {
       const cacheKey = this.generateCacheKey(filePath);
-      
+
       // Get file metadata for local files
       let fileHash = '';
       let fileSize = 0;
@@ -112,12 +112,12 @@ export class SummaryCache {
       };
 
       this.cache.set(cacheKey, entry);
-      
+
       // Cleanup old entries if cache is too large
       await this.cleanupCache();
-      
+
       await this.saveCache();
-      
+
       SummaryCache.logger.info(`Cached summary for: ${filePath}`);
     } catch (error) {
       SummaryCache.logger.error('Error caching summary', error);
@@ -151,11 +151,10 @@ export class SummaryCache {
     const totalSizeKB = Math.round(
       entries.reduce((size, entry) => size + entry.summary.length, 0) / 1024
     );
-    
-    const oldestTimestamp = entries.length > 0 
-      ? Math.min(...entries.map(e => e.timestamp))
-      : null;
-    
+
+    const oldestTimestamp =
+      entries.length > 0 ? Math.min(...entries.map((e) => e.timestamp)) : null;
+
     return {
       totalEntries: entries.length,
       totalSizeKB,
@@ -165,10 +164,10 @@ export class SummaryCache {
 
   private generateCacheKey(filePath: string): string {
     // Normalize path for consistent caching
-    const normalizedPath = filePath.startsWith('http') 
+    const normalizedPath = filePath.startsWith('http')
       ? filePath.toLowerCase()
       : path.resolve(filePath).toLowerCase();
-    
+
     return crypto.createHash('md5').update(normalizedPath).digest('hex');
   }
 
@@ -176,7 +175,7 @@ export class SummaryCache {
     return new Promise((resolve, reject) => {
       const hash = crypto.createHash('md5');
       const stream = fs.createReadStream(filePath);
-      
+
       stream.on('data', (data) => hash.update(data));
       stream.on('end', () => resolve(hash.digest('hex')));
       stream.on('error', reject);
@@ -190,7 +189,7 @@ export class SummaryCache {
       }
 
       const stats = await fs.promises.stat(filePath);
-      
+
       // Check if file size or modification time changed
       if (stats.size !== entry.fileSize || stats.mtime.getTime() !== entry.lastModified) {
         return false;
@@ -234,7 +233,7 @@ export class SummaryCache {
     if (this.cache.size > SummaryCache.MAX_CACHE_SIZE) {
       const entries = Array.from(this.cache.entries());
       entries.sort(([, a], [, b]) => a.timestamp - b.timestamp);
-      
+
       const entriesToRemove = entries.slice(0, this.cache.size - SummaryCache.MAX_CACHE_SIZE);
       for (const [key] of entriesToRemove) {
         this.cache.delete(key);
@@ -292,11 +291,7 @@ export class SummaryCache {
         entries: Object.fromEntries(this.cache.entries()),
       };
 
-      await fs.promises.writeFile(
-        this.cachePath,
-        JSON.stringify(metadata, null, 2),
-        'utf8'
-      );
+      await fs.promises.writeFile(this.cachePath, JSON.stringify(metadata, null, 2), 'utf8');
 
       SummaryCache.logger.debug(`Cache saved with ${this.cache.size} entries`);
     } catch (error) {

@@ -105,19 +105,21 @@ export class ChatParticipant {
 
   private handleCacheStats(stream: vscode.ChatResponseStream): ChatCommandResult {
     const stats = this.summaryHandler.getCacheStats();
-    
+
     stream.markdown(`## 📊 Summary Cache Statistics\n\n`);
     stream.markdown(`- **Total Entries:** ${stats.totalEntries}\n`);
     stream.markdown(`- **Total Size:** ${stats.totalSizeKB} KB\n`);
-    
+
     if (stats.oldestEntry) {
       stream.markdown(`- **Oldest Entry:** ${stats.oldestEntry.toLocaleDateString()}\n`);
     }
-    
+
     if (stats.totalEntries === 0) {
       stream.markdown(`\n*Cache is empty. Summaries will be cached after processing PDFs.*\n`);
     } else {
-      stream.markdown(`\n*Cached summaries provide instant results for previously processed documents.*\n`);
+      stream.markdown(
+        `\n*Cached summaries provide instant results for previously processed documents.*\n`
+      );
     }
 
     return {
@@ -130,9 +132,11 @@ export class ChatParticipant {
 
   private async handleClearCache(stream: vscode.ChatResponseStream): Promise<ChatCommandResult> {
     await this.summaryHandler.clearCache();
-    
+
     stream.markdown(`## 🗑️ Cache Cleared\n\n`);
-    stream.markdown(`All cached summaries have been removed. Future PDF summarizations will process documents fresh and cache new results.\n`);
+    stream.markdown(
+      `All cached summaries have been removed. Future PDF summarizations will process documents fresh and cache new results.\n`
+    );
 
     return {
       metadata: {

@@ -10,8 +10,8 @@ export class PdfCustomEditorProvider implements vscode.CustomReadonlyEditorProvi
     const provider = new PdfCustomEditorProvider(context);
     return vscode.window.registerCustomEditorProvider('docpilot.pdfEditor', provider, {
       webviewOptions: {
-        retainContextWhenHidden: true
-      }
+        retainContextWhenHidden: true,
+      },
     });
   }
 
@@ -26,7 +26,7 @@ export class PdfCustomEditorProvider implements vscode.CustomReadonlyEditorProvi
       uri,
       dispose: () => {
         // Cleanup resources if needed
-      }
+      },
     };
   }
 
@@ -35,7 +35,9 @@ export class PdfCustomEditorProvider implements vscode.CustomReadonlyEditorProvi
     webviewPanel: vscode.WebviewPanel,
     _token: vscode.CancellationToken
   ): Promise<void> {
-    PdfCustomEditorProvider.logger.info(`Opening PDF file via custom editor: ${document.uri.fsPath}`);
+    PdfCustomEditorProvider.logger.info(
+      `Opening PDF file via custom editor: ${document.uri.fsPath}`
+    );
 
     // Check if there's already a viewer for this file
     const existingPanel = WebviewProvider.getExistingViewer(document.uri.fsPath);
@@ -49,13 +51,13 @@ export class PdfCustomEditorProvider implements vscode.CustomReadonlyEditorProvi
 
     // Configure webview with proper options
     const pdfDirectory = vscode.Uri.file(path.dirname(document.uri.fsPath));
-    
+
     webviewPanel.webview.options = {
       enableScripts: true,
       localResourceRoots: [
         vscode.Uri.joinPath(this.context.extensionUri, 'src', 'webview'),
-        pdfDirectory
-      ]
+        pdfDirectory,
+      ],
     };
 
     // Delegate to existing WebviewProvider for consistent functionality
@@ -88,7 +90,7 @@ export class PdfCustomEditorProvider implements vscode.CustomReadonlyEditorProvi
     panel.webview.onDidReceiveMessage(async (message) => {
       // Import constants dynamically to match WebviewProvider pattern
       const { WEBVIEW_MESSAGES } = await import('../utils/constants');
-      
+
       switch (message.type) {
         case WEBVIEW_MESSAGES.SUMMARIZE_REQUEST:
           await this.handleSummarizeRequest(panel, pdfSource);
@@ -109,9 +111,14 @@ export class PdfCustomEditorProvider implements vscode.CustomReadonlyEditorProvi
     });
   }
 
-  private async handleSummarizeRequest(panel: vscode.WebviewPanel, pdfSource: string): Promise<void> {
+  private async handleSummarizeRequest(
+    panel: vscode.WebviewPanel,
+    pdfSource: string
+  ): Promise<void> {
     try {
-      PdfCustomEditorProvider.logger.info('Handling summarize request from custom editor', { pdfSource });
+      PdfCustomEditorProvider.logger.info('Handling summarize request from custom editor', {
+        pdfSource,
+      });
 
       const { WEBVIEW_MESSAGES } = await import('../utils/constants');
 
