@@ -83,3 +83,18 @@ This document summarizes the most important technical and architectural lessons 
 
 - **Problem:** An "Export to Markdown" feature was misleading because the output was just plain text, not well-formatted Markdown.
 - **Lesson:** Be honest in the UI. The feature was renamed to "Export Text," and the default file extension was changed to `.txt`. Feature names and UI elements should accurately reflect what they do.
+
+### Multi-Model AI Compatibility
+
+- **Problem:** The extension was hardcoded to use only GPT-4 models, preventing users from using other AI models like Gemini that they had configured in GitHub Copilot.
+- **Root Cause:** The `vscode.lm.selectChatModels()` call included a `family: 'gpt-4'` filter, which excluded other model families.
+- **Solution:** Removed the family restriction and only filtered by `vendor: 'copilot'`, allowing users to select any available model.
+- **Additional Fix:** Added detection patterns for AI model rejection responses (e.g., "Sorry, I can't assist with that") to provide clearer error messages when models reject content due to policy restrictions.
+- **Lesson:** Don't artificially restrict user choices in AI model selection. Let the user's configuration determine which models are available, and provide clear error messages when models reject content for policy reasons.
+
+### Logger Cleanup and Debugging
+
+- **Problem:** Console logs were showing "undefined" entries due to passing undefined values as parameters to console methods.
+- **Root Cause:** The logger was unconditionally passing a second parameter to console methods, even when the data was undefined.
+- **Solution:** Modified all logger methods to conditionally pass the data parameter only when it's defined.
+- **Lesson:** Always validate optional parameters before passing them to external APIs. This prevents confusing debug output and maintains clean logs.

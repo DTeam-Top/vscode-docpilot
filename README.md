@@ -14,6 +14,7 @@ A comprehensive VSCode extension that combines advanced PDF viewing with intelli
 
 ### 🤖 AI-Powered Analysis
 - **Intelligent Summarization** - Comprehensive document analysis via Copilot Chat
+- **Multi-Model Support** - Works with GPT-4, Gemini, and other Copilot models
 - **Smart Caching** - Instant results for previously processed documents
 - **Semantic Chunking** - Advanced processing for documents of any size
 - **Hierarchical Processing** - Multi-level summarization with context preservation

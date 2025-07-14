@@ -181,7 +181,6 @@ export class SummaryHandler {
   private async getLanguageModel(): Promise<vscode.LanguageModelChat> {
     const models = await vscode.lm.selectChatModels({
       vendor: 'copilot',
-      family: 'gpt-4',
     });
 
     if (models.length === 0) {
@@ -190,8 +189,14 @@ export class SummaryHandler {
       );
     }
 
-    SummaryHandler.logger.info(`Using language model: ${models[0].name}`);
-    return models[0];
+    const selectedModel = models[0];
+    SummaryHandler.logger.info(`Using language model: ${selectedModel.name}`, {
+      modelName: selectedModel.name,
+      maxInputTokens: selectedModel.maxInputTokens,
+      vendor: selectedModel.vendor,
+      family: selectedModel.family
+    });
+    return selectedModel;
   }
 
   private getFileName(pdfPath: string): string {

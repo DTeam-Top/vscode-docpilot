@@ -244,7 +244,17 @@ export class TextProcessor {
         }
       }
 
-      return summary.trim();
+      const result = summary.trim();
+      
+      // Check for model rejection patterns
+      if (result.toLowerCase().includes("sorry, i can't assist") || 
+          result.toLowerCase().includes("i can't help") ||
+          result.toLowerCase().includes("i cannot assist")) {
+        TextProcessor.logger.warn(`Model ${model.name} rejected chunk request. Chunk tokens: ${chunk.tokens}, Content length: ${chunk.content.length}`);
+        throw new Error(`AI model (${model.name}) rejected the content. This may be due to content policy restrictions.`);
+      }
+
+      return result;
     } catch (error) {
       TextProcessor.logger.error(`Error summarizing chunk ${chunk.index}`, error);
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';

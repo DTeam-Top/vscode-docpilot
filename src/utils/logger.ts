@@ -20,8 +20,10 @@ export class Logger {
     this.channel.appendLine(entry);
     if (data) {
       this.channel.appendLine(JSON.stringify(data, null, 2));
+      console.log(entry, data);
+    } else {
+      console.log(entry);
     }
-    console.log(entry, data);
   }
 
   warn(message: string, data?: unknown): void {
@@ -29,8 +31,10 @@ export class Logger {
     this.channel.appendLine(entry);
     if (data) {
       this.channel.appendLine(JSON.stringify(data, null, 2));
+      console.warn(entry, data);
+    } else {
+      console.warn(entry);
     }
-    console.warn(entry, data);
   }
 
   error(message: string, error?: Error | unknown): void {
@@ -44,6 +48,8 @@ export class Logger {
     } else if (error) {
       this.channel.appendLine(`Data: ${JSON.stringify(error, null, 2)}`);
       console.error(entry, error);
+    } else {
+      console.error(entry);
     }
   }
 
@@ -52,8 +58,10 @@ export class Logger {
     this.channel.appendLine(entry);
     if (data) {
       this.channel.appendLine(JSON.stringify(data, null, 2));
+      console.debug(entry, data);
+    } else {
+      console.debug(entry);
     }
-    console.debug(entry, data);
   }
 
   show(): void {
