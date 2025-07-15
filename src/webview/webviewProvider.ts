@@ -235,88 +235,86 @@ export class WebviewProvider {
     const fs = await import('node:fs');
 
     // Show progress
-    await vscode.window.withProgress({
-      location: vscode.ProgressLocation.Notification,
-      title: 'Extracting text from PDF...',
-      cancellable: false,
-    }, async (progress) => {
-      progress.report({ increment: 0 });
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: 'Extracting text from PDF...',
+        cancellable: false,
+      },
+      async (progress) => {
+        progress.report({ increment: 0 });
 
-      // Extract text from PDF
-      const extractedText = await TextExtractor.extractTextWithRetry(
-        panel,
-        pdfSource,
-        {
+        // Extract text from PDF
+        const extractedText = await TextExtractor.extractTextWithRetry(panel, pdfSource, {
           timeout: 30000,
           retryAttempts: 2,
           progressCallback: (percent) => {
             progress.report({ increment: percent * 50 });
+          },
+        });
+
+        progress.report({ increment: 50, message: 'Formatting text...' });
+
+        // Convert text to clean format
+        const textContent = WebviewProvider.convertToText(extractedText, pdfSource);
+
+        progress.report({ increment: 25, message: 'Saving file...' });
+
+        // Choose save location
+        const saveResult = await vscode.window.showSaveDialog({
+          defaultUri: vscode.Uri.file(
+            path.join(path.dirname(pdfSource), `${path.basename(pdfSource, '.pdf')}.txt`)
+          ),
+          filters: {
+            'Text Files': ['txt'],
+            'Markdown Files': ['md'],
+          },
+          title: 'Save exported text',
+        });
+
+        if (saveResult) {
+          // Write text content to file
+          fs.writeFileSync(saveResult.fsPath, textContent, 'utf8');
+
+          progress.report({ increment: 25, message: 'Complete!' });
+
+          // Show success message and option to open
+          const openFile = await vscode.window.showInformationMessage(
+            `PDF exported successfully: ${path.basename(saveResult.fsPath)}`,
+            'Open File'
+          );
+
+          if (openFile === 'Open File') {
+            const doc = await vscode.workspace.openTextDocument(saveResult);
+            await vscode.window.showTextDocument(doc);
           }
+
+          WebviewProvider.logger.info(`PDF exported: ${saveResult.fsPath}`);
+        } else {
+          WebviewProvider.logger.info('Save cancelled by user');
         }
-      );
-
-      progress.report({ increment: 50, message: 'Formatting text...' });
-
-      // Convert text to clean format
-      const textContent = WebviewProvider.convertToText(extractedText, pdfSource);
-
-      progress.report({ increment: 25, message: 'Saving file...' });
-
-      // Choose save location
-      const saveResult = await vscode.window.showSaveDialog({
-        defaultUri: vscode.Uri.file(path.join(
-          path.dirname(pdfSource),
-          `${path.basename(pdfSource, '.pdf')}.txt`
-        )),
-        filters: {
-          'Text Files': ['txt'],
-          'Markdown Files': ['md'],
-        },
-        title: 'Save exported text',
-      });
-
-      if (saveResult) {
-        // Write text content to file
-        fs.writeFileSync(saveResult.fsPath, textContent, 'utf8');
-        
-        progress.report({ increment: 25, message: 'Complete!' });
-        
-        // Show success message and option to open
-        const openFile = await vscode.window.showInformationMessage(
-          `PDF exported successfully: ${path.basename(saveResult.fsPath)}`,
-          'Open File'
-        );
-
-        if (openFile === 'Open File') {
-          const doc = await vscode.workspace.openTextDocument(saveResult);
-          await vscode.window.showTextDocument(doc);
-        }
-
-        WebviewProvider.logger.info(`PDF exported: ${saveResult.fsPath}`);
-      } else {
-        WebviewProvider.logger.info('Save cancelled by user');
       }
-    });
+    );
   }
 
   private static convertToText(text: string, pdfPath: string): string {
     const path = require('node:path');
     const fileName = path.basename(pdfPath, '.pdf');
     const exportDate = new Date().toISOString().split('T')[0];
-    
+
     // Simple text header
     let output = `${fileName}\n`;
     output += `Exported from PDF on ${exportDate}\n`;
     output += `Source: ${pdfPath}\n`;
     output += `${'='.repeat(50)}\n\n`;
-    
+
     // Clean up the text
     const cleanedText = text
-      .replace(/\n\n\n+/g, '\n\n')  // Remove excessive line breaks
+      .replace(/\n\n\n+/g, '\n\n') // Remove excessive line breaks
       .trim();
-    
+
     output += cleanedText;
-    
+
     return output;
   }
 
@@ -330,6 +328,7 @@ export class WebviewProvider {
       isUrl: pdfSource.startsWith('http'),
       fileName: WebviewProvider.getFileName(pdfSource),
       scriptUri: WebviewProvider.getScriptUri(webview, extensionContext),
+      assetUri: WebviewProvider.getAssetUri(webview, extensionContext),
     };
 
     return WebviewProvider.renderTemplate(templateData, extensionContext);
@@ -365,6 +364,19 @@ export class WebviewProvider {
     return webview.asWebviewUri(scriptPath).toString();
   }
 
+  private static getAssetUri(
+    webview: vscode.Webview,
+    extensionContext: vscode.ExtensionContext
+  ): string {
+    const assetPath = vscode.Uri.joinPath(
+      extensionContext.extensionUri,
+      'src',
+      'webview',
+      'assets'
+    );
+    return webview.asWebviewUri(assetPath).toString();
+  }
+
   private static renderTemplate(
     data: TemplateData,
     extensionContext: vscode.ExtensionContext
@@ -385,6 +397,7 @@ export class WebviewProvider {
       template = template.replace(/{{isUrl}}/g, data.isUrl.toString());
       template = template.replace(/{{fileName}}/g, WebviewProvider.escapeHtml(data.fileName));
       template = template.replace(/{{scriptUri}}/g, data.scriptUri);
+      template = template.replace(/{{assetUri}}/g, data.assetUri);
 
       return template;
     } catch (error) {
@@ -458,4 +471,5 @@ interface TemplateData {
   isUrl: boolean;
   fileName: string;
   scriptUri: string;
+  assetUri: string;
 }

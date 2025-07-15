@@ -98,3 +98,47 @@ This document summarizes the most important technical and architectural lessons 
 - **Root Cause:** The logger was unconditionally passing a second parameter to console methods, even when the data was undefined.
 - **Solution:** Modified all logger methods to conditionally pass the data parameter only when it's defined.
 - **Lesson:** Always validate optional parameters before passing them to external APIs. This prevents confusing debug output and maintains clean logs.
+
+---
+
+## 4. UI/UX Design and Visual Consistency
+
+### Toolbar Beautification and Icon System
+
+- **Problem:** The PDF viewer toolbar used a mix of text labels and emoji icons, creating an inconsistent and unprofessional appearance.
+- **Solution:** Implemented a comprehensive icon-based design system:
+  - **SVG Asset Management:** Created a centralized `/src/webview/assets/` folder with professional SVG icons
+  - **Template System Integration:** Extended the webview template system to include `{{assetUri}}` for proper asset referencing
+  - **Consistent Icon Strategy:** Replaced all toolbar buttons with appropriate SVG icons:
+    - `fit-width.svg` / `fit-page.svg` for layout controls
+    - `zoom-in.svg` / `zoom-out.svg` for zoom controls
+    - `view.svg` / `text.svg` for text selection toggle
+    - `bug-off.svg` / `bug-play.svg` for debug mode toggle
+    - `export.svg` for text export functionality
+    - `summarize.svg` for AI summarization
+
+### Dynamic State Management for Interactive Elements
+
+- **Problem:** Text selection toggle button had unreliable state management - worked once, then failed on subsequent toggles.
+- **Root Cause:** The `hideAllTextLayers()` function only hid text layers visually but didn't reset the `rendered` state flag, causing `renderTextLayer()` to skip re-rendering.
+- **Solution:** Added `state.rendered = false` when hiding text layers to ensure proper state reset.
+- **Icon State Management:** Implemented robust icon switching using base URL extraction instead of fragile string replacement.
+- **Lesson:** State management in interactive UI elements requires both visual state (CSS classes) and logical state (boolean flags) to be synchronized.
+
+### Content Security Policy and Asset Loading
+
+- **Problem:** Initial attempt to use inline SVG in HTML failed due to VS Code webview's strict Content Security Policy.
+- **Understanding:** VS Code webviews have CSP restrictions that prevent inline SVG and scripts for security reasons.
+- **Solution:** Used external SVG files referenced via `<img>` tags with proper webview URI conversion through `webview.asWebviewUri()`.
+- **Architecture:** Extended `WebviewProvider` with `getAssetUri()` method and updated template data interface to include `assetUri`.
+- **Lesson:** Always work with the security model rather than against it. External assets with proper URI conversion are more maintainable than inline content.
+
+### Responsive Button Design
+
+- **Problem:** Default button styling used hard-coded blue backgrounds that didn't integrate well with VS Code's theme system.
+- **Solution:** Implemented theme-aware button styling:
+  - **Transparent Default:** `background-color: transparent` for clean integration
+  - **VS Code Variables:** Used `--vscode-toolbar-hoverBackground` and `--vscode-list-activeSelectionBackground` for theme consistency
+  - **Smooth Transitions:** Added `transition: background-color 0.1s ease` for polished interactions
+  - **Flexible Icon Containers:** Created `.icon-button` class that adapts to both icon-only and icon+text configurations
+- **Lesson:** UI components should blend seamlessly with the host application's design system rather than imposing their own visual style.

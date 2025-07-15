@@ -194,7 +194,7 @@ export class SummaryHandler {
       modelName: selectedModel.name,
       maxInputTokens: selectedModel.maxInputTokens,
       vendor: selectedModel.vendor,
-      family: selectedModel.family
+      family: selectedModel.family,
     });
     return selectedModel;
   }
