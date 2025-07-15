@@ -112,16 +112,20 @@
             gap: 10px;
         }
         button {
-            background-color: var(--vscode-button-background);
-            color: var(--vscode-button-foreground);
-            border: none;
+            background-color: transparent;
+            color: var(--vscode-foreground);
+            border: 1px solid var(--vscode-button-border, transparent);
             padding: 6px 12px;
             cursor: pointer;
             border-radius: 3px;
             font-size: 12px;
+            transition: background-color 0.1s ease;
         }
         button:hover {
-            background-color: var(--vscode-button-hoverBackground);
+            background-color: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground));
+        }
+        button:active {
+            background-color: var(--vscode-list-activeSelectionBackground);
         }
         button:disabled {
             opacity: 0.5;
@@ -183,6 +187,25 @@
         .suggestion-btn:hover {
             background-color: var(--vscode-button-secondaryHoverBackground);
         }
+        .icon-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+            gap: 6px;
+        }
+        .icon-button:has(span) {
+            width: auto;
+            padding: 6px 12px;
+        }
+        .icon-button:not(:has(span)) {
+            width: 32px;
+            height: 32px;
+        }
+        .icon-button img {
+            width: 16px;
+            height: 16px;
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
@@ -193,16 +216,32 @@
             <span class="page-info" id="pageInfo">Loading...</span>
         </div>
         <div class="controls">
-            <button onclick="fitToWidth()">Fit Width</button>
-            <button onclick="fitToPage()">Fit Page</button>
-            <button id="summarizeBtn" onclick="summarizeDocument()" title="Summarize this PDF using AI">📝 Summarize</button>
-            <button id="exportBtn" onclick="exportText()" title="Export this PDF as text">📄 Export</button>
-            <button id="textSelectionBtn" onclick="toggleTextSelection()">Enable Text Selection</button>
-            <button id="debugBtn" onclick="toggleDebug()" style="font-size: 10px;">Debug</button>
+            <button class="icon-button" onclick="fitToWidth()" title="Fit Width">
+                <img src="{{assetUri}}/fit-width.svg" alt="Fit Width" width="16" height="16">
+            </button>
+            <button class="icon-button" onclick="fitToPage()" title="Fit Page">
+                <img src="{{assetUri}}/fit-page.svg" alt="Fit Page" width="16" height="16">
+            </button>
+            <button id="summarizeBtn" class="icon-button" onclick="summarizeDocument()" title="Summarize this PDF using AI">
+                <img id="summarizeIcon" src="{{assetUri}}/summarize.svg" alt="Summarize PDF" width="16" height="16">
+            </button>
+            <button id="exportBtn" class="icon-button" onclick="exportText()" title="Export Text">
+                <img id="exportIcon" src="{{assetUri}}/export.svg" alt="Export Text" width="16" height="16">
+            </button>
+            <button id="textSelectionBtn" class="icon-button" onclick="toggleTextSelection()" title="Selection Mode">
+                <img id="textSelectionIcon" src="{{assetUri}}/view.svg" alt="Selection Mode" width="16" height="16">
+            </button>
+            <button id="debugBtn" class="icon-button" onclick="toggleDebug()" title="Debug Mode">
+                <img id="debugIcon" src="{{assetUri}}/bug-off.svg" alt="Debug Mode" width="16" height="16">
+            </button>
             <div class="zoom-controls">
-                <button onclick="zoomOut()">−</button>
-                <input type="range" id="zoomSlider" min="0.25" max="3" step="0.25" value="1" oninput="setZoom(this.value)">
-                <button onclick="zoomIn()">+</button>
+                <button class="icon-button" onclick="zoomOut()" title="Zoom Out">
+                    <img src="{{assetUri}}/zoom-out.svg" alt="Zoom Out" width="16" height="16">
+                </button>
+                <input type="range" id="zoomSlider" min="0.25" max="3" step="0.25" value="1" oninput="setZoom(this.value)" title="Zoom">
+                <button class="icon-button" onclick="zoomIn()" title="Zoom In">
+                    <img src="{{assetUri}}/zoom-in.svg" alt="Zoom In" width="16" height="16">
+                </button>
                 <span id="zoomLevel">100%</span>
             </div>
         </div>

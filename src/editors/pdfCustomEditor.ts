@@ -170,7 +170,9 @@ export class PdfCustomEditorProvider implements vscode.CustomReadonlyEditorProvi
 
   private async handleExportRequest(panel: vscode.WebviewPanel, pdfSource: string): Promise<void> {
     try {
-      PdfCustomEditorProvider.logger.info('Handling export request from custom editor', { pdfSource });
+      PdfCustomEditorProvider.logger.info('Handling export request from custom editor', {
+        pdfSource,
+      });
 
       const { WEBVIEW_MESSAGES } = await import('../utils/constants');
 

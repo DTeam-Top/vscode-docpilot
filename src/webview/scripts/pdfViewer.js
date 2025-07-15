@@ -313,10 +313,8 @@ function initializeTextSelection() {
   if (pdfDoc.numPages > 100) {
     document.getElementById('warningBanner').style.display = 'block';
     textSelectionEnabled = false;
-    document.getElementById('textSelectionBtn').textContent = 'Enable Text Selection';
   } else {
     textSelectionEnabled = false; // Start disabled, let user choose
-    document.getElementById('textSelectionBtn').textContent = 'Enable Text Selection';
   }
 }
 
@@ -324,16 +322,17 @@ function initializeTextSelection() {
 function toggleTextSelection() {
   console.log('Text selection button clicked - function called');
   textSelectionEnabled = !textSelectionEnabled;
-  const btn = document.getElementById('textSelectionBtn');
-  btn.textContent = textSelectionEnabled ? 'Disable Text Selection' : 'Enable Text Selection';
-  btn.style.backgroundColor = textSelectionEnabled
-    ? 'var(--vscode-button-secondaryBackground)'
-    : 'var(--vscode-button-background)';
+
+  // Update button icon - use a more reliable approach
+  const icon = document.getElementById('textSelectionIcon');
+  const baseUrl = icon.src.substring(0, icon.src.lastIndexOf('/') + 1);
 
   if (textSelectionEnabled) {
+    icon.src = baseUrl + 'text.svg';
     console.log('Text selection enabled - rendering text layers for visible pages');
     renderVisibleTextLayers();
   } else {
+    icon.src = baseUrl + 'view.svg';
     console.log('Text selection disabled - hiding all text layers');
     hideAllTextLayers();
   }
@@ -473,6 +472,8 @@ function hideAllTextLayers() {
   textLayerStates.forEach((state, _pageNum) => {
     if (state.container) {
       state.container.className = 'textLayer hidden';
+      // Reset rendered state so text layers can be re-rendered when enabled again
+      state.rendered = false;
     }
   });
 }
@@ -524,8 +525,18 @@ function monitorTextLayerPerformance(renderTime) {
 // biome-ignore lint/correctness/noUnusedVariables: Used by HTML onclick
 function toggleDebug() {
   debugMode = !debugMode;
+
+  // Update button icon
+  const icon = document.getElementById('debugIcon');
+  const baseUrl = icon.src.substring(0, icon.src.lastIndexOf('/') + 1);
+
+  if (debugMode) {
+    icon.src = baseUrl + 'bug-play.svg';
+  } else {
+    icon.src = baseUrl + 'bug-off.svg';
+  }
+
   const btn = document.getElementById('debugBtn');
-  btn.textContent = debugMode ? 'Debug ON' : 'Debug';
   btn.style.backgroundColor = debugMode ? '#ff6b6b' : 'var(--vscode-button-background)';
 
   // Update text layer styling for debug mode
@@ -630,8 +641,8 @@ async function summarizeDocument() {
   try {
     // Disable button and show loading state
     summarizeBtn.disabled = true;
-    summarizeBtn.innerHTML = '⏳ Summarizing...';
     summarizeBtn.style.opacity = '0.6';
+    summarizeBtn.title = 'Summarizing...';
 
     console.log('Starting document summarization...');
 
@@ -647,8 +658,8 @@ async function summarizeDocument() {
 
     // Reset button state
     summarizeBtn.disabled = false;
-    summarizeBtn.innerHTML = '📝 Summarize';
     summarizeBtn.style.opacity = '1';
+    summarizeBtn.title = 'Summarize this PDF using AI';
 
     vscode.postMessage({
       type: 'summarizeError',
@@ -670,8 +681,8 @@ async function exportText() {
   try {
     // Disable button and show loading state
     exportBtn.disabled = true;
-    exportBtn.innerHTML = '⏳ Exporting...';
     exportBtn.style.opacity = '0.6';
+    exportBtn.title = 'Exporting...';
 
     console.log('Starting PDF export...');
 
@@ -687,8 +698,8 @@ async function exportText() {
 
     // Reset button state
     exportBtn.disabled = false;
-    exportBtn.innerHTML = '📄 Export';
     exportBtn.style.opacity = '1';
+    exportBtn.title = 'Export Text';
 
     vscode.postMessage({
       type: 'exportError',
@@ -712,16 +723,16 @@ window.addEventListener('message', (event) => {
       console.log('Summarization completed');
       // Reset button state
       summarizeBtn.disabled = false;
-      summarizeBtn.innerHTML = '📝 Summarize';
       summarizeBtn.style.opacity = '1';
+      summarizeBtn.title = 'Summarize this PDF using AI';
       break;
 
     case 'summarizeError':
       console.error('Summarization error:', message.error);
       // Reset button state
       summarizeBtn.disabled = false;
-      summarizeBtn.innerHTML = '📝 Summarize';
       summarizeBtn.style.opacity = '1';
+      summarizeBtn.title = 'Summarize this PDF using AI';
       break;
 
     case 'exportStarted':
@@ -732,16 +743,16 @@ window.addEventListener('message', (event) => {
       console.log('Export completed');
       // Reset button state
       exportBtn.disabled = false;
-      exportBtn.innerHTML = '📄 Export';
       exportBtn.style.opacity = '1';
+      exportBtn.title = 'Export Text';
       break;
 
     case 'exportError':
       console.error('Export error:', message.error);
       // Reset button state
       exportBtn.disabled = false;
-      exportBtn.innerHTML = '📄 Export';
       exportBtn.style.opacity = '1';
+      exportBtn.title = 'Export Text';
       break;
   }
 });

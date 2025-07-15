@@ -9,8 +9,11 @@ A comprehensive VSCode extension that combines advanced PDF viewing with intelli
 - **Local & Remote Support** - Open files from filesystem or URLs
 - **Crisp Rendering** - High-quality display with PDF.js engine
 - **Smart Navigation** - Zoom, fit-to-width/page, continuous scrolling
+- **Professional Toolbar** - Clean icon-based interface with intuitive controls
+- **Text Selection** - Interactive text selection with dynamic visual feedback
 - **Text Export** - Extract PDF content as clean text files
-- **VSCode Integration** - Seamless theme matching and UI consistency
+- **Debug Mode** - Developer tools for troubleshooting text layer rendering
+- **VSCode Integration** - Seamless theme matching and responsive UI
 
 ### 🤖 AI-Powered Analysis
 - **Intelligent Summarization** - Comprehensive document analysis via Copilot Chat
@@ -76,31 +79,30 @@ Will be available on VSCode Marketplace
 - **🛡️ Error Resilience** - Multiple fallback strategies ensure reliable operation
 - **🔄 Auto Cache Invalidation** - File modification detection for fresh content
 
-### Controls
+### Toolbar Controls
 
-**Zoom:**
+**Navigation & Zoom:**
+- **🔍 Zoom In/Out**: High-quality magnifying glass icons for precise zoom control
+- **📏 Fit Width**: Automatically fit PDF width to window for optimal reading
+- **📄 Fit Page**: Fit entire page in window for complete overview
+- **Zoom Slider**: Drag for precise zoom control (25% - 300%)
 
-- **Buttons**: `+` / `-` for zoom in/out
-- **Slider**: Drag for precise zoom control (25% - 300%)
+**Document Actions:**
+- **📝 Summarize**: AI-powered document analysis via Copilot Chat
+- **📤 Export Text**: Extract PDF content as clean text files with metadata
+- **👁️ Text Selection**: Toggle interactive text selection with visual feedback
+- **🐛 Debug Mode**: Developer tools for troubleshooting text layer rendering
+
+**Additional Controls:**
 - **Keyboard**: `Ctrl/Cmd + +/-/0` for zoom in/out/reset
 - **Mouse**: `Ctrl + Scroll` for zoom
-
-**Fitting:**
-
-- **Fit Width**: Automatically fit PDF width to window
-- **Fit Page**: Fit entire page in window
-
-**Navigation:**
-
 - **Scroll**: Mouse wheel or trackpad for natural scrolling
-- **Page Info**: Shows current page number in toolbar
+- **Page Info**: Live page counter in toolbar
 
-**Text Export:**
-
-- **Export Button**: Click "📄 Export" in the PDF viewer toolbar
-- **File Format**: Exports as clean text (.txt) with optional markdown (.md) support
-- **Content**: Extracts all text content with document metadata header
-- **Auto-Open**: Option to immediately open exported file in VSCode
+**Text Selection Features:**
+- **Dynamic Icons**: Visual feedback showing current selection mode
+- **Performance Aware**: Automatic warnings for large documents
+- **Reliable Toggling**: Fixed state management for consistent behavior
 
 ## 🛠️ Development
 

@@ -245,13 +245,19 @@ export class TextProcessor {
       }
 
       const result = summary.trim();
-      
+
       // Check for model rejection patterns
-      if (result.toLowerCase().includes("sorry, i can't assist") || 
-          result.toLowerCase().includes("i can't help") ||
-          result.toLowerCase().includes("i cannot assist")) {
-        TextProcessor.logger.warn(`Model ${model.name} rejected chunk request. Chunk tokens: ${chunk.tokens}, Content length: ${chunk.content.length}`);
-        throw new Error(`AI model (${model.name}) rejected the content. This may be due to content policy restrictions.`);
+      if (
+        result.toLowerCase().includes("sorry, i can't assist") ||
+        result.toLowerCase().includes("i can't help") ||
+        result.toLowerCase().includes('i cannot assist')
+      ) {
+        TextProcessor.logger.warn(
+          `Model ${model.name} rejected chunk request. Chunk tokens: ${chunk.tokens}, Content length: ${chunk.content.length}`
+        );
+        throw new Error(
+          `AI model (${model.name}) rejected the content. This may be due to content policy restrictions.`
+        );
       }
 
       return result;
