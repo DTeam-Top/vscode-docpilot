@@ -36,7 +36,7 @@ async function main() {
     // Get test suite from command line args
     const args = process.argv.slice(2);
     const suiteIndex = args.findIndex((arg) => arg === '--suite');
-    const suite = suiteIndex >= 0 ? args[suiteIndex + 1] : 'integration';
+    const suite = suiteIndex >= 0 ? args[suiteIndex + 1] : 'all';
 
     console.log(`Running ${suite} test suite...`);
 

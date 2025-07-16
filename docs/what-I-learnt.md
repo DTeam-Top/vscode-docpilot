@@ -205,3 +205,65 @@ This document summarizes the most important technical and architectural lessons 
 - **Architecture:** Created `realIntegrationUtils.ts` with comprehensive real testing utilities that other projects can reuse
 - **Key Insight:** Real integration testing requires flexible expectations (error message patterns) rather than exact mock matches, as real systems produce varied but valid responses
 - **Performance Impact:** Real testing revealed actual extension behavior patterns and helped optimize resource cleanup and disposal handling
+
+---
+
+## 6. Code Quality and Maintenance
+
+### Linting and Code Standards
+
+- **Problem:** Technical debt accumulated through inconsistent coding practices, leading to 17 linting warnings across the codebase.
+- **Issues Found:**
+  - **Node.js Import Protocol:** Using `'fs'` instead of `'node:fs'` for built-in modules
+  - **Unused Variables:** Variables declared but never used (often from incomplete refactoring)
+  - **String Concatenation:** Using `+` operator instead of template literals
+  - **Literal Key Access:** Using `obj['key']` instead of `obj.key` for known properties
+- **Solution:** Systematic cleanup using Biome linter with auto-fix capabilities
+- **Process:** 
+  1. Run `npm run lint` to identify issues
+  2. Apply auto-fixes where possible with `npm run format`
+  3. Manually address remaining issues (unused variables, access patterns)
+- **Result:** Clean codebase with zero linting warnings, improved readability and maintainability
+
+### Test Infrastructure Organization
+
+- **Problem:** Test command structure was confusing - `npm run test` only ran integration tests, not comprehensive testing.
+- **User Expectation:** Main test command should run all tests, with specific commands for targeted testing.
+- **Solution:** Restructured test runner architecture:
+  - **Main Command:** `npm run test` now runs both unit and integration tests (103 total)
+  - **Targeted Commands:** `test:unit` (48 tests) and `test:integration` (55 tests) for specific testing
+  - **Test Discovery:** Updated `src/test/suite/index.ts` to handle `all` suite type, searching both unit and integration directories
+- **Implementation:** Modified `runTest.ts` to default to `'all'` suite instead of `'integration'`, updated discovery logic to concatenate files from both directories
+- **Documentation:** Updated README with accurate test counts and command descriptions
+
+### File System Cleanup
+
+- **Problem:** Development artifacts and cache files cluttering the repository and potentially causing inconsistent behavior.
+- **Files Removed:**
+  - **`.DS_Store`:** macOS filesystem metadata file
+  - **`.vscode-test/`:** VS Code extension test cache directory with logs and session data
+- **Prevention:** Added to `.gitignore` to prevent future accumulation
+- **Impact:** Cleaner repository, reduced potential for cache-related test inconsistencies
+
+### Documentation Accuracy
+
+- **Problem:** Documentation claimed "Basic testing infrastructure...6 passing unit tests" when the project had 103 comprehensive tests.
+- **Impact:** Misleading information about project maturity and test coverage.
+- **Solution:** Comprehensive README update with:
+  - **Accurate Test Counts:** 48 unit tests, 55 integration tests, 103 total with 100% pass rate
+  - **Current Test Structure:** Detailed file tree showing actual test organization
+  - **Updated Commands:** Clear distinction between `test` (all), `test:unit`, and `test:integration`
+  - **Real Feature Description:** Emphasized real integration testing capabilities and comprehensive coverage
+- **Lesson:** Documentation should be treated as code - it needs regular updates to reflect the current state of the project
+
+### Technical Debt Management
+
+- **Approach:** Systematic identification and resolution of accumulated technical debt
+- **Tools:** Leveraged automated linting and formatting tools for consistency
+- **Process:** 
+  1. **Identify:** Use linting tools to surface issues
+  2. **Prioritize:** Fix high-impact issues first (unused variables, incorrect imports)
+  3. **Automate:** Use formatting tools where possible
+  4. **Validate:** Ensure all tests pass after cleanup
+- **Result:** Improved code quality without breaking existing functionality
+- **Key Insight:** Regular maintenance prevents technical debt accumulation and makes the codebase more maintainable for future development

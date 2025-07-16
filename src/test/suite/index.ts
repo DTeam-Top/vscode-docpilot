@@ -29,7 +29,7 @@ function findTestFiles(dir: string, files: string[] = []): string[] {
 }
 
 export function run(): Promise<void> {
-  const testSuite = process.env.TEST_SUITE || 'integration';
+  const testSuite = process.env.TEST_SUITE || 'all';
   const testReporter = process.env.TEST_REPORTER || 'spec';
 
   console.log(`Setting up ${testSuite} tests with ${testReporter} reporter...`);
@@ -92,21 +92,37 @@ export function run(): Promise<void> {
 
   return new Promise((resolve, reject) => {
     try {
-      // Find all test files based on suite
-      const suiteDir = path.join(testsRoot, 'suite', testSuite);
+      let files: string[] = [];
 
-      if (!fs.existsSync(suiteDir)) {
-        reject(new Error(`Test suite directory not found: ${suiteDir}`));
-        return;
+      if (testSuite === 'all') {
+        // Run both unit and integration tests
+        const unitDir = path.join(testsRoot, 'suite', 'unit');
+        const integrationDir = path.join(testsRoot, 'suite', 'integration');
+        
+        if (fs.existsSync(unitDir)) {
+          files = files.concat(findTestFiles(unitDir));
+        }
+        
+        if (fs.existsSync(integrationDir)) {
+          files = files.concat(findTestFiles(integrationDir));
+        }
+      } else {
+        // Run specific test suite
+        const suiteDir = path.join(testsRoot, 'suite', testSuite);
+
+        if (!fs.existsSync(suiteDir)) {
+          reject(new Error(`Test suite directory not found: ${suiteDir}`));
+          return;
+        }
+
+        files = findTestFiles(suiteDir);
       }
-
-      const files = findTestFiles(suiteDir);
 
       // Add files to the test suite
       files.forEach((f) => mocha.addFile(f));
 
       if (files.length === 0) {
-        console.log(`No test files found in ${suiteDir}`);
+        console.log(`No test files found for suite: ${testSuite}`);
         resolve();
         return;
       }
