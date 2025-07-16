@@ -45,7 +45,7 @@ export class WebviewProvider {
         enableScripts: true,
         retainContextWhenHidden: true,
         localResourceRoots: [
-          vscode.Uri.joinPath(extensionContext.extensionUri, 'src', 'webview'),
+          vscode.Uri.joinPath(extensionContext.extensionUri, 'out', 'webview'),
           vscode.Uri.file(path.dirname(pdfSource)),
         ],
       }
@@ -353,7 +353,7 @@ export class WebviewProvider {
   ): string {
     const scriptPath = vscode.Uri.joinPath(
       extensionContext.extensionUri,
-      'src',
+      'out',
       'webview',
       'scripts',
       'pdfViewer.js'
@@ -367,7 +367,7 @@ export class WebviewProvider {
   ): string {
     const assetPath = vscode.Uri.joinPath(
       extensionContext.extensionUri,
-      'src',
+      'out',
       'webview',
       'assets'
     );
@@ -380,7 +380,7 @@ export class WebviewProvider {
   ): string {
     const templatePath = path.join(
       extensionContext.extensionPath,
-      'src',
+      'out',
       'webview',
       'templates',
       'pdfViewer.html'

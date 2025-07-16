@@ -164,7 +164,7 @@ export async function testExtensionResources(
   const fs = require('node:fs');
   const path = require('node:path');
 
-  const webviewPath = path.join(context.extensionPath, 'src', 'webview');
+  const webviewPath = path.join(context.extensionPath, 'out', 'webview');
   const assetsPath = path.join(webviewPath, 'assets');
   const templatesPath = path.join(webviewPath, 'templates');
 

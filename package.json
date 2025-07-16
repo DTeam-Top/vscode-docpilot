@@ -73,7 +73,8 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
+    "compile": "tsc -p ./ && npm run copy-assets",
+    "copy-assets": "mkdir -p out/webview && cp -r src/webview/assets out/webview/ && cp -r src/webview/templates out/webview/ && cp -r src/webview/scripts out/webview/",
     "watch": "tsc -watch -p ./",
     "lint": "biome lint src/",
     "format": "biome format --write src/",
@@ -81,7 +82,7 @@
     "test": "npm run compile-tests && node out/test/runTest.js",
     "test:unit": "npm run compile-tests && node out/test/runTest.js --suite unit",
     "test:integration": "npm run compile-tests && node out/test/runTest.js --suite integration",
-    "compile-tests": "tsc -p ./ --outDir out"
+    "compile-tests": "tsc -p ./ --outDir out && npm run copy-assets"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.1.1",
