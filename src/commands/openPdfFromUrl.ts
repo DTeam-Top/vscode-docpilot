@@ -1,53 +1,72 @@
 import * as vscode from 'vscode';
 import { InvalidFilePathError } from '../utils/errors';
 import { Logger } from '../utils/logger';
-import { WebviewProvider } from '../webview/webviewProvider';
-import { WebviewUtils } from '../utils/webviewUtils';
 import { PdfProxy } from '../utils/pdfProxy';
+import { WebviewUtils } from '../utils/webviewUtils';
+import { WebviewProvider } from '../webview/webviewProvider';
 
 // biome-ignore lint/complexity/noStaticOnlyClass: This follows existing extension patterns
 export class OpenPdfFromUrlCommand {
   private static readonly logger = Logger.getInstance();
 
   static register(context: vscode.ExtensionContext): vscode.Disposable {
-    return vscode.commands.registerCommand('docpilot.openPdfFromUrl', async () => {
+    return vscode.commands.registerCommand('docpilot.openPdfFromUrl', async (url?: string) => {
       try {
-        await OpenPdfFromUrlCommand.execute(context);
+        return await OpenPdfFromUrlCommand.execute(context, url);
       } catch (error) {
         OpenPdfFromUrlCommand.logger.error('Failed to open PDF from URL', error);
+
+        // Show user-friendly error message
         vscode.window.showErrorMessage(
           `Failed to open PDF: ${error instanceof Error ? error.message : 'Unknown error'}`
         );
+
+        // Re-throw for test catching
+        throw error;
       }
     });
   }
 
-  private static async execute(context: vscode.ExtensionContext): Promise<void> {
-    OpenPdfFromUrlCommand.logger.info('Prompting for PDF URL');
+  private static async execute(
+    context: vscode.ExtensionContext,
+    providedUrl?: string
+  ): Promise<vscode.WebviewPanel | undefined> {
+    let url: string;
 
-    const url = await vscode.window.showInputBox({
-      prompt: 'Enter PDF URL',
-      placeHolder: 'https://example.com/document.pdf',
-      validateInput: (value) => {
-        if (!value) {
-          return 'URL is required';
-        }
+    if (providedUrl) {
+      // Use provided URL (for programmatic calls)
+      url = providedUrl;
+      OpenPdfFromUrlCommand.logger.info(`Opening PDF from URL: ${url}`);
+    } else {
+      // Prompt for URL for user interaction
+      OpenPdfFromUrlCommand.logger.info('Prompting for PDF URL');
 
-        if (!value.startsWith('http://') && !value.startsWith('https://')) {
-          return 'URL must start with http:// or https://';
-        }
+      const inputUrl = await vscode.window.showInputBox({
+        prompt: 'Enter PDF URL',
+        placeHolder: 'https://example.com/document.pdf',
+        validateInput: (value) => {
+          if (!value) {
+            return 'URL is required';
+          }
 
-        if (!WebviewProvider.validatePdfPath(value)) {
-          return 'URL must point to a PDF file';
-        }
+          if (!value.startsWith('http://') && !value.startsWith('https://')) {
+            return 'URL must start with http:// or https://';
+          }
 
-        return null;
-      },
-    });
+          if (!WebviewProvider.validatePdfPath(value)) {
+            return 'URL must point to a PDF file';
+          }
 
-    if (!url) {
-      OpenPdfFromUrlCommand.logger.info('No URL provided');
-      return;
+          return null;
+        },
+      });
+
+      if (!inputUrl) {
+        OpenPdfFromUrlCommand.logger.info('No URL provided');
+        return undefined;
+      }
+
+      url = inputUrl;
     }
 
     OpenPdfFromUrlCommand.logger.info(`Opening PDF from URL: ${url}`);
@@ -79,9 +98,12 @@ export class OpenPdfFromUrlCommand {
 
       // Clean up old cached PDFs
       PdfProxy.cleanupCache();
+
+      return panel;
     } catch (error) {
       OpenPdfFromUrlCommand.logger.error('Failed to open PDF directly, trying proxy', error);
-      await OpenPdfFromUrlCommand.tryProxyDownload(url, context);
+      const panel = await OpenPdfFromUrlCommand.tryProxyDownload(url, context);
+      return panel;
     }
   }
 
@@ -113,12 +135,12 @@ export class OpenPdfFromUrlCommand {
     url: string,
     context: vscode.ExtensionContext,
     originalPanel?: vscode.WebviewPanel
-  ): Promise<void> {
+  ): Promise<vscode.WebviewPanel | undefined> {
     try {
       OpenPdfFromUrlCommand.logger.info(`Attempting to download PDF via proxy: ${url}`);
 
       // Show progress indicator
-      await vscode.window.withProgress(
+      return await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
           title: 'Downloading PDF...',
@@ -132,7 +154,7 @@ export class OpenPdfFromUrlCommand {
           progress.report({ message: 'Opening PDF...' });
 
           // Create PDF viewer with local path
-          WebviewUtils.createAndRevealPdfViewer({
+          const panel = WebviewUtils.createAndRevealPdfViewer({
             title: `📄 ${new URL(url).hostname}`,
             source: localPath,
             context,
@@ -147,6 +169,8 @@ export class OpenPdfFromUrlCommand {
               'Closed original PDF viewer after successful proxy download'
             );
           }
+
+          return panel;
         }
       );
     } catch (error) {
@@ -154,6 +178,7 @@ export class OpenPdfFromUrlCommand {
       vscode.window.showErrorMessage(
         `Failed to download PDF: ${error instanceof Error ? error.message : 'Unknown error'}. Try opening the PDF directly in your browser.`
       );
+      return undefined;
     }
   }
 }

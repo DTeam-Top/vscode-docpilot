@@ -39,11 +39,11 @@ export class TextExtractor {
         if (heartbeatInterval) {
           clearInterval(heartbeatInterval);
         }
-        panel.webview.onDidReceiveMessage((disposable) => disposable.dispose());
+        messageDisposable.dispose();
       };
 
-      // Set up message listener
-      const _messageDisposable = panel.webview.onDidReceiveMessage((message: WebviewMessage) => {
+      // Set up message listener first
+      const messageDisposable = panel.webview.onDidReceiveMessage((message: WebviewMessage) => {
         TextExtractor.logger.debug('Received webview message', message);
 
         switch (message.type) {

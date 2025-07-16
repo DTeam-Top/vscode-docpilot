@@ -1,6 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
+import { TextExtractor } from '../pdf/textExtractor';
 import { WEBVIEW_MESSAGES } from '../utils/constants';
 import { Logger } from '../utils/logger';
 
@@ -230,10 +231,6 @@ export class WebviewProvider {
   }
 
   static async exportPdfToMarkdown(panel: vscode.WebviewPanel, pdfSource: string): Promise<void> {
-    const { TextExtractor } = await import('../pdf/textExtractor');
-    const path = await import('node:path');
-    const fs = await import('node:fs');
-
     // Show progress
     await vscode.window.withProgress(
       {

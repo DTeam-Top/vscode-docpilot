@@ -47,8 +47,8 @@ export class RetryPolicy {
       message.includes('timeout') ||
       message.includes('network') ||
       message.includes('connection') ||
-      message.includes('ECONNRESET') ||
-      message.includes('ENOTFOUND')
+      message.includes('econnreset') ||
+      message.includes('enotfound')
     );
   }
 

@@ -143,9 +143,51 @@ npm run compile
 # Watch mode for development
 npm run watch
 
+# Run tests
+npm run test
+
+# Run specific test suites
+npm run test:unit           # Unit tests only
+npm run test:integration    # Integration tests only (coming soon)
+
 # Package extension (requires vsce)
 vsce package
 ```
+
+### Testing
+
+The project includes comprehensive testing infrastructure:
+
+- **Unit Tests**: Core functionality testing with VS Code API mocking
+- **Test Utilities**: Helper functions for file operations and assertions
+- **VS Code Integration**: Proper extension host testing environment
+- **CI/CD Ready**: GitHub Actions workflow for automated testing
+
+**Running Tests:**
+```bash
+# Run all tests
+npm run test
+
+# Run only unit tests
+npm run test:unit
+
+# Compile tests separately
+npm run compile-tests
+```
+
+**Test Structure:**
+```text
+src/test/
+├── runTest.ts                    # VS Code test runner configuration
+├── suite/
+│   ├── index.ts                 # Test suite discovery and execution
+│   └── unit/
+│       └── simple.test.ts       # Basic functionality tests
+└── helpers/
+    └── testUtils.ts             # Common testing utilities
+```
+
+**Current Status:** Basic testing infrastructure is working with 6 passing unit tests. Additional test suites for cache system, chat participant, and webview functionality are planned for future implementation.
 
 ## 🎯 Architecture
 

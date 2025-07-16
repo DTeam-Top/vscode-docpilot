@@ -36,9 +36,15 @@ yarn-error.log*
 # Temporary files
 *.tmp
 *.temp
+temp/
 
 # Coverage directory used by tools like istanbul
 coverage/
+.nyc_output
+
+# Test reports
+test-reports/
+test-results.*
 
 # TypeScript cache
 *.tsbuildinfo

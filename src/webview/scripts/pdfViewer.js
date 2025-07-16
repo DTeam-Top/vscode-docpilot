@@ -328,11 +328,11 @@ function toggleTextSelection() {
   const baseUrl = icon.src.substring(0, icon.src.lastIndexOf('/') + 1);
 
   if (textSelectionEnabled) {
-    icon.src = baseUrl + 'text.svg';
+    icon.src = `${baseUrl}text.svg`;
     console.log('Text selection enabled - rendering text layers for visible pages');
     renderVisibleTextLayers();
   } else {
-    icon.src = baseUrl + 'view.svg';
+    icon.src = `${baseUrl}view.svg`;
     console.log('Text selection disabled - hiding all text layers');
     hideAllTextLayers();
   }
@@ -531,9 +531,9 @@ function toggleDebug() {
   const baseUrl = icon.src.substring(0, icon.src.lastIndexOf('/') + 1);
 
   if (debugMode) {
-    icon.src = baseUrl + 'bug-play.svg';
+    icon.src = `${baseUrl}bug-play.svg`;
   } else {
-    icon.src = baseUrl + 'bug-off.svg';
+    icon.src = `${baseUrl}bug-off.svg`;
   }
 
   const btn = document.getElementById('debugBtn');
