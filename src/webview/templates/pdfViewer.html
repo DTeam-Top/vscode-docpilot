@@ -206,10 +206,14 @@
             width: 16px;
             height: 16px;
         }
+        body.vscode-dark .icon-button img,
+        body.vscode-high-contrast .icon-button img {
+            filter: invert(1);
+        }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
-<body>
+<body class="{{theme}}">
     <div class="toolbar">
         <div class="file-info">
             <span>📄 {{fileName}}</span>

@@ -55,7 +55,7 @@ export class PdfCustomEditorProvider implements vscode.CustomReadonlyEditorProvi
     webviewPanel.webview.options = {
       enableScripts: true,
       localResourceRoots: [
-        vscode.Uri.joinPath(this.context.extensionUri, 'src', 'webview'),
+        vscode.Uri.joinPath(this.context.extensionUri, 'out', 'webview'),
         pdfDirectory,
       ],
     };

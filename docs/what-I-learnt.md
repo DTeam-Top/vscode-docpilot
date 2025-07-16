@@ -143,6 +143,30 @@ This document summarizes the most important technical and architectural lessons 
   - **Flexible Icon Containers:** Created `.icon-button` class that adapts to both icon-only and icon+text configurations
 - **Lesson:** UI components should blend seamlessly with the host application's design system rather than imposing their own visual style.
 
+### Consistent Asset Loading Strategy
+
+- **Problem:** Webview assets (icons, scripts) failed to load in the test environment.
+- **Initial Misdiagnosis:** The first assumption was that the test runner had a different root path, leading to an attempt to create a special case to load assets from `/src/webview/assets` during testing, while the production extension loads from `/out/webview/assets`.
+- **Why This Was Wrong:** This approach creates a dangerous divergence between the testing and production environments. A published VS Code extension does not include the `src` directory, so any solution that relies on it is fundamentally flawed and guaranteed to fail in production.
+- **The Core Lesson:** The asset loading mechanism **must** be consistent across all environments (local development, automated testing, and the published extension). All asset paths should point to the compiled output directory (`out`). The build process (e.g., `npm run copy-assets`) is responsible for ensuring that all necessary assets are correctly placed in the `out` directory, which serves as the single source of truth for the running extension.
+- **Resolution:** The root cause was ultimately a CSS issue, not a pathing issue. By maintaining a consistent asset path and fixing the theme styling, the solution works reliably everywhere. Never create environment-specific logic for locating core assets.
+
+### Theme-Aware Icon Styling
+
+- **Problem:** Icons in the PDF viewer toolbar were invisible when running tests. The test runner used a dark theme, and the black SVG icons blended in with the black toolbar background.
+- **Initial Misdiagnosis:** The initial thought was that asset paths were incorrect in the test environment, leading to attempts to load resources from the `src` directory, which would break the production build.
+- **Correct Solution:** The issue was not the asset path, but the icon color against the theme background. The fix was implemented purely with CSS and theme detection:
+  - **CSS Filter:** A CSS rule was added to `pdfViewer.html` to automatically invert the icon colors in dark themes:
+    ```css
+    body.vscode-dark .icon-button img,
+    body.vscode-high-contrast .icon-button img {
+        filter: invert(1);
+    }
+    ```
+  - **Dynamic Theme Class:** A `getCurrentTheme()` utility was added to `WebviewProvider` to detect the active VS Code theme (`Dark`, `Light`, `HighContrast`).
+  - **Template Injection:** The webview's HTML template was updated to include a `{{theme}}` placeholder in the `<body>` tag (`<body class="{{theme}}">`), which is replaced with the correct theme class (`vscode-dark`, etc.) when the webview is rendered.
+- **Lesson:** Solve theme-related visibility issues with CSS and dynamic theme classes, not by altering asset loading paths. This ensures a consistent approach for both development and production environments and respects the user's chosen theme. Using CSS `filter` is a powerful, non-destructive way to adapt icons to different themes without needing multiple asset files.
+
 ---
 
 ## 5. Testing Strategy and Architecture
