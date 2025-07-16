@@ -77,12 +77,25 @@
     "watch": "tsc -watch -p ./",
     "lint": "biome lint src/",
     "format": "biome format --write src/",
-    "check": "biome check src/"
+    "check": "biome check src/",
+    "test": "npm run compile-tests && node out/test/runTest.js",
+    "test:unit": "npm run compile-tests && node out/test/runTest.js --suite unit",
+    "test:integration": "npm run compile-tests && node out/test/runTest.js --suite integration",
+    "compile-tests": "tsc -p ./ --outDir out"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.1.1",
+    "@types/chai": "^4.3.11",
+    "@types/mocha": "^10.0.6",
     "@types/node": "16.x",
+    "@types/sinon": "^17.0.2",
+    "@types/sinon-chai": "^4.0.0",
     "@types/vscode": "^1.74.0",
+    "@vscode/test-electron": "^2.3.8",
+    "chai": "^4.4.1",
+    "mocha": "^10.2.0",
+    "sinon": "^17.0.1",
+    "sinon-chai": "^3.7.0",
     "typescript": "^4.9.4"
   }
 }
