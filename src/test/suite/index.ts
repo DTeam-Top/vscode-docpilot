@@ -30,7 +30,7 @@ function findTestFiles(dir: string, files: string[] = []): string[] {
 
 export function run(): Promise<void> {
   const testSuite = process.env.TEST_SUITE || 'all';
-  const testReporter = process.env.TEST_REPORTER || 'spec';
+  const testReporter = process.env.TEST_REPORTER || 'enhanced-spec';
 
   console.log(`Setting up ${testSuite} tests with ${testReporter} reporter...`);
   console.log(
@@ -52,6 +52,14 @@ export function run(): Promise<void> {
   let actualReporter = testReporter;
 
   switch (testReporter) {
+    case 'enhanced-spec':
+      actualReporter = path.resolve(__dirname, '../reporters/enhanced-spec.js');
+      console.log(`Using enhanced spec reporter with summary`);
+      break;
+    case 'spec':
+      actualReporter = 'spec';
+      console.log(`Using basic spec reporter`);
+      break;
     case 'junit':
       outputFile = path.resolve(reportsDir, `${testSuite}-results.xml`);
       reporterOptions.mochaFile = outputFile;

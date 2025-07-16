@@ -47,7 +47,7 @@ async function main() {
       launchArgs: ['--disable-workspace-trust', '--skip-welcome', '--disable-telemetry'],
       extensionTestsEnv: {
         TEST_SUITE: suite,
-        TEST_REPORTER: 'spec',
+        TEST_REPORTER: 'enhanced-spec',
         NODE_ENV: 'test',
         // Pass the auth token to the extension test environment for Copilot integration
         ...(process.env.COPILOT_CHAT_AUTH_TOKEN && {

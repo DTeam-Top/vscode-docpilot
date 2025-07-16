@@ -158,11 +158,48 @@ vsce package
 
 The project includes comprehensive testing infrastructure with **103 passing tests** (100% success rate):
 
-- **Unit Tests (48 tests)**: Core functionality testing with VS Code API mocking
+- **Unit Tests (48 tests)**: Core functionality testing (ChunkingStrategy, RetryPolicy)
 - **Integration Tests (55 tests)**: Real functionality testing with actual VS Code extension host
+- **Enhanced Test Reporting**: Clear unit/integration separation with performance metrics
 - **Test Utilities**: Helper functions for PDF operations and real webview communication
 - **VS Code Integration**: Proper extension host testing environment
 - **CI/CD Ready**: GitHub Actions workflow for automated testing
+
+**Enhanced Test Output:**
+```
+==================================================
+              TEST RESULTS SUMMARY
+==================================================
+✅ Passed: 103/103 tests (100.0%)
+⏱️  Duration: 53.5s
+📁 Suites: 12
+
+🧪 UNIT TESTS:
+  ✅ getDefaultConfig(): 3/3 passed
+  ✅ createSemanticChunks(): 17/17 passed
+  ✅ Integration with TokenEstimator: 2/2 passed
+  ✅ withRetry: 9/9 passed
+  ✅ shouldRetryNetworkError: 8/8 passed
+  ✅ shouldRetryModelError: 7/7 passed
+  ✅ delay: 2/2 passed
+
+🔗 INTEGRATION TESTS:
+  ✅ Real Error Scenarios: 14/14 passed
+  ✅ OpenLocalPdf Integration: 7/7 passed
+  ✅ OpenPdfFromUrl Integration: 8/8 passed
+  ✅ Real User Workflows: 14/14 passed
+  ✅ PDF Viewer Integration: 12/12 passed
+
+🐌 SLOW TESTS (>500ms):
+  ⏱️  8507ms - PDF Viewer Integration should handle real PDF.js rendering functionality
+  ⏱️  6736ms - Real Error Scenarios should test real network timeout scenarios
+  ⏱️  5652ms - Real User Workflows Performance workflow should be acceptable
+  ⏱️  5075ms - Real User Workflows Command: Open Local PDF should work end-to-end
+  ⏱️  3101ms - Real User Workflows Multiple PDF workflow should work correctly
+
+🎉 ALL TESTS PASSED!
+==================================================
+```
 
 **Running Tests:**
 ```bash
@@ -183,6 +220,8 @@ npm run compile-tests
 ```text
 src/test/
 ├── runTest.ts                    # VS Code test runner configuration
+├── reporters/
+│   └── enhanced-spec.ts         # Custom test reporter with unit/integration separation
 ├── suite/
 │   ├── index.ts                 # Test suite discovery and execution
 │   ├── unit/                    # Unit tests (48 tests)
@@ -204,7 +243,7 @@ src/test/
         └── normal.pdf           # Test PDF fixture
 ```
 
-**Current Status:** Complete testing infrastructure with real integration testing that validates actual functionality - **103/103 tests passing** with comprehensive coverage of PDF processing, webview communication, and Copilot integration.
+**Current Status:** Complete testing infrastructure with enhanced reporting that clearly separates unit and integration tests - **103/103 tests passing** with comprehensive coverage of PDF processing, webview communication, and Copilot integration.
 
 ## 🎯 Architecture
 
