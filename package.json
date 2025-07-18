@@ -82,7 +82,7 @@
     "test": "npm run compile-tests && node out/test/runTest.js",
     "test:unit": "npm run compile-tests && node out/test/runTest.js --suite unit",
     "test:integration": "npm run compile-tests && node out/test/runTest.js --suite integration",
-    "compile-tests": "tsc -p ./ --outDir out && npm run copy-assets"
+    "compile-tests": "rm -rf out && tsc -p ./ --outDir out && npm run copy-assets"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.1.1",
