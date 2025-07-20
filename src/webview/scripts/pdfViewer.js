@@ -1,6 +1,11 @@
 // Global variables provided by VS Code webview and PDF.js
 /* global acquireVsCodeApi, PDF_CONFIG */
 
+// Content extractor variables
+let extractorEnabled = false;
+let extractedImages = [];
+let extractedTables = [];
+
 // Wait for PDF.js to be available
 function waitForPdfJs() {
     return new Promise((resolve) => {
@@ -60,6 +65,7 @@ async function initializePdf() {
       pagesContainer.innerHTML = '<div class="pdf-pages" id="pdfPages"></div>';
       updatePageInfo();
       initializeTextSelection();
+      initializeContentExtractor();
       renderAllPages();
 
       // Signal that PDF is ready for text extraction
@@ -795,6 +801,538 @@ function openInBrowser() {
   });
 }
 
+// Content extractor functions
+function toggleExtractor() {
+  extractorEnabled = !extractorEnabled;
+  const sidebar = document.getElementById('extractorSidebar');
+  
+  if (extractorEnabled) {
+    sidebar.classList.add('open');
+    initializeTabSwitching();
+  } else {
+    sidebar.classList.remove('open');
+  }
+}
+
+function initializeTabSwitching() {
+  const tabButtons = document.querySelectorAll('.tab-button');
+  const tabContents = document.querySelectorAll('.tab-content');
+  
+  tabButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const targetTab = button.getAttribute('data-tab');
+      
+      // Update tab buttons
+      tabButtons.forEach(btn => btn.classList.remove('active'));
+      button.classList.add('active');
+      
+      // Update tab content
+      tabContents.forEach(content => content.classList.remove('active'));
+      document.getElementById(targetTab + 'Tab').classList.add('active');
+    });
+  });
+}
+
+function addImageToGallery(imageData) {
+  const imagesList = document.getElementById('imagesList');
+  if (imagesList.querySelector('.loading-message')) {
+    imagesList.innerHTML = '';
+  }
+  
+  const item = document.createElement('div');
+  item.className = 'content-item';
+  item.innerHTML = `
+    <div class="content-thumbnail">
+      <img src="${imageData.base64}" style="max-width: 100%; max-height: 100%; object-fit: contain;" title="Click to go to page ${imageData.pageNum}">
+    </div>
+    <div class="content-info">
+      <div>Page ${imageData.pageNum}</div>
+      <div style="color: var(--vscode-descriptionForeground);">${imageData.width} × ${imageData.height}</div>
+    </div>
+    <div class="content-actions">
+      <button class="action-btn" onclick="copyImageToClipboard('${imageData.id}')" title="Copy image to clipboard">Copy</button>
+      <button class="action-btn" onclick="goToPage(${imageData.pageNum})" title="Navigate to this page">Go to Page</button>
+    </div>
+  `;
+  
+  item.addEventListener('click', () => goToPage(imageData.pageNum));
+  imagesList.appendChild(item);
+}
+
+function addTableToList(tableData) {
+  const tablesList = document.getElementById('tablesList');
+  if (tablesList.querySelector('.loading-message')) {
+    tablesList.innerHTML = '';
+  }
+  
+  const maxCols = Math.max(...tableData.rows.map(row => row.length));
+  
+  const item = document.createElement('div');
+  item.className = 'content-item';
+  item.innerHTML = `
+    <div class="content-thumbnail">
+      📊
+    </div>
+    <div class="content-info">
+      <div>Page ${tableData.pageNum}</div>
+      <div style="color: var(--vscode-descriptionForeground);">${tableData.rows.length} × ${maxCols} table</div>
+    </div>
+    <div class="content-actions">
+      <button class="action-btn" onclick="copyTableAsCSV('${tableData.id}')" title="Copy table as CSV">Copy CSV</button>
+      <button class="action-btn" onclick="goToPage(${tableData.pageNum})" title="Navigate to this page">Go to Page</button>
+    </div>
+  `;
+  
+  item.addEventListener('click', () => goToPage(tableData.pageNum));
+  tablesList.appendChild(item);
+}
+
+function copyImageToClipboard(imageId) {
+  const image = extractedImages.find(img => img.id === imageId);
+  if (image) {
+    // Convert base64 to blob and copy to clipboard
+    fetch(image.base64)
+      .then(res => res.blob())
+      .then(blob => {
+        navigator.clipboard.write([
+          new ClipboardItem({ [blob.type]: blob })
+        ]).then(() => {
+          console.log('Image copied to clipboard');
+          showStatusMessage('Image copied to clipboard! 📋');
+        }).catch(err => {
+          console.error('Failed to copy image:', err);
+          showStatusMessage('Failed to copy image ❌');
+        });
+      });
+  }
+}
+
+function copyTableAsCSV(tableId) {
+  const table = extractedTables.find(tbl => tbl.id === tableId);
+  if (table) {
+    const csv = table.rows.map(row => row.join(',')).join('\n');
+    navigator.clipboard.writeText(csv).then(() => {
+      console.log('Table copied as CSV to clipboard');
+      showStatusMessage('Table copied as CSV! 📋');
+    }).catch(err => {
+      console.error('Failed to copy table:', err);
+      showStatusMessage('Failed to copy table ❌');
+    });
+  }
+}
+
+// Helper function to show status messages
+function showStatusMessage(message) {
+  // Create a temporary status message
+  const statusDiv = document.createElement('div');
+  statusDiv.style.cssText = `
+    position: fixed;
+    top: 50px;
+    right: 20px;
+    background: var(--vscode-notifications-background);
+    color: var(--vscode-notifications-foreground);
+    border: 1px solid var(--vscode-notifications-border);
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    transition: opacity 0.3s ease;
+  `;
+  statusDiv.textContent = message;
+  document.body.appendChild(statusDiv);
+  
+  // Remove after 2 seconds
+  setTimeout(() => {
+    statusDiv.style.opacity = '0';
+    setTimeout(() => {
+      if (statusDiv.parentNode) {
+        statusDiv.parentNode.removeChild(statusDiv);
+      }
+    }, 300);
+  }, 2000);
+}
+
+function goToPage(pageNum) {
+  const pageElement = document.getElementById(`page-${pageNum}`);
+  if (pageElement) {
+    pageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+// Add click detection for PDF pages to extract content
+function setupContentClickDetection() {
+  document.addEventListener('click', async (event) => {
+    if (!extractorEnabled) return;
+    
+    const pageElement = event.target.closest('.pdf-page');
+    if (!pageElement) return;
+    
+    const pageNum = parseInt(pageElement.id.replace('page-', ''));
+    const rect = pageElement.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    
+    // Simple detection - in a real implementation, you'd need to analyze the PDF content
+    // For now, we'll simulate finding content at the clicked position
+    await detectContentAtPosition(pageNum, x, y);
+  });
+}
+
+async function detectContentAtPosition(pageNum, x, y) {
+  try {
+    // This is a simplified version - actual implementation would analyze PDF content
+    // For demo purposes, we'll extract images and tables from the page
+    const page = await pdfDoc.getPage(pageNum);
+    
+    // Extract images (simplified)
+    const imageData = await extractImagesFromPage(page, pageNum);
+    if (imageData.length > 0) {
+      imageData.forEach(img => {
+        if (!extractedImages.find(existing => existing.id === img.id)) {
+          extractedImages.push(img);
+          addImageToGallery(img);
+        }
+      });
+    }
+    
+    // Extract tables (simplified)
+    const tableData = await extractTablesFromPage(page, pageNum);
+    if (tableData.length > 0) {
+      tableData.forEach(table => {
+        if (!extractedTables.find(existing => existing.id === table.id)) {
+          extractedTables.push(table);
+          addTableToList(table);
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Error detecting content:', error);
+  }
+}
+
+// Image extraction using PDF.js (based on ImageExtractor.ts logic)
+async function extractImagesFromPage(page, pageNum) {
+  const images = [];
+  
+  try {
+    console.log(`Starting image extraction for page ${pageNum}`);
+    
+    const operatorList = await page.getOperatorList();
+    console.log(`Page ${pageNum} operator list:`, operatorList);
+    console.log(`Found ${operatorList.fnArray.length} operations`);
+    
+    let imageIndex = 0;
+    
+    for (let i = 0; i < operatorList.fnArray.length; i++) {
+      const fn = operatorList.fnArray[i];
+      const args = operatorList.argsArray[i];
+      
+      // Check all possible image operations
+      // OPS constants from PDF.js: paintImageXObject = 85, paintJpegXObject = 86, paintImageMaskXObject = 87
+      if (fn === 85 || fn === 86 || fn === 87) {
+        console.log(`Found image operation: fn=${fn}, args=`, args);
+        const objId = args[0];
+        
+        try {
+          // Wait for the object to be available
+          await new Promise((resolve) => {
+            page.objs.get(objId, resolve);
+          });
+          
+          const imgObj = page.objs.get(objId);
+          console.log(`Image object ${objId}:`, imgObj);
+          
+          if (imgObj) {
+            let base64Image = null;
+            
+            // Try different approaches to get image data
+            if (imgObj.bitmap && imgObj.bitmap instanceof ImageBitmap) {
+              console.log(`Found ImageBitmap, width: ${imgObj.width}, height: ${imgObj.height}`);
+              base64Image = await convertImageBitmapToBase64(imgObj.bitmap);
+            } else if (imgObj.data) {
+              console.log(`Found image data, kind: ${imgObj.kind}, width: ${imgObj.width}, height: ${imgObj.height}`);
+              base64Image = await convertImageToBase64(imgObj);
+            } else if (imgObj instanceof HTMLImageElement) {
+              // If it's already an HTML image element
+              base64Image = await convertHTMLImageToBase64(imgObj);
+            } else if (imgObj instanceof HTMLCanvasElement) {
+              // If it's a canvas
+              base64Image = imgObj.toDataURL('image/png');
+            }
+            
+            if (base64Image) {
+              const extractedImage = {
+                id: `img_${pageNum}_${imageIndex}`,
+                pageNum,
+                base64: base64Image,
+                width: imgObj.width || 0,
+                height: imgObj.height || 0,
+                x: 0,
+                y: 0
+              };
+              
+              console.log(`Successfully extracted image ${imageIndex} from page ${pageNum}`);
+              images.push(extractedImage);
+              imageIndex++;
+            } else {
+              console.warn(`Could not convert image object to base64:`, imgObj);
+            }
+          }
+        } catch (objError) {
+          console.warn(`Failed to extract image object ${objId}:`, objError);
+        }
+      }
+    }
+    
+    console.log(`Extracted ${images.length} images from page ${pageNum}`);
+    return images;
+  } catch (error) {
+    console.error(`Error extracting images from page ${pageNum}:`, error);
+    return [];
+  }
+}
+
+// Table detection using text layout analysis (based on TableDetector.ts logic)
+async function extractTablesFromPage(page, pageNum) {
+  try {
+    const textContent = await page.getTextContent();
+    const viewport = page.getViewport({ scale: 1.0 });
+    
+    // Convert text items to our format
+    const textItems = textContent.items
+      .filter(item => item.str && item.str.trim().length > 0)
+      .map(item => {
+        const transform = item.transform;
+        const x = transform[4];
+        const y = viewport.height - transform[5];
+        
+        return {
+          str: item.str.trim(),
+          x,
+          y,
+          width: item.width || 0,
+          height: Math.abs(transform[3]) || 12,
+          fontName: item.fontName || '',
+          fontSize: Math.abs(transform[3]) || 12
+        };
+      });
+    
+    if (textItems.length < 6) return [];
+    
+    // Simple table detection: group items into potential tables
+    const tables = detectTablesFromTextItems(textItems, pageNum);
+    return tables;
+    
+  } catch (error) {
+    console.error(`Error detecting tables from page ${pageNum}:`, error);
+    return [];
+  }
+}
+
+// Helper function to convert image data to base64
+async function convertImageToBase64(imgObj) {
+  try {
+    if (!imgObj.data) return null;
+    
+    const { data, width, height, kind } = imgObj;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    
+    canvas.width = width;
+    canvas.height = height;
+    
+    let imageData;
+    
+    // Handle different image formats
+    switch (kind) {
+      case 1: // GRAYSCALE_1BPP
+        console.log('Converting grayscale 1BPP image');
+        imageData = convertGrayscale1BPP(data, width, height);
+        break;
+      case 2: // RGB_24BPP
+        console.log('Converting RGB 24BPP image');
+        imageData = convertRGB24BPP(data, width, height);
+        break;
+      case 3: // RGBA_32BPP
+        console.log('Converting RGBA 32BPP image');
+        imageData = new ImageData(new Uint8ClampedArray(data), width, height);
+        break;
+      default:
+        console.log(`Unknown image kind: ${kind}, trying RGBA`);
+        // Try RGBA format
+        imageData = new ImageData(new Uint8ClampedArray(data), width, height);
+        break;
+    }
+    
+    ctx.putImageData(imageData, 0, 0);
+    return canvas.toDataURL('image/png');
+    
+  } catch (error) {
+    console.error('Error converting image to base64:', error);
+    return null;
+  }
+}
+
+// Helper function to convert HTML image to base64
+async function convertHTMLImageToBase64(imgElement) {
+  try {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    
+    canvas.width = imgElement.naturalWidth || imgElement.width;
+    canvas.height = imgElement.naturalHeight || imgElement.height;
+    
+    ctx.drawImage(imgElement, 0, 0);
+    return canvas.toDataURL('image/png');
+  } catch (error) {
+    console.error('Error converting HTML image to base64:', error);
+    return null;
+  }
+}
+
+// Helper function to convert ImageBitmap to base64
+async function convertImageBitmapToBase64(imageBitmap) {
+  try {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    
+    canvas.width = imageBitmap.width;
+    canvas.height = imageBitmap.height;
+    
+    // Draw the ImageBitmap to the canvas
+    ctx.drawImage(imageBitmap, 0, 0);
+    
+    return canvas.toDataURL('image/png');
+  } catch (error) {
+    console.error('Error converting ImageBitmap to base64:', error);
+    return null;
+  }
+}
+
+// Helper function to convert RGB to RGBA
+function convertRGB24BPP(data, width, height) {
+  const rgbaData = new Uint8ClampedArray(width * height * 4);
+  
+  for (let i = 0; i < data.length; i += 3) {
+    const rgbaIndex = (i / 3) * 4;
+    rgbaData[rgbaIndex] = data[i];     // R
+    rgbaData[rgbaIndex + 1] = data[i + 1]; // G
+    rgbaData[rgbaIndex + 2] = data[i + 2]; // B
+    rgbaData[rgbaIndex + 3] = 255;     // A
+  }
+  
+  return new ImageData(rgbaData, width, height);
+}
+
+// Helper function to convert grayscale 1BPP to RGBA
+function convertGrayscale1BPP(data, width, height) {
+  const rgbaData = new Uint8ClampedArray(width * height * 4);
+  
+  for (let i = 0; i < data.length; i++) {
+    const byte = data[i];
+    for (let bit = 7; bit >= 0; bit--) {
+      const pixelIndex = (i * 8 + (7 - bit)) * 4;
+      if (pixelIndex >= rgbaData.length) break;
+      
+      const value = (byte >> bit) & 1 ? 255 : 0;
+      rgbaData[pixelIndex] = value;     // R
+      rgbaData[pixelIndex + 1] = value; // G
+      rgbaData[pixelIndex + 2] = value; // B
+      rgbaData[pixelIndex + 3] = 255;   // A
+    }
+  }
+  
+  return new ImageData(rgbaData, width, height);
+}
+
+// Helper function for table detection
+function detectTablesFromTextItems(textItems, pageNum) {
+  // Sort by Y then X
+  const sortedItems = textItems.sort((a, b) => {
+    const yDiff = Math.abs(a.y - b.y);
+    if (yDiff < 5) {
+      return a.x - b.x;
+    }
+    return a.y - b.y;
+  });
+  
+  // Group into rows
+  const rows = [];
+  let currentRow = [];
+  let currentY = sortedItems[0]?.y || 0;
+  
+  for (const item of sortedItems) {
+    if (Math.abs(item.y - currentY) <= 10) {
+      currentRow.push(item);
+    } else {
+      if (currentRow.length > 0) {
+        rows.push([...currentRow]);
+      }
+      currentRow = [item];
+      currentY = item.y;
+    }
+  }
+  if (currentRow.length > 0) {
+    rows.push(currentRow);
+  }
+  
+  // Look for table patterns
+  const tables = [];
+  for (let i = 0; i < rows.length - 1; i++) {
+    const firstRow = rows[i];
+    if (firstRow.length < 2) continue;
+    
+    let tableRows = [firstRow];
+    
+    // Find consecutive rows with similar structure
+    for (let j = i + 1; j < rows.length; j++) {
+      const nextRow = rows[j];
+      if (rowsAreAligned(firstRow, nextRow)) {
+        tableRows.push(nextRow);
+      } else {
+        break;
+      }
+    }
+    
+    if (tableRows.length >= 2) {
+      const tableData = {
+        id: `table_${pageNum}_${tables.length}`,
+        pageNum,
+        rows: tableRows.map(row => row.map(item => item.str))
+      };
+      tables.push(tableData);
+      i += tableRows.length - 1;
+    }
+  }
+  
+  return tables;
+}
+
+// Helper function to check row alignment
+function rowsAreAligned(row1, row2) {
+  if (Math.abs(row1.length - row2.length) > 1) return false;
+  
+  const minLength = Math.min(row1.length, row2.length);
+  let alignedColumns = 0;
+  
+  for (let i = 0; i < minLength; i++) {
+    if (Math.abs(row1[i].x - row2[i].x) <= 15) {
+      alignedColumns++;
+    }
+  }
+  
+  return alignedColumns >= minLength * 0.7;
+}
+
+// Initialize content detection when PDF is loaded
+function initializeContentExtractor() {
+  setupContentClickDetection();
+}
+
 // Expose functions globally for HTML onclick handlers
 window.fitToWidth = fitToWidth;
 window.fitToPage = fitToPage;
@@ -802,10 +1340,14 @@ window.summarizeDocument = summarizeDocument;
 window.exportText = exportText;
 window.toggleTextSelection = toggleTextSelection;
 window.toggleDebug = toggleDebug;
+window.toggleExtractor = toggleExtractor;
 window.zoomIn = zoomIn;
 window.zoomOut = zoomOut;
 window.setZoom = setZoom;
 window.downloadPdfFallback = downloadPdfFallback;
 window.openInBrowser = openInBrowser;
+window.copyImageToClipboard = copyImageToClipboard;
+window.copyTableAsCSV = copyTableAsCSV;
+window.goToPage = goToPage;
 
 console.log('Webview script loaded and ready for messages');

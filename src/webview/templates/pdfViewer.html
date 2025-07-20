@@ -29,6 +29,11 @@
             position: sticky;
             top: 0;
         }
+        .main-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
         .pdf-container {
             flex: 1;
             overflow-y: auto;
@@ -36,6 +41,107 @@
             background-color: #525659;
             position: relative;
             padding: 20px 0;
+        }
+        .extractor-sidebar {
+            width: 0;
+            overflow: hidden;
+            background-color: var(--vscode-sideBar-background);
+            border-left: 1px solid var(--vscode-panel-border);
+            transition: width 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        .extractor-sidebar.open {
+            width: 300px;
+        }
+        .sidebar-header {
+            padding: 8px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+        .sidebar-tabs {
+            display: flex;
+            gap: 4px;
+        }
+        .tab-button {
+            flex: 1;
+            padding: 8px 12px;
+            background: transparent;
+            border: none;
+            color: var(--vscode-foreground);
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        .tab-button:hover {
+            background-color: var(--vscode-toolbar-hoverBackground);
+        }
+        .tab-button.active {
+            background-color: var(--vscode-tab-activeBackground);
+        }
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+        .tab-content {
+            display: none;
+            height: 100%;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .content-list {
+            padding: 8px;
+        }
+        .loading-message {
+            color: var(--vscode-descriptionForeground);
+            text-align: center;
+            padding: 20px;
+            font-size: 12px;
+        }
+        .content-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 3px;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+        .content-item:hover {
+            background-color: var(--vscode-list-hoverBackground);
+        }
+        .content-thumbnail {
+            width: 40px;
+            height: 40px;
+            background-color: var(--vscode-input-background);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 2px;
+            margin-right: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: var(--vscode-descriptionForeground);
+        }
+        .content-info {
+            flex: 1;
+            font-size: 12px;
+        }
+        .content-actions {
+            display: flex;
+            gap: 4px;
+        }
+        .action-btn {
+            padding: 4px 8px;
+            font-size: 10px;
+            background-color: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+            border: none;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+        .action-btn:hover {
+            background-color: var(--vscode-button-secondaryHoverBackground);
         }
         .pdf-pages {
             display: flex;
@@ -244,6 +350,9 @@
             <button id="textSelectionBtn" class="icon-button" onclick="toggleTextSelection()" title="Selection Mode">
                 <img id="textSelectionIcon" src="{{assetUri}}/view.svg" alt="Selection Mode" width="16" height="16">
             </button>
+            <button id="extractorBtn" class="icon-button" onclick="toggleExtractor()" title="Content Extractor">
+                <img id="extractorIcon" src="{{assetUri}}/wand.svg" alt="Content Extractor" width="16" height="16">
+            </button>
             <button id="debugBtn" class="icon-button" onclick="toggleDebug()" title="Debug Mode">
                 <img id="debugIcon" src="{{assetUri}}/bug-off.svg" alt="Debug Mode" width="16" height="16">
             </button>
@@ -262,11 +371,33 @@
     <div class="warning-banner" id="warningBanner">
         ⚠️ Large document detected. Text selection may impact performance.
     </div>
-    <div class="pdf-container" id="pdfContainer">
-        <div class="loading">
-            Loading PDF...
-            <div class="progress-bar">
-                <div class="progress-fill" id="progressFill"></div>
+    <div class="main-content">
+        <div class="pdf-container" id="pdfContainer">
+            <div class="loading">
+                Loading PDF...
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+        </div>
+        <div class="extractor-sidebar" id="extractorSidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-tabs">
+                    <button class="tab-button active" data-tab="images">Images</button>
+                    <button class="tab-button" data-tab="tables">Tables</button>
+                </div>
+            </div>
+            <div class="sidebar-content">
+                <div class="tab-content active" id="imagesTab">
+                    <div class="content-list" id="imagesList">
+                        <div class="loading-message">Click an image in the PDF to extract it</div>
+                    </div>
+                </div>
+                <div class="tab-content" id="tablesTab">
+                    <div class="content-list" id="tablesList">
+                        <div class="loading-message">Click a table in the PDF to extract it</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
