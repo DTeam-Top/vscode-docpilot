@@ -8,20 +8,20 @@ let extractedTables = [];
 
 // Wait for PDF.js to be available
 function waitForPdfJs() {
-    return new Promise((resolve) => {
+  return new Promise((resolve) => {
+    if (window.pdfjsLib) {
+      resolve();
+    } else {
+      const checkPdfJs = () => {
         if (window.pdfjsLib) {
-            resolve();
+          resolve();
         } else {
-            const checkPdfJs = () => {
-                if (window.pdfjsLib) {
-                    resolve();
-                } else {
-                    setTimeout(checkPdfJs, 10);
-                }
-            };
-            checkPdfJs();
+          setTimeout(checkPdfJs, 10);
         }
-    });
+      };
+      checkPdfJs();
+    }
+  });
 }
 
 // Make vscode API available first
@@ -49,7 +49,7 @@ const PERFORMANCE_THRESHOLD = 500; // 500ms
 // Initialize PDF loading after PDF.js is available
 async function initializePdf() {
   await waitForPdfJs();
-  
+
   // Load PDF
   const loadingTask = window.pdfjsLib.getDocument(PDF_CONFIG.pdfUri);
   loadingTask.onProgress = (progress) => {
@@ -196,6 +196,7 @@ function updateCurrentPage() {
     if (pageRect.top <= containerRect.height / 2 && pageRect.bottom >= containerRect.height / 2) {
       currentPage = i + 1;
       updatePageInfo();
+      updateNavigationButtons();
       break;
     }
   }
@@ -304,6 +305,7 @@ function fitToPage() {
 function updatePageInfo() {
   if (pdfDoc) {
     document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${pdfDoc.numPages}`;
+    updateNavigationButtons();
   }
 }
 
@@ -323,6 +325,30 @@ document.addEventListener('keydown', (e) => {
     } else if (e.key === '0') {
       e.preventDefault();
       setZoom(1);
+    }
+  } else {
+    // Page navigation shortcuts (without modifier keys)
+    switch (e.key) {
+      case 'ArrowLeft':
+      case 'ArrowUp':
+      case 'PageUp':
+        e.preventDefault();
+        goToPreviousPage();
+        break;
+      case 'ArrowRight':
+      case 'ArrowDown':
+      case 'PageDown':
+        e.preventDefault();
+        goToNextPage();
+        break;
+      case 'Home':
+        e.preventDefault();
+        goToFirstPage();
+        break;
+      case 'End':
+        e.preventDefault();
+        goToLastPage();
+        break;
     }
   }
 });
@@ -805,7 +831,7 @@ function openInBrowser() {
 function toggleExtractor() {
   extractorEnabled = !extractorEnabled;
   const sidebar = document.getElementById('extractorSidebar');
-  
+
   if (extractorEnabled) {
     sidebar.classList.add('open');
     initializeTabSwitching();
@@ -821,17 +847,17 @@ function toggleExtractor() {
 function initializeTabSwitching() {
   const tabButtons = document.querySelectorAll('.tab-button');
   const tabContents = document.querySelectorAll('.tab-content');
-  
-  tabButtons.forEach(button => {
+
+  tabButtons.forEach((button) => {
     button.addEventListener('click', () => {
       const targetTab = button.getAttribute('data-tab');
-      
+
       // Update tab buttons
-      tabButtons.forEach(btn => btn.classList.remove('active'));
+      tabButtons.forEach((btn) => btn.classList.remove('active'));
       button.classList.add('active');
-      
+
       // Update tab content
-      tabContents.forEach(content => content.classList.remove('active'));
+      tabContents.forEach((content) => content.classList.remove('active'));
       document.getElementById(targetTab + 'Tab').classList.add('active');
     });
   });
@@ -843,7 +869,7 @@ function addImageToGallery(imageData) {
   if (imagesList.querySelector('.loading-message')) {
     imagesList.innerHTML = '';
   }
-  
+
   const item = document.createElement('div');
   item.className = 'content-item';
   item.innerHTML = `
@@ -858,7 +884,7 @@ function addImageToGallery(imageData) {
       <button class="action-btn" onclick="copyImageToClipboard('${imageData.id}')" title="Copy image to clipboard">Copy</button>
     </div>
   `;
-  
+
   item.addEventListener('click', () => goToPage(imageData.pageNum));
   imagesList.appendChild(item);
 }
@@ -868,9 +894,9 @@ function addTableToList(tableData) {
   if (tablesList.querySelector('.loading-message')) {
     tablesList.innerHTML = '';
   }
-  
-  const maxCols = Math.max(...tableData.rows.map(row => row.length));
-  
+
+  const maxCols = Math.max(...tableData.rows.map((row) => row.length));
+
   const item = document.createElement('div');
   item.className = 'content-item';
   item.innerHTML = `
@@ -885,42 +911,46 @@ function addTableToList(tableData) {
       <button class="action-btn" onclick="copyTableAsCSV('${tableData.id}')" title="Copy table as CSV">Copy CSV</button>
     </div>
   `;
-  
+
   item.addEventListener('click', () => goToPage(tableData.pageNum));
   tablesList.appendChild(item);
 }
 
 function copyImageToClipboard(imageId) {
-  const image = extractedImages.find(img => img.id === imageId);
+  const image = extractedImages.find((img) => img.id === imageId);
   if (image) {
     // Convert base64 to blob and copy to clipboard
     fetch(image.base64)
-      .then(res => res.blob())
-      .then(blob => {
-        navigator.clipboard.write([
-          new ClipboardItem({ [blob.type]: blob })
-        ]).then(() => {
-          console.log('Image copied to clipboard');
-          showStatusMessage('Image copied to clipboard! 📋');
-        }).catch(err => {
-          console.error('Failed to copy image:', err);
-          showStatusMessage('Failed to copy image ❌');
-        });
+      .then((res) => res.blob())
+      .then((blob) => {
+        navigator.clipboard
+          .write([new ClipboardItem({ [blob.type]: blob })])
+          .then(() => {
+            console.log('Image copied to clipboard');
+            showStatusMessage('Image copied to clipboard! 📋');
+          })
+          .catch((err) => {
+            console.error('Failed to copy image:', err);
+            showStatusMessage('Failed to copy image ❌');
+          });
       });
   }
 }
 
 function copyTableAsCSV(tableId) {
-  const table = extractedTables.find(tbl => tbl.id === tableId);
+  const table = extractedTables.find((tbl) => tbl.id === tableId);
   if (table) {
-    const csv = table.rows.map(row => row.join(',')).join('\n');
-    navigator.clipboard.writeText(csv).then(() => {
-      console.log('Table copied as CSV to clipboard');
-      showStatusMessage('Table copied as CSV! 📋');
-    }).catch(err => {
-      console.error('Failed to copy table:', err);
-      showStatusMessage('Failed to copy table ❌');
-    });
+    const csv = table.rows.map((row) => row.join(',')).join('\n');
+    navigator.clipboard
+      .writeText(csv)
+      .then(() => {
+        console.log('Table copied as CSV to clipboard');
+        showStatusMessage('Table copied as CSV! 📋');
+      })
+      .catch((err) => {
+        console.error('Failed to copy table:', err);
+        showStatusMessage('Failed to copy table ❌');
+      });
   }
 }
 
@@ -944,7 +974,7 @@ function showStatusMessage(message) {
   `;
   statusDiv.textContent = message;
   document.body.appendChild(statusDiv);
-  
+
   // Remove after 2 seconds
   setTimeout(() => {
     statusDiv.style.opacity = '0';
@@ -963,49 +993,102 @@ function goToPage(pageNum) {
   }
 }
 
+// Navigation functions
+function goToFirstPage() {
+  if (pdfDoc && pdfDoc.numPages > 0) {
+    currentPage = 1;
+    goToPage(currentPage);
+    updatePageInfo();
+    updateNavigationButtons();
+  }
+}
+
+function goToPreviousPage() {
+  if (pdfDoc && currentPage > 1) {
+    currentPage--;
+    goToPage(currentPage);
+    updatePageInfo();
+    updateNavigationButtons();
+  }
+}
+
+function goToNextPage() {
+  if (pdfDoc && currentPage < pdfDoc.numPages) {
+    currentPage++;
+    goToPage(currentPage);
+    updatePageInfo();
+    updateNavigationButtons();
+  }
+}
+
+function goToLastPage() {
+  if (pdfDoc && pdfDoc.numPages > 0) {
+    currentPage = pdfDoc.numPages;
+    goToPage(currentPage);
+    updatePageInfo();
+    updateNavigationButtons();
+  }
+}
+
+function updateNavigationButtons() {
+  if (!pdfDoc) return;
+
+  const firstPageBtn = document.getElementById('firstPageBtn');
+  const prevPageBtn = document.getElementById('prevPageBtn');
+  const nextPageBtn = document.getElementById('nextPageBtn');
+  const lastPageBtn = document.getElementById('lastPageBtn');
+
+  if (firstPageBtn) firstPageBtn.disabled = currentPage <= 1;
+  if (prevPageBtn) prevPageBtn.disabled = currentPage <= 1;
+  if (nextPageBtn) nextPageBtn.disabled = currentPage >= pdfDoc.numPages;
+  if (lastPageBtn) lastPageBtn.disabled = currentPage >= pdfDoc.numPages;
+}
+
 // ===== IMAGE EXTRACTION =====
 async function extractImagesFromPage(page, pageNum) {
   const images = [];
-  
+
   try {
     console.log(`Starting image extraction for page ${pageNum}`);
-    
+
     const operatorList = await page.getOperatorList();
     console.log(`Page ${pageNum} operator list:`, operatorList);
     console.log(`Found ${operatorList.fnArray.length} operations`);
-    
+
     let imageIndex = 0;
-    
+
     for (let i = 0; i < operatorList.fnArray.length; i++) {
       const fn = operatorList.fnArray[i];
       const args = operatorList.argsArray[i];
-      
+
       // Check all possible image operations
       // OPS constants from PDF.js: paintImageXObject = 85, paintJpegXObject = 86, paintImageMaskXObject = 87
       if (fn === 85 || fn === 86 || fn === 87) {
         console.log(`Found image operation: fn=${fn}, args=`, args);
         const objId = args[0];
-        
+
         try {
           // Wait for the object to be available with timeout
           const imgObj = await Promise.race([
             new Promise((resolve) => {
               page.objs.get(objId, resolve);
             }),
-            new Promise((_, reject) => 
+            new Promise((_, reject) =>
               setTimeout(() => reject(new Error('Image object timeout')), 2000)
-            )
+            ),
           ]);
-          
+
           if (imgObj && !imgObj.error) {
             let base64Image = null;
-            
+
             // Try different approaches to get image data
             if (imgObj.bitmap && imgObj.bitmap instanceof ImageBitmap) {
               console.log(`Found ImageBitmap, width: ${imgObj.width}, height: ${imgObj.height}`);
               base64Image = await convertImageBitmapToBase64(imgObj.bitmap);
             } else if (imgObj.data) {
-              console.log(`Found image data, kind: ${imgObj.kind}, width: ${imgObj.width}, height: ${imgObj.height}`);
+              console.log(
+                `Found image data, kind: ${imgObj.kind}, width: ${imgObj.width}, height: ${imgObj.height}`
+              );
               base64Image = await convertImageToBase64(imgObj);
             } else if (imgObj instanceof HTMLImageElement) {
               // If it's already an HTML image element
@@ -1014,7 +1097,7 @@ async function extractImagesFromPage(page, pageNum) {
               // If it's a canvas
               base64Image = imgObj.toDataURL('image/png');
             }
-            
+
             if (base64Image) {
               const extractedImage = {
                 id: `img_${pageNum}_${imageIndex}`,
@@ -1023,20 +1106,28 @@ async function extractImagesFromPage(page, pageNum) {
                 width: imgObj.width || 0,
                 height: imgObj.height || 0,
                 x: 0,
-                y: 0
+                y: 0,
               };
-              
+
               // Filter out very small images (likely icons, bullets, etc.)
               const minSize = 80; // Minimum width or height
               const minArea = 5000; // Minimum total area
               const area = extractedImage.width * extractedImage.height;
-              
-              if (extractedImage.width >= minSize || extractedImage.height >= minSize || area >= minArea) {
-                console.log(`Successfully extracted meaningful image ${imageIndex} from page ${pageNum} (${extractedImage.width}×${extractedImage.height})`);
+
+              if (
+                extractedImage.width >= minSize ||
+                extractedImage.height >= minSize ||
+                area >= minArea
+              ) {
+                console.log(
+                  `Successfully extracted meaningful image ${imageIndex} from page ${pageNum} (${extractedImage.width}×${extractedImage.height})`
+                );
                 images.push(extractedImage);
                 imageIndex++;
               } else {
-                console.log(`Skipped small image: ${extractedImage.width}×${extractedImage.height} (too small)`);
+                console.log(
+                  `Skipped small image: ${extractedImage.width}×${extractedImage.height} (too small)`
+                );
               }
             } else {
               console.warn(`Could not convert image object to base64:`, imgObj);
@@ -1054,7 +1145,7 @@ async function extractImagesFromPage(page, pageNum) {
         }
       }
     }
-    
+
     console.log(`Extracted ${images.length} images from page ${pageNum}`);
     return images;
   } catch (error) {
@@ -1068,15 +1159,15 @@ async function extractTablesFromPage(page, pageNum) {
   try {
     const textContent = await page.getTextContent();
     const viewport = page.getViewport({ scale: 1.0 });
-    
+
     // Convert text items to our format
     const textItems = textContent.items
-      .filter(item => item.str && item.str.trim().length > 0)
-      .map(item => {
+      .filter((item) => item.str && item.str.trim().length > 0)
+      .map((item) => {
         const transform = item.transform;
         const x = transform[4];
         const y = viewport.height - transform[5];
-        
+
         return {
           str: item.str.trim(),
           x,
@@ -1084,16 +1175,15 @@ async function extractTablesFromPage(page, pageNum) {
           width: item.width || 0,
           height: Math.abs(transform[3]) || 12,
           fontName: item.fontName || '',
-          fontSize: Math.abs(transform[3]) || 12
+          fontSize: Math.abs(transform[3]) || 12,
         };
       });
-    
+
     if (textItems.length < 6) return [];
-    
+
     // Simple table detection: group items into potential tables
     const tables = detectTablesFromTextItems(textItems, pageNum);
     return tables;
-    
   } catch (error) {
     console.error(`Error detecting tables from page ${pageNum}:`, error);
     return [];
@@ -1104,17 +1194,17 @@ async function extractTablesFromPage(page, pageNum) {
 async function convertImageToBase64(imgObj) {
   try {
     if (!imgObj.data) return null;
-    
+
     const { data, width, height, kind } = imgObj;
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
-    
+
     canvas.width = width;
     canvas.height = height;
-    
+
     let imageData;
-    
+
     // Handle different image formats
     switch (kind) {
       case 1: // GRAYSCALE_1BPP
@@ -1135,10 +1225,9 @@ async function convertImageToBase64(imgObj) {
         imageData = new ImageData(new Uint8ClampedArray(data), width, height);
         break;
     }
-    
+
     ctx.putImageData(imageData, 0, 0);
     return canvas.toDataURL('image/png');
-    
   } catch (error) {
     console.error('Error converting image to base64:', error);
     return null;
@@ -1151,10 +1240,10 @@ async function convertHTMLImageToBase64(imgElement) {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
-    
+
     canvas.width = imgElement.naturalWidth || imgElement.width;
     canvas.height = imgElement.naturalHeight || imgElement.height;
-    
+
     ctx.drawImage(imgElement, 0, 0);
     return canvas.toDataURL('image/png');
   } catch (error) {
@@ -1169,13 +1258,13 @@ async function convertImageBitmapToBase64(imageBitmap) {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
-    
+
     canvas.width = imageBitmap.width;
     canvas.height = imageBitmap.height;
-    
+
     // Draw the ImageBitmap to the canvas
     ctx.drawImage(imageBitmap, 0, 0);
-    
+
     return canvas.toDataURL('image/png');
   } catch (error) {
     console.error('Error converting ImageBitmap to base64:', error);
@@ -1186,36 +1275,36 @@ async function convertImageBitmapToBase64(imageBitmap) {
 // Helper function to convert RGB to RGBA
 function convertRGB24BPP(data, width, height) {
   const rgbaData = new Uint8ClampedArray(width * height * 4);
-  
+
   for (let i = 0; i < data.length; i += 3) {
     const rgbaIndex = (i / 3) * 4;
-    rgbaData[rgbaIndex] = data[i];     // R
+    rgbaData[rgbaIndex] = data[i]; // R
     rgbaData[rgbaIndex + 1] = data[i + 1]; // G
     rgbaData[rgbaIndex + 2] = data[i + 2]; // B
-    rgbaData[rgbaIndex + 3] = 255;     // A
+    rgbaData[rgbaIndex + 3] = 255; // A
   }
-  
+
   return new ImageData(rgbaData, width, height);
 }
 
 // Helper function to convert grayscale 1BPP to RGBA
 function convertGrayscale1BPP(data, width, height) {
   const rgbaData = new Uint8ClampedArray(width * height * 4);
-  
+
   for (let i = 0; i < data.length; i++) {
     const byte = data[i];
     for (let bit = 7; bit >= 0; bit--) {
       const pixelIndex = (i * 8 + (7 - bit)) * 4;
       if (pixelIndex >= rgbaData.length) break;
-      
+
       const value = (byte >> bit) & 1 ? 255 : 0;
-      rgbaData[pixelIndex] = value;     // R
+      rgbaData[pixelIndex] = value; // R
       rgbaData[pixelIndex + 1] = value; // G
       rgbaData[pixelIndex + 2] = value; // B
-      rgbaData[pixelIndex + 3] = 255;   // A
+      rgbaData[pixelIndex + 3] = 255; // A
     }
   }
-  
+
   return new ImageData(rgbaData, width, height);
 }
 
@@ -1231,12 +1320,12 @@ function detectTablesFromTextItems(textItems, pageNum) {
     }
     return a.y - b.y;
   });
-  
+
   // Group into rows
   const rows = [];
   let currentRow = [];
   let currentY = sortedItems[0]?.y || 0;
-  
+
   for (const item of sortedItems) {
     if (Math.abs(item.y - currentY) <= 10) {
       currentRow.push(item);
@@ -1251,15 +1340,15 @@ function detectTablesFromTextItems(textItems, pageNum) {
   if (currentRow.length > 0) {
     rows.push(currentRow);
   }
-  
+
   // Look for table patterns
   const tables = [];
   for (let i = 0; i < rows.length - 1; i++) {
     const firstRow = rows[i];
     if (firstRow.length < 2) continue;
-    
-    let tableRows = [firstRow];
-    
+
+    const tableRows = [firstRow];
+
     // Find consecutive rows with similar structure
     for (let j = i + 1; j < rows.length; j++) {
       const nextRow = rows[j];
@@ -1269,34 +1358,34 @@ function detectTablesFromTextItems(textItems, pageNum) {
         break;
       }
     }
-    
+
     if (tableRows.length >= 2) {
       const tableData = {
         id: `table_${pageNum}_${tables.length}`,
         pageNum,
-        rows: tableRows.map(row => row.map(item => item.str))
+        rows: tableRows.map((row) => row.map((item) => item.str)),
       };
       tables.push(tableData);
       i += tableRows.length - 1;
     }
   }
-  
+
   return tables;
 }
 
 // Helper function to check row alignment
 function rowsAreAligned(row1, row2) {
   if (Math.abs(row1.length - row2.length) > 1) return false;
-  
+
   const minLength = Math.min(row1.length, row2.length);
   let alignedColumns = 0;
-  
+
   for (let i = 0; i < minLength; i++) {
     if (Math.abs(row1[i].x - row2[i].x) <= 15) {
       alignedColumns++;
     }
   }
-  
+
   return alignedColumns >= minLength * 0.7;
 }
 
@@ -1306,20 +1395,20 @@ async function startAutomaticScanning() {
     console.error('PDF not loaded yet');
     return;
   }
-  
+
   // Show detecting message
   showDetectingMessages();
-  
+
   console.log(`Starting automatic scan of ${pdfDoc.numPages} pages`);
-  
+
   let successfulPages = 0;
   let failedPages = 0;
-  
+
   // Scan all pages with proper error handling
   for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
     // Update progress
     updateScanProgress(pageNum, pdfDoc.numPages);
-    
+
     try {
       await scanPageForContent(pageNum);
       successfulPages++;
@@ -1329,56 +1418,60 @@ async function startAutomaticScanning() {
       console.warn(`⚠️ Page ${pageNum}/${pdfDoc.numPages} failed:`, error.message);
       // Continue scanning despite errors
     }
-    
+
     // Add progressive delays and memory management
     if (pageNum % 5 === 0) {
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
       // Force garbage collection hint for large documents
       if (window.gc) window.gc();
     }
-    
+
     // Longer delay for very large documents
     if (pageNum % 10 === 0 && pdfDoc.numPages > 30) {
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise((resolve) => setTimeout(resolve, 200));
       console.log(`🔄 Memory management pause at page ${pageNum}`);
     }
   }
-  
+
   // Hide detecting messages
   hideDetectingMessages();
   console.log(`✅ Scanning completed: ${successfulPages} successful, ${failedPages} failed pages`);
-  
+
   const totalScanned = successfulPages + failedPages;
   if (totalScanned < pdfDoc.numPages) {
-    showStatusMessage(`⚠️ Scanning stopped at page ${totalScanned}/${pdfDoc.numPages}. Found ${extractedImages.length} images, ${extractedTables.length} tables.`);
+    showStatusMessage(
+      `⚠️ Scanning stopped at page ${totalScanned}/${pdfDoc.numPages}. Found ${extractedImages.length} images, ${extractedTables.length} tables.`
+    );
   } else if (failedPages > 0) {
-    showStatusMessage(`✅ Scanned ${successfulPages}/${pdfDoc.numPages} pages (${failedPages} had errors). Found ${extractedImages.length} images, ${extractedTables.length} tables.`);
+    showStatusMessage(
+      `✅ Scanned ${successfulPages}/${pdfDoc.numPages} pages (${failedPages} had errors). Found ${extractedImages.length} images, ${extractedTables.length} tables.`
+    );
   } else {
-    showStatusMessage(`✅ Scanned all ${pdfDoc.numPages} pages successfully! Found ${extractedImages.length} images, ${extractedTables.length} tables.`);
+    showStatusMessage(
+      `✅ Scanned all ${pdfDoc.numPages} pages successfully! Found ${extractedImages.length} images, ${extractedTables.length} tables.`
+    );
   }
 }
 
 async function scanPageForContent(pageNum) {
   let page = null;
-  
+
   try {
     // Get page with timeout
     page = await Promise.race([
       pdfDoc.getPage(pageNum),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Page load timeout')), 5000)
-      )
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Page load timeout')), 5000)),
     ]);
-    
+
     let imageCount = 0;
     let tableCount = 0;
-    
+
     // Extract images from this page with error isolation
     try {
       const imageData = await extractImagesFromPage(page, pageNum);
       if (imageData.length > 0) {
-        imageData.forEach(img => {
-          if (!extractedImages.find(existing => existing.id === img.id)) {
+        imageData.forEach((img) => {
+          if (!extractedImages.find((existing) => existing.id === img.id)) {
             extractedImages.push(img);
             addImageToGallery(img);
             imageCount++;
@@ -1388,13 +1481,13 @@ async function scanPageForContent(pageNum) {
     } catch (imageError) {
       console.warn(`Image extraction failed for page ${pageNum}:`, imageError.message);
     }
-    
+
     // Extract tables from this page with error isolation
     try {
       const tableData = await extractTablesFromPage(page, pageNum);
       if (tableData.length > 0) {
-        tableData.forEach(table => {
-          if (!extractedTables.find(existing => existing.id === table.id)) {
+        tableData.forEach((table) => {
+          if (!extractedTables.find((existing) => existing.id === table.id)) {
             extractedTables.push(table);
             addTableToList(table);
             tableCount++;
@@ -1404,9 +1497,8 @@ async function scanPageForContent(pageNum) {
     } catch (tableError) {
       console.warn(`Table extraction failed for page ${pageNum}:`, tableError.message);
     }
-    
+
     console.log(`Page ${pageNum}: Found ${imageCount} images, ${tableCount} tables`);
-    
   } catch (error) {
     console.error(`Failed to load page ${pageNum}:`, error.message);
     throw error; // Re-throw to be caught by main loop
@@ -1419,15 +1511,17 @@ async function scanPageForContent(pageNum) {
 function showDetectingMessages() {
   const imagesList = document.getElementById('imagesList');
   const tablesList = document.getElementById('tablesList');
-  
-  imagesList.innerHTML = '<div class="loading-message" id="imageProgress">🔍 Detecting images... (0/0 pages)</div>';
-  tablesList.innerHTML = '<div class="loading-message" id="tableProgress">🔍 Detecting tables... (0/0 pages)</div>';
+
+  imagesList.innerHTML =
+    '<div class="loading-message" id="imageProgress">🔍 Detecting images... (0/0 pages)</div>';
+  tablesList.innerHTML =
+    '<div class="loading-message" id="tableProgress">🔍 Detecting tables... (0/0 pages)</div>';
 }
 
 function updateScanProgress(currentPage, totalPages) {
   const imageProgress = document.getElementById('imageProgress');
   const tableProgress = document.getElementById('tableProgress');
-  
+
   if (imageProgress) {
     imageProgress.textContent = `🔍 Detecting images... (${currentPage}/${totalPages} pages)`;
   }
@@ -1439,14 +1533,14 @@ function updateScanProgress(currentPage, totalPages) {
 function hideDetectingMessages() {
   const imagesList = document.getElementById('imagesList');
   const tablesList = document.getElementById('tablesList');
-  
+
   // Only hide if still showing detecting message
   if (imagesList.querySelector('.loading-message')?.textContent.includes('Detecting')) {
     if (extractedImages.length === 0) {
       imagesList.innerHTML = '<div class="loading-message">No images found in this PDF</div>';
     }
   }
-  
+
   if (tablesList.querySelector('.loading-message')?.textContent.includes('Detecting')) {
     if (extractedTables.length === 0) {
       tablesList.innerHTML = '<div class="loading-message">No tables found in this PDF</div>';
@@ -1457,12 +1551,14 @@ function hideDetectingMessages() {
 function clearExtractedContent() {
   extractedImages = [];
   extractedTables = [];
-  
+
   const imagesList = document.getElementById('imagesList');
   const tablesList = document.getElementById('tablesList');
-  
-  imagesList.innerHTML = '<div class="loading-message">Click the extractor button to scan for images</div>';
-  tablesList.innerHTML = '<div class="loading-message">Click the extractor button to scan for tables</div>';
+
+  imagesList.innerHTML =
+    '<div class="loading-message">Click the extractor button to scan for images</div>';
+  tablesList.innerHTML =
+    '<div class="loading-message">Click the extractor button to scan for tables</div>';
 }
 
 function initializeContentExtractor() {
@@ -1486,5 +1582,9 @@ window.openInBrowser = openInBrowser;
 window.copyImageToClipboard = copyImageToClipboard;
 window.copyTableAsCSV = copyTableAsCSV;
 window.goToPage = goToPage;
+window.goToFirstPage = goToFirstPage;
+window.goToPreviousPage = goToPreviousPage;
+window.goToNextPage = goToNextPage;
+window.goToLastPage = goToLastPage;
 
 console.log('Webview script loaded and ready for messages');

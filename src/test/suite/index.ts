@@ -106,11 +106,11 @@ export function run(): Promise<void> {
         // Run both unit and integration tests
         const unitDir = path.join(testsRoot, 'suite', 'unit');
         const integrationDir = path.join(testsRoot, 'suite', 'integration');
-        
+
         if (fs.existsSync(unitDir)) {
           files = files.concat(findTestFiles(unitDir));
         }
-        
+
         if (fs.existsSync(integrationDir)) {
           files = files.concat(findTestFiles(integrationDir));
         }

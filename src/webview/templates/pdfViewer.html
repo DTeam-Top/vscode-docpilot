@@ -217,6 +217,13 @@
             align-items: center;
             gap: 10px;
         }
+        .navigation-controls {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            padding-right: 10px;
+            border-right: 1px solid var(--vscode-panel-border);
+        }
         button {
             background-color: transparent;
             color: var(--vscode-foreground);
@@ -335,6 +342,20 @@
             <span class="page-info" id="pageInfo">Loading...</span>
         </div>
         <div class="controls">
+            <div class="navigation-controls">
+                <button class="icon-button" onclick="goToFirstPage()" title="First Page" id="firstPageBtn">
+                    <img src="{{assetUri}}/first.svg" alt="First Page" width="16" height="16">
+                </button>
+                <button class="icon-button" onclick="goToPreviousPage()" title="Previous Page" id="prevPageBtn">
+                    <img src="{{assetUri}}/previous.svg" alt="Previous Page" width="16" height="16">
+                </button>
+                <button class="icon-button" onclick="goToNextPage()" title="Next Page" id="nextPageBtn">
+                    <img src="{{assetUri}}/next.svg" alt="Next Page" width="16" height="16">
+                </button>
+                <button class="icon-button" onclick="goToLastPage()" title="Last Page" id="lastPageBtn">
+                    <img src="{{assetUri}}/last.svg" alt="Last Page" width="16" height="16">
+                </button>
+            </div>
             <button class="icon-button" onclick="fitToWidth()" title="Fit Width">
                 <img src="{{assetUri}}/fit-width.svg" alt="Fit Width" width="16" height="16">
             </button>
@@ -404,6 +425,7 @@
     
     <script>
         // Configuration from template
+        // biome-ignore lint: template variables cause linting issues
         const PDF_CONFIG = {
             pdfUri: '{{pdfUri}}',
             isUrl: {{isUrl}},
