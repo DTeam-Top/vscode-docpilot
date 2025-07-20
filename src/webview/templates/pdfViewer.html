@@ -211,7 +211,16 @@
             filter: invert(1);
         }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script type="module">
+        // Import PDF.js as ES module
+        import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.3.93/pdf.min.mjs';
+        
+        // Configure PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.3.93/pdf.worker.min.mjs';
+        
+        // Make pdfjsLib available globally
+        window.pdfjsLib = pdfjsLib;
+    </script>
 </head>
 <body class="{{theme}}">
     <div class="toolbar">
@@ -270,6 +279,6 @@
             fileName: '{{fileName}}'
         };
     </script>
-    <script src="{{scriptUri}}"></script>
+    <script type="module" src="{{scriptUri}}"></script>
 </body>
 </html>

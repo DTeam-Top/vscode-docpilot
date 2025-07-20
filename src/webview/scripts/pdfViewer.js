@@ -1,5 +1,23 @@
 // Global variables provided by VS Code webview and PDF.js
-/* global acquireVsCodeApi, pdfjsLib, PDF_CONFIG */
+/* global acquireVsCodeApi, PDF_CONFIG */
+
+// Wait for PDF.js to be available
+function waitForPdfJs() {
+    return new Promise((resolve) => {
+        if (window.pdfjsLib) {
+            resolve();
+        } else {
+            const checkPdfJs = () => {
+                if (window.pdfjsLib) {
+                    resolve();
+                } else {
+                    setTimeout(checkPdfJs, 10);
+                }
+            };
+            checkPdfJs();
+        }
+    });
+}
 
 // Make vscode API available first
 const vscode = acquireVsCodeApi();
@@ -23,65 +41,73 @@ const MAX_TEXT_DIVS_PER_PAGE = 50000;
 const renderTimes = [];
 const PERFORMANCE_THRESHOLD = 500; // 500ms
 
-// Load PDF
-const loadingTask = pdfjsLib.getDocument(PDF_CONFIG.pdfUri);
-loadingTask.onProgress = (progress) => {
-  if (progress.total > 0) {
-    const percent = (progress.loaded / progress.total) * 100;
-    progressFill.style.width = `${percent}%`;
-  }
-};
-
-loadingTask.promise
-  .then((pdf) => {
-    pdfDoc = pdf;
-    pagesContainer.innerHTML = '<div class="pdf-pages" id="pdfPages"></div>';
-    updatePageInfo();
-    initializeTextSelection();
-    renderAllPages();
-
-    // Signal that PDF is ready for text extraction
-    console.log('PDF loaded successfully, ready for text extraction');
-  })
-  .catch((error) => {
-    console.error('Error loading PDF:', error);
-
-    // Determine error type and show appropriate message
-    let errorMessage = 'Failed to load PDF. The file may be corrupted or inaccessible.';
-    let isCorsError = false;
-
-    if (error.message?.includes('CORS') || error.message?.includes('fetch')) {
-      errorMessage = 'Failed to load PDF due to cross-origin restrictions.';
-      isCorsError = true;
-    } else if (error.message?.includes('network') || error.message?.includes('NetworkError')) {
-      errorMessage = 'Failed to load PDF due to network issues.';
-    } else if (error.message?.includes('InvalidPDFException')) {
-      errorMessage = 'The file is not a valid PDF or is corrupted.';
+// Initialize PDF loading after PDF.js is available
+async function initializePdf() {
+  await waitForPdfJs();
+  
+  // Load PDF
+  const loadingTask = window.pdfjsLib.getDocument(PDF_CONFIG.pdfUri);
+  loadingTask.onProgress = (progress) => {
+    if (progress.total > 0) {
+      const percent = (progress.loaded / progress.total) * 100;
+      progressFill.style.width = `${percent}%`;
     }
+  };
 
-    let errorHtml = `<div class="error">${errorMessage}</div>`;
+  loadingTask.promise
+    .then((pdf) => {
+      pdfDoc = pdf;
+      pagesContainer.innerHTML = '<div class="pdf-pages" id="pdfPages"></div>';
+      updatePageInfo();
+      initializeTextSelection();
+      renderAllPages();
 
-    // Add specific suggestions for CORS errors on remote PDFs
-    if (isCorsError && PDF_CONFIG.isUrl) {
-      errorHtml += `
-        <div class="error-suggestions">
-          <p>This PDF cannot be loaded directly due to server restrictions.</p>
-          <button onclick="downloadPdfFallback()" class="suggestion-btn">Download PDF</button>
-          <button onclick="openInBrowser()" class="suggestion-btn">Open in Browser</button>
-        </div>
-      `;
-    }
+      // Signal that PDF is ready for text extraction
+      console.log('PDF loaded successfully, ready for text extraction');
+    })
+    .catch((error) => {
+      console.error('Error loading PDF:', error);
 
-    pagesContainer.innerHTML = errorHtml;
+      // Determine error type and show appropriate message
+      let errorMessage = 'Failed to load PDF. The file may be corrupted or inaccessible.';
+      let isCorsError = false;
 
-    // Notify extension of PDF loading error
-    vscode.postMessage({
-      type: 'textExtractionError',
-      error: `Failed to load PDF: ${error.message}`,
-      isCorsError: isCorsError,
-      isUrl: PDF_CONFIG.isUrl,
+      if (error.message?.includes('CORS') || error.message?.includes('fetch')) {
+        errorMessage = 'Failed to load PDF due to cross-origin restrictions.';
+        isCorsError = true;
+      } else if (error.message?.includes('network') || error.message?.includes('NetworkError')) {
+        errorMessage = 'Failed to load PDF due to network issues.';
+      } else if (error.message?.includes('InvalidPDFException')) {
+        errorMessage = 'The file is not a valid PDF or is corrupted.';
+      }
+
+      let errorHtml = `<div class="error">${errorMessage}</div>`;
+
+      // Add specific suggestions for CORS errors on remote PDFs
+      if (isCorsError && PDF_CONFIG.isUrl) {
+        errorHtml += `
+          <div class="error-suggestions">
+            <p>This PDF cannot be loaded directly due to server restrictions.</p>
+            <button onclick="downloadPdfFallback()" class="suggestion-btn">Download PDF</button>
+            <button onclick="openInBrowser()" class="suggestion-btn">Open in Browser</button>
+          </div>
+        `;
+      }
+
+      pagesContainer.innerHTML = errorHtml;
+
+      // Notify extension of PDF loading error
+      vscode.postMessage({
+        type: 'textExtractionError',
+        error: `Failed to load PDF: ${error.message}`,
+        isCorsError: isCorsError,
+        isUrl: PDF_CONFIG.isUrl,
+      });
     });
-  });
+}
+
+// Start PDF initialization
+initializePdf();
 
 function renderAllPages() {
   const _pdfPages = document.getElementById('pdfPages');
@@ -254,7 +280,6 @@ function fitToWidth() {
   }
 }
 
-// biome-ignore lint/correctness/noUnusedVariables: Used by HTML onclick
 function fitToPage() {
   const container = pagesContainer;
   const containerHeight = container.clientHeight - 40;
@@ -318,7 +343,6 @@ function initializeTextSelection() {
   }
 }
 
-// biome-ignore lint/correctness/noUnusedVariables: Used by HTML onclick
 function toggleTextSelection() {
   console.log('Text selection button clicked - function called');
   textSelectionEnabled = !textSelectionEnabled;
@@ -522,7 +546,6 @@ function monitorTextLayerPerformance(renderTime) {
   }
 }
 
-// biome-ignore lint/correctness/noUnusedVariables: Used by HTML onclick
 function toggleDebug() {
   debugMode = !debugMode;
 
@@ -628,7 +651,6 @@ window.addEventListener('message', async (event) => {
 });
 
 // Summarize document function
-// biome-ignore lint/correctness/noUnusedVariables: Used by HTML onclick
 async function summarizeDocument() {
   console.log('Summarize button clicked - function called');
   const summarizeBtn = document.getElementById('summarizeBtn');
@@ -668,7 +690,6 @@ async function summarizeDocument() {
   }
 }
 
-// biome-ignore lint/correctness/noUnusedVariables: Used by HTML onclick
 async function exportText() {
   console.log('Export button clicked - function called');
   const exportBtn = document.getElementById('exportBtn');
@@ -758,7 +779,6 @@ window.addEventListener('message', (event) => {
 });
 
 // Fallback functions for CORS-blocked PDFs
-// biome-ignore lint/correctness/noUnusedVariables: Used by HTML onclick
 function downloadPdfFallback() {
   console.log('Download PDF fallback requested');
   vscode.postMessage({
@@ -767,7 +787,6 @@ function downloadPdfFallback() {
   });
 }
 
-// biome-ignore lint/correctness/noUnusedVariables: Used by HTML onclick
 function openInBrowser() {
   console.log('Open in browser requested');
   vscode.postMessage({
@@ -775,5 +794,18 @@ function openInBrowser() {
     url: PDF_CONFIG.pdfUri,
   });
 }
+
+// Expose functions globally for HTML onclick handlers
+window.fitToWidth = fitToWidth;
+window.fitToPage = fitToPage;
+window.summarizeDocument = summarizeDocument;
+window.exportText = exportText;
+window.toggleTextSelection = toggleTextSelection;
+window.toggleDebug = toggleDebug;
+window.zoomIn = zoomIn;
+window.zoomOut = zoomOut;
+window.setZoom = setZoom;
+window.downloadPdfFallback = downloadPdfFallback;
+window.openInBrowser = openInBrowser;
 
 console.log('Webview script loaded and ready for messages');
