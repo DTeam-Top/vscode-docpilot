@@ -809,8 +809,12 @@ function toggleExtractor() {
   if (extractorEnabled) {
     sidebar.classList.add('open');
     initializeTabSwitching();
+    // Start automatic scanning when extractor is opened
+    startAutomaticScanning();
   } else {
     sidebar.classList.remove('open');
+    // Clear results when closed
+    clearExtractedContent();
   }
 }
 
@@ -833,6 +837,7 @@ function initializeTabSwitching() {
   });
 }
 
+// ===== UI FUNCTIONS =====
 function addImageToGallery(imageData) {
   const imagesList = document.getElementById('imagesList');
   if (imagesList.querySelector('.loading-message')) {
@@ -846,7 +851,7 @@ function addImageToGallery(imageData) {
       <img src="${imageData.base64}" style="max-width: 100%; max-height: 100%; object-fit: contain;" title="Click to go to page ${imageData.pageNum}">
     </div>
     <div class="content-info">
-      <div>Page ${imageData.pageNum}</div>
+      <div>Page ${imageData.pageNum} 🖼️</div>
       <div style="color: var(--vscode-descriptionForeground);">${imageData.width} × ${imageData.height}</div>
     </div>
     <div class="content-actions">
@@ -960,58 +965,7 @@ function goToPage(pageNum) {
   }
 }
 
-// Add click detection for PDF pages to extract content
-function setupContentClickDetection() {
-  document.addEventListener('click', async (event) => {
-    if (!extractorEnabled) return;
-    
-    const pageElement = event.target.closest('.pdf-page');
-    if (!pageElement) return;
-    
-    const pageNum = parseInt(pageElement.id.replace('page-', ''));
-    const rect = pageElement.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    
-    // Simple detection - in a real implementation, you'd need to analyze the PDF content
-    // For now, we'll simulate finding content at the clicked position
-    await detectContentAtPosition(pageNum, x, y);
-  });
-}
-
-async function detectContentAtPosition(pageNum, x, y) {
-  try {
-    // This is a simplified version - actual implementation would analyze PDF content
-    // For demo purposes, we'll extract images and tables from the page
-    const page = await pdfDoc.getPage(pageNum);
-    
-    // Extract images (simplified)
-    const imageData = await extractImagesFromPage(page, pageNum);
-    if (imageData.length > 0) {
-      imageData.forEach(img => {
-        if (!extractedImages.find(existing => existing.id === img.id)) {
-          extractedImages.push(img);
-          addImageToGallery(img);
-        }
-      });
-    }
-    
-    // Extract tables (simplified)
-    const tableData = await extractTablesFromPage(page, pageNum);
-    if (tableData.length > 0) {
-      tableData.forEach(table => {
-        if (!extractedTables.find(existing => existing.id === table.id)) {
-          extractedTables.push(table);
-          addTableToList(table);
-        }
-      });
-    }
-  } catch (error) {
-    console.error('Error detecting content:', error);
-  }
-}
-
-// Image extraction using PDF.js (based on ImageExtractor.ts logic)
+// ===== IMAGE EXTRACTION =====
 async function extractImagesFromPage(page, pageNum) {
   const images = [];
   
@@ -1072,9 +1026,18 @@ async function extractImagesFromPage(page, pageNum) {
                 y: 0
               };
               
-              console.log(`Successfully extracted image ${imageIndex} from page ${pageNum}`);
-              images.push(extractedImage);
-              imageIndex++;
+              // Filter out very small images (likely icons, bullets, etc.)
+              const minSize = 80; // Minimum width or height
+              const minArea = 5000; // Minimum total area
+              const area = extractedImage.width * extractedImage.height;
+              
+              if (extractedImage.width >= minSize || extractedImage.height >= minSize || area >= minArea) {
+                console.log(`Successfully extracted meaningful image ${imageIndex} from page ${pageNum} (${extractedImage.width}×${extractedImage.height})`);
+                images.push(extractedImage);
+                imageIndex++;
+              } else {
+                console.log(`Skipped small image: ${extractedImage.width}×${extractedImage.height} (too small)`);
+              }
             } else {
               console.warn(`Could not convert image object to base64:`, imgObj);
             }
@@ -1093,7 +1056,7 @@ async function extractImagesFromPage(page, pageNum) {
   }
 }
 
-// Table detection using text layout analysis (based on TableDetector.ts logic)
+// ===== TABLE DETECTION =====
 async function extractTablesFromPage(page, pageNum) {
   try {
     const textContent = await page.getTextContent();
@@ -1249,6 +1212,8 @@ function convertGrayscale1BPP(data, width, height) {
   return new ImageData(rgbaData, width, height);
 }
 
+// ===== HELPER FUNCTIONS =====
+
 // Helper function for table detection
 function detectTablesFromTextItems(textItems, pageNum) {
   // Sort by Y then X
@@ -1328,11 +1293,106 @@ function rowsAreAligned(row1, row2) {
   return alignedColumns >= minLength * 0.7;
 }
 
-// Initialize content detection when PDF is loaded
-function initializeContentExtractor() {
-  setupContentClickDetection();
+// ===== AUTOMATIC CONTENT SCANNING =====
+async function startAutomaticScanning() {
+  if (!pdfDoc) {
+    console.error('PDF not loaded yet');
+    return;
+  }
+  
+  // Show detecting message
+  showDetectingMessages();
+  
+  console.log(`Starting automatic scan of ${pdfDoc.numPages} pages`);
+  
+  // Scan all pages
+  for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+    try {
+      await scanPageForContent(pageNum);
+    } catch (error) {
+      console.error(`Error scanning page ${pageNum}:`, error);
+    }
+  }
+  
+  // Hide detecting messages
+  hideDetectingMessages();
+  console.log('Automatic scanning completed');
 }
 
+async function scanPageForContent(pageNum) {
+  try {
+    const page = await pdfDoc.getPage(pageNum);
+    
+    // Extract images from this page
+    const imageData = await extractImagesFromPage(page, pageNum);
+    if (imageData.length > 0) {
+      imageData.forEach(img => {
+        if (!extractedImages.find(existing => existing.id === img.id)) {
+          extractedImages.push(img);
+          addImageToGallery(img);
+        }
+      });
+    }
+    
+    // Extract tables from this page
+    const tableData = await extractTablesFromPage(page, pageNum);
+    if (tableData.length > 0) {
+      tableData.forEach(table => {
+        if (!extractedTables.find(existing => existing.id === table.id)) {
+          extractedTables.push(table);
+          addTableToList(table);
+        }
+      });
+    }
+    
+    console.log(`Page ${pageNum}: Found ${imageData.length} images, ${tableData.length} tables`);
+  } catch (error) {
+    console.error(`Error scanning page ${pageNum}:`, error);
+  }
+}
+
+function showDetectingMessages() {
+  const imagesList = document.getElementById('imagesList');
+  const tablesList = document.getElementById('tablesList');
+  
+  imagesList.innerHTML = '<div class="loading-message">🔍 Detecting images...</div>';
+  tablesList.innerHTML = '<div class="loading-message">🔍 Detecting tables...</div>';
+}
+
+function hideDetectingMessages() {
+  const imagesList = document.getElementById('imagesList');
+  const tablesList = document.getElementById('tablesList');
+  
+  // Only hide if still showing detecting message
+  if (imagesList.querySelector('.loading-message')?.textContent.includes('Detecting')) {
+    if (extractedImages.length === 0) {
+      imagesList.innerHTML = '<div class="loading-message">No images found in this PDF</div>';
+    }
+  }
+  
+  if (tablesList.querySelector('.loading-message')?.textContent.includes('Detecting')) {
+    if (extractedTables.length === 0) {
+      tablesList.innerHTML = '<div class="loading-message">No tables found in this PDF</div>';
+    }
+  }
+}
+
+function clearExtractedContent() {
+  extractedImages = [];
+  extractedTables = [];
+  
+  const imagesList = document.getElementById('imagesList');
+  const tablesList = document.getElementById('tablesList');
+  
+  imagesList.innerHTML = '<div class="loading-message">Click the extractor button to scan for images</div>';
+  tablesList.innerHTML = '<div class="loading-message">Click the extractor button to scan for tables</div>';
+}
+
+function initializeContentExtractor() {
+  console.log('Content extractor initialized');
+}
+
+// ===== GLOBAL FUNCTION EXPORTS =====
 // Expose functions globally for HTML onclick handlers
 window.fitToWidth = fitToWidth;
 window.fitToPage = fitToPage;
