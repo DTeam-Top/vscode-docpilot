@@ -856,7 +856,6 @@ function addImageToGallery(imageData) {
     </div>
     <div class="content-actions">
       <button class="action-btn" onclick="copyImageToClipboard('${imageData.id}')" title="Copy image to clipboard">Copy</button>
-      <button class="action-btn" onclick="goToPage(${imageData.pageNum})" title="Navigate to this page">Go to Page</button>
     </div>
   `;
   
@@ -884,7 +883,6 @@ function addTableToList(tableData) {
     </div>
     <div class="content-actions">
       <button class="action-btn" onclick="copyTableAsCSV('${tableData.id}')" title="Copy table as CSV">Copy CSV</button>
-      <button class="action-btn" onclick="goToPage(${tableData.pageNum})" title="Navigate to this page">Go to Page</button>
     </div>
   `;
   
@@ -989,15 +987,17 @@ async function extractImagesFromPage(page, pageNum) {
         const objId = args[0];
         
         try {
-          // Wait for the object to be available
-          await new Promise((resolve) => {
-            page.objs.get(objId, resolve);
-          });
+          // Wait for the object to be available with timeout
+          const imgObj = await Promise.race([
+            new Promise((resolve) => {
+              page.objs.get(objId, resolve);
+            }),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Image object timeout')), 2000)
+            )
+          ]);
           
-          const imgObj = page.objs.get(objId);
-          console.log(`Image object ${objId}:`, imgObj);
-          
-          if (imgObj) {
+          if (imgObj && !imgObj.error) {
             let base64Image = null;
             
             // Try different approaches to get image data
@@ -1041,9 +1041,16 @@ async function extractImagesFromPage(page, pageNum) {
             } else {
               console.warn(`Could not convert image object to base64:`, imgObj);
             }
+          } else {
+            console.warn(`Image object ${objId} failed to load or has errors`);
           }
         } catch (objError) {
-          console.warn(`Failed to extract image object ${objId}:`, objError);
+          // Handle JPEG 2000 and other decode errors gracefully
+          if (objError.message.includes('JpxError') || objError.message.includes('OpenJPEG')) {
+            console.warn(`Skipping JPEG 2000 image ${objId} (format not supported)`);
+          } else {
+            console.warn(`Failed to extract image object ${objId}:`, objError.message);
+          }
         }
       }
     }
@@ -1305,49 +1312,107 @@ async function startAutomaticScanning() {
   
   console.log(`Starting automatic scan of ${pdfDoc.numPages} pages`);
   
-  // Scan all pages
+  let successfulPages = 0;
+  let failedPages = 0;
+  
+  // Scan all pages with proper error handling
   for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+    // Update progress
+    updateScanProgress(pageNum, pdfDoc.numPages);
+    
     try {
       await scanPageForContent(pageNum);
+      successfulPages++;
+      console.log(`✅ Page ${pageNum}/${pdfDoc.numPages} scanned successfully`);
     } catch (error) {
-      console.error(`Error scanning page ${pageNum}:`, error);
+      failedPages++;
+      console.warn(`⚠️ Page ${pageNum}/${pdfDoc.numPages} failed:`, error.message);
+      // Continue scanning despite errors
+    }
+    
+    // Add progressive delays and memory management
+    if (pageNum % 5 === 0) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      // Force garbage collection hint for large documents
+      if (window.gc) window.gc();
+    }
+    
+    // Longer delay for very large documents
+    if (pageNum % 10 === 0 && pdfDoc.numPages > 30) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+      console.log(`🔄 Memory management pause at page ${pageNum}`);
     }
   }
   
   // Hide detecting messages
   hideDetectingMessages();
-  console.log('Automatic scanning completed');
+  console.log(`✅ Scanning completed: ${successfulPages} successful, ${failedPages} failed pages`);
+  
+  const totalScanned = successfulPages + failedPages;
+  if (totalScanned < pdfDoc.numPages) {
+    showStatusMessage(`⚠️ Scanning stopped at page ${totalScanned}/${pdfDoc.numPages}. Found ${extractedImages.length} images, ${extractedTables.length} tables.`);
+  } else if (failedPages > 0) {
+    showStatusMessage(`✅ Scanned ${successfulPages}/${pdfDoc.numPages} pages (${failedPages} had errors). Found ${extractedImages.length} images, ${extractedTables.length} tables.`);
+  } else {
+    showStatusMessage(`✅ Scanned all ${pdfDoc.numPages} pages successfully! Found ${extractedImages.length} images, ${extractedTables.length} tables.`);
+  }
 }
 
 async function scanPageForContent(pageNum) {
+  let page = null;
+  
   try {
-    const page = await pdfDoc.getPage(pageNum);
+    // Get page with timeout
+    page = await Promise.race([
+      pdfDoc.getPage(pageNum),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Page load timeout')), 5000)
+      )
+    ]);
     
-    // Extract images from this page
-    const imageData = await extractImagesFromPage(page, pageNum);
-    if (imageData.length > 0) {
-      imageData.forEach(img => {
-        if (!extractedImages.find(existing => existing.id === img.id)) {
-          extractedImages.push(img);
-          addImageToGallery(img);
-        }
-      });
+    let imageCount = 0;
+    let tableCount = 0;
+    
+    // Extract images from this page with error isolation
+    try {
+      const imageData = await extractImagesFromPage(page, pageNum);
+      if (imageData.length > 0) {
+        imageData.forEach(img => {
+          if (!extractedImages.find(existing => existing.id === img.id)) {
+            extractedImages.push(img);
+            addImageToGallery(img);
+            imageCount++;
+          }
+        });
+      }
+    } catch (imageError) {
+      console.warn(`Image extraction failed for page ${pageNum}:`, imageError.message);
     }
     
-    // Extract tables from this page
-    const tableData = await extractTablesFromPage(page, pageNum);
-    if (tableData.length > 0) {
-      tableData.forEach(table => {
-        if (!extractedTables.find(existing => existing.id === table.id)) {
-          extractedTables.push(table);
-          addTableToList(table);
-        }
-      });
+    // Extract tables from this page with error isolation
+    try {
+      const tableData = await extractTablesFromPage(page, pageNum);
+      if (tableData.length > 0) {
+        tableData.forEach(table => {
+          if (!extractedTables.find(existing => existing.id === table.id)) {
+            extractedTables.push(table);
+            addTableToList(table);
+            tableCount++;
+          }
+        });
+      }
+    } catch (tableError) {
+      console.warn(`Table extraction failed for page ${pageNum}:`, tableError.message);
     }
     
-    console.log(`Page ${pageNum}: Found ${imageData.length} images, ${tableData.length} tables`);
+    console.log(`Page ${pageNum}: Found ${imageCount} images, ${tableCount} tables`);
+    
   } catch (error) {
-    console.error(`Error scanning page ${pageNum}:`, error);
+    console.error(`Failed to load page ${pageNum}:`, error.message);
+    throw error; // Re-throw to be caught by main loop
+  } finally {
+    // Clean up page reference
+    page = null;
   }
 }
 
@@ -1355,8 +1420,20 @@ function showDetectingMessages() {
   const imagesList = document.getElementById('imagesList');
   const tablesList = document.getElementById('tablesList');
   
-  imagesList.innerHTML = '<div class="loading-message">🔍 Detecting images...</div>';
-  tablesList.innerHTML = '<div class="loading-message">🔍 Detecting tables...</div>';
+  imagesList.innerHTML = '<div class="loading-message" id="imageProgress">🔍 Detecting images... (0/0 pages)</div>';
+  tablesList.innerHTML = '<div class="loading-message" id="tableProgress">🔍 Detecting tables... (0/0 pages)</div>';
+}
+
+function updateScanProgress(currentPage, totalPages) {
+  const imageProgress = document.getElementById('imageProgress');
+  const tableProgress = document.getElementById('tableProgress');
+  
+  if (imageProgress) {
+    imageProgress.textContent = `🔍 Detecting images... (${currentPage}/${totalPages} pages)`;
+  }
+  if (tableProgress) {
+    tableProgress.textContent = `🔍 Detecting tables... (${currentPage}/${totalPages} pages)`;
+  }
 }
 
 function hideDetectingMessages() {
