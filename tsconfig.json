@@ -8,11 +8,14 @@
     ],
     "sourceMap": true,
     "rootDir": "src",
-    "strict": true
+    "strict": true,
+    "types": ["vscode", "node", "mocha", "chai", "sinon", "sinon-chai"]
   },
   "exclude": [
     "node_modules",
     ".vscode-test",
+    "playwright.config.ts",
+    "src/test/e2e/**/*",
     "src/test/**/*.disabled/**/*"
   ]
 }

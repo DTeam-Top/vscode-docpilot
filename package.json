@@ -82,10 +82,13 @@
     "test": "npm run compile-tests && node out/test/runTest.js",
     "test:unit": "npm run compile-tests && node out/test/runTest.js --suite unit",
     "test:integration": "npm run compile-tests && node out/test/runTest.js --suite integration",
+    "test:e2e": "npm run compile-e2e && npx playwright test",
+    "compile-e2e": "tsc -p ./tsconfig.e2e.json --outDir out",
     "compile-tests": "rm -rf out && tsc -p ./ --outDir out && npm run copy-assets"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.1.1",
+    "@playwright/test": "^1.54.1",
     "@types/chai": "^4.3.11",
     "@types/mocha": "^10.0.6",
     "@types/node": "16.x",

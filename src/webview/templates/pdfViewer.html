@@ -356,10 +356,10 @@
                     <img src="{{assetUri}}/last.svg" alt="Last Page" width="16" height="16">
                 </button>
             </div>
-            <button class="icon-button" onclick="fitToWidth()" title="Fit Width">
+            <button class="icon-button" onclick="fitToWidth()" title="Fit Width" id="fitWidthBtn">
                 <img src="{{assetUri}}/fit-width.svg" alt="Fit Width" width="16" height="16">
             </button>
-            <button class="icon-button" onclick="fitToPage()" title="Fit Page">
+            <button class="icon-button" onclick="fitToPage()" title="Fit Page" id="fitPageBtn">
                 <img src="{{assetUri}}/fit-page.svg" alt="Fit Page" width="16" height="16">
             </button>
             <button id="summarizeBtn" class="icon-button" onclick="summarizeDocument()" title="Summarize this PDF using AI">
@@ -378,11 +378,11 @@
                 <img id="debugIcon" src="{{assetUri}}/bug-off.svg" alt="Debug Mode" width="16" height="16">
             </button>
             <div class="zoom-controls">
-                <button class="icon-button" onclick="zoomOut()" title="Zoom Out">
+                <button class="icon-button" onclick="zoomOut()" title="Zoom Out" id="zoomOutBtn">
                     <img src="{{assetUri}}/zoom-out.svg" alt="Zoom Out" width="16" height="16">
                 </button>
                 <input type="range" id="zoomSlider" min="0.25" max="3" step="0.25" value="1" oninput="setZoom(this.value)" title="Zoom">
-                <button class="icon-button" onclick="zoomIn()" title="Zoom In">
+                <button class="icon-button" onclick="zoomIn()" title="Zoom In" id="zoomInBtn">
                     <img src="{{assetUri}}/zoom-in.svg" alt="Zoom In" width="16" height="16">
                 </button>
                 <span id="zoomLevel">100%</span>
