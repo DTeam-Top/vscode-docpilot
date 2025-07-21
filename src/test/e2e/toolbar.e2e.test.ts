@@ -7,6 +7,7 @@ import {
 } from '@playwright/test';
 import { downloadAndUnzipVSCode } from '@vscode/test-electron';
 import * as path from 'node:path';
+import { loadEnvFile } from '../helpers/envLoader';
 
 let electronApp: ElectronApplication;
 let vscodeWindow: Page;
@@ -18,6 +19,10 @@ console.log('Extension path:', EXTENSION_PATH);
 const TEST_PDF_PATH = path.resolve(__dirname, '../fixtures/pdfs/normal.pdf');
 
 test.beforeAll(async () => {
+  // Load environment variables from .env file (needed for Copilot auth)
+  loadEnvFile(path.resolve(__dirname, '../../../.env'));
+  console.log('Environment variables loaded from .env file');
+  
   const executablePath = await downloadAndUnzipVSCode();
   console.log('VSCode executable path:', executablePath);
 
@@ -34,6 +39,14 @@ test.beforeAll(async () => {
         '--no-sandbox',
         '--disable-dev-shm-usage',
       ],
+      env: {
+        ...process.env,
+        NODE_ENV: 'test',
+        // Pass the auth token to the extension environment for Copilot integration
+        ...(process.env.COPILOT_CHAT_AUTH_TOKEN && {
+          COPILOT_CHAT_AUTH_TOKEN: process.env.COPILOT_CHAT_AUTH_TOKEN,
+        }),
+      },
       timeout: 60000,
     });
 
