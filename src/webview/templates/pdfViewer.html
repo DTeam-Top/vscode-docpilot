@@ -42,7 +42,7 @@
             position: relative;
             padding: 20px 0;
         }
-        .extractor-sidebar {
+        .inspector-sidebar {
             width: 0;
             overflow: hidden;
             background-color: var(--vscode-sideBar-background);
@@ -51,7 +51,7 @@
             display: flex;
             flex-direction: column;
         }
-        .extractor-sidebar.open {
+        .inspector-sidebar.open {
             width: 300px;
         }
         .sidebar-header {
@@ -323,6 +323,252 @@
         body.vscode-high-contrast .icon-button img {
             filter: invert(1);
         }
+        .mode-switcher {
+            display: flex;
+            gap: 2px;
+            background-color: var(--vscode-tab-inactiveBackground);
+            border-radius: 3px;
+            padding: 2px;
+        }
+        .mode-btn {
+            flex: 1;
+            padding: 6px 12px;
+            background: transparent;
+            border: none;
+            color: var(--vscode-foreground);
+            cursor: pointer;
+            border-radius: 2px;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+        .mode-btn:hover {
+            background-color: var(--vscode-toolbar-hoverBackground);
+        }
+        .mode-btn.active {
+            background-color: var(--vscode-tab-activeBackground);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .tree-container {
+            height: 100%;
+            overflow-y: auto;
+            transition: opacity 0.3s ease;
+        }
+        .tree-root {
+            padding: 8px;
+        }
+        .tree-node {
+            margin-bottom: 2px;
+        }
+        .tree-node-header {
+            display: flex;
+            align-items: center;
+            padding: 4px 8px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 12px;
+            user-select: none;
+        }
+        .tree-node-header:hover {
+            background-color: var(--vscode-list-hoverBackground);
+        }
+        .tree-node-header.selected {
+            background-color: var(--vscode-list-activeSelectionBackground);
+            color: var(--vscode-list-activeSelectionForeground);
+        }
+        .tree-expand-icon {
+            width: 12px;
+            margin-right: 4px;
+            font-size: 10px;
+            color: var(--vscode-descriptionForeground);
+        }
+        .tree-icon {
+            margin-right: 6px;
+            font-size: 14px;
+        }
+        .tree-label {
+            flex: 1;
+        }
+        .tree-badge {
+            background-color: var(--vscode-badge-background);
+            color: var(--vscode-badge-foreground);
+            border-radius: 2px;
+            padding: 1px 4px;
+            font-size: 10px;
+            margin-left: 4px;
+        }
+        .tree-cross-page {
+            color: var(--vscode-descriptionForeground);
+            font-size: 10px;
+            margin-left: 4px;
+        }
+        .tree-children {
+            margin-left: 16px;
+            border-left: 1px solid var(--vscode-panel-border);
+            padding-left: 8px;
+            display: none;
+        }
+        .tree-node.expanded > .tree-children {
+            display: block;
+        }
+        .tree-object-item {
+            display: flex;
+            align-items: center;
+            padding: 2px 4px;
+            margin: 1px 0;
+            border-radius: 2px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+        .tree-object-item:hover {
+            background-color: var(--vscode-list-hoverBackground);
+        }
+        .tree-object-item .tree-icon {
+            font-size: 12px;
+            margin-right: 4px;
+        }
+        .tree-object-item .tree-label {
+            font-size: 11px;
+        }
+        .tree-object-preview {
+            display: flex;
+            align-items: center;
+            padding: 4px 8px;
+            margin: 2px 0;
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 3px;
+            cursor: pointer;
+            background-color: var(--vscode-input-background);
+        }
+        .tree-object-preview:hover {
+            background-color: var(--vscode-list-hoverBackground);
+        }
+        .tree-object-thumbnail {
+            width: 40px;
+            height: 40px;
+            background-color: var(--vscode-input-background);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 2px;
+            margin-right: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: var(--vscode-descriptionForeground);
+            flex-shrink: 0;
+        }
+        .tree-object-thumbnail img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        .tree-object-info {
+            flex: 1;
+            font-size: 11px;
+            min-width: 0;
+        }
+        .tree-object-info-title {
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+        .tree-object-info-details {
+            color: var(--vscode-descriptionForeground);
+            font-size: 10px;
+        }
+        .tree-object-actions {
+            display: flex;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+        .tree-action-btn {
+            padding: 2px 6px;
+            font-size: 10px;
+            background-color: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+            border: none;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+        .tree-action-btn:hover {
+            background-color: var(--vscode-button-secondaryHoverBackground);
+        }
+        .metadata-table-container {
+            padding: 8px;
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 3px;
+            background-color: var(--vscode-input-background);
+            margin: 4px 0;
+        }
+        .metadata-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+        .metadata-table th,
+        .metadata-table td {
+            padding: 4px 8px;
+            text-align: left;
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+        .metadata-table th {
+            background-color: var(--vscode-tab-inactiveBackground);
+            font-weight: 500;
+            color: var(--vscode-foreground);
+        }
+        .metadata-table td {
+            color: var(--vscode-foreground);
+        }
+        .metadata-table tr:last-child th,
+        .metadata-table tr:last-child td {
+            border-bottom: none;
+        }
+        .metadata-table-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .metadata-table-title {
+            font-weight: 500;
+            font-size: 12px;
+        }
+        
+        /* Lazy loading styles */
+        .tree-node.clickable .tree-node-header {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .tree-node.clickable .tree-node-header:hover {
+            background-color: var(--vscode-list-hoverBackground);
+            border-radius: 3px;
+        }
+        .tree-badge {
+            transition: all 0.3s ease;
+        }
+        .tree-badge:contains("Scanning") {
+            animation: scanning 1s infinite;
+        }
+        @keyframes scanning {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        /* Progressive loading styles */
+        .load-more-pages, .load-more-objects {
+            margin: 4px 0;
+            border: 1px dashed var(--vscode-panel-border);
+            border-radius: 3px;
+        }
+        .load-more-pages .tree-node-header, .load-more-objects {
+            background-color: var(--vscode-input-background);
+            transition: background-color 0.2s ease;
+        }
+        .load-more-pages:hover .tree-node-header, .load-more-objects:hover {
+            background-color: var(--vscode-list-hoverBackground);
+        }
+        .load-more-pages .tree-label, .load-more-objects .tree-label {
+            font-style: italic;
+            color: var(--vscode-descriptionForeground);
+        }
     </style>
     <script type="module">
         // Import PDF.js as ES module
@@ -371,8 +617,8 @@
             <button id="textSelectionBtn" class="icon-button" onclick="toggleTextSelection()" title="Selection Mode">
                 <img id="textSelectionIcon" src="{{assetUri}}/view.svg" alt="Selection Mode" width="16" height="16">
             </button>
-            <button id="extractorBtn" class="icon-button" onclick="toggleExtractor()" title="Content Extractor">
-                <img id="extractorIcon" src="{{assetUri}}/wand.svg" alt="Content Extractor" width="16" height="16">
+            <button id="extractorBtn" class="icon-button" onclick="toggleExtractor()" title="PDF Inspector">
+                <img id="extractorIcon" src="{{assetUri}}/wand.svg" alt="PDF Inspector" width="16" height="16">
             </button>
             <button id="debugBtn" class="icon-button" onclick="toggleDebug()" title="Debug Mode">
                 <img id="debugIcon" src="{{assetUri}}/bug-off.svg" alt="Debug Mode" width="16" height="16">
@@ -401,23 +647,20 @@
                 </div>
             </div>
         </div>
-        <div class="extractor-sidebar" id="extractorSidebar">
+        <div class="inspector-sidebar" id="extractorSidebar">
             <div class="sidebar-header">
-                <div class="sidebar-tabs">
-                    <button class="tab-button active" data-tab="images">Images</button>
-                    <button class="tab-button" data-tab="tables">Tables</button>
+                <div class="mode-switcher">
+                    <button class="mode-btn active" data-mode="objects" title="View by object type">
+                        📊 Objects
+                    </button>
+                    <button class="mode-btn" data-mode="pages" title="View by page">
+                        📄 Pages  
+                    </button>
                 </div>
             </div>
             <div class="sidebar-content">
-                <div class="tab-content active" id="imagesTab">
-                    <div class="content-list" id="imagesList">
-                        <div class="loading-message">Click the extractor button to scan for images</div>
-                    </div>
-                </div>
-                <div class="tab-content" id="tablesTab">
-                    <div class="content-list" id="tablesList">
-                        <div class="loading-message">Click the extractor button to scan for tables</div>
-                    </div>
+                <div class="tree-container" id="objectTree">
+                    <div class="loading-message">Click the inspector button to scan for PDF objects</div>
                 </div>
             </div>
         </div>
