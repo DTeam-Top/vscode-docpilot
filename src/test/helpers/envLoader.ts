@@ -7,7 +7,7 @@ import * as path from 'node:path';
  */
 export function loadEnvFile(envPath?: string): void {
   const resolvedPath = envPath || path.resolve(process.cwd(), '.env');
-  
+
   if (fs.existsSync(resolvedPath)) {
     const envContent = fs.readFileSync(resolvedPath, 'utf-8');
     const lines = envContent.split('\n');

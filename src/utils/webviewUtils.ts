@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { Logger } from './logger';
 import { WebviewProvider } from '../webview/webviewProvider';
+import { Logger } from './logger';
 
 export interface WebviewPanelOptions {
   title: string;

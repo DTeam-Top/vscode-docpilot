@@ -40,11 +40,11 @@ npm run check               # Run Biome check (lint + format)
 - **ChatParticipant** (`src/chat/chatParticipant.ts`): Copilot Chat integration with `/summarise`, `/cache-stats`, `/clear-cache` commands
 - **Custom Editor** (`src/editors/pdfCustomEditor.ts`): Automatic PDF activation via File → Open
 - **Text Processing** (`src/pdf/`): Advanced semantic chunking and extraction system
-- **Content Extraction** (`src/webview/`): Advanced sidebar with tabbed interface for images and tables
+- **PDF Object Inspector** (`src/webview/`): Dual-mode hierarchical viewer for comprehensive PDF structure analysis
 - **Enhanced Toolbar** (`src/webview/templates/`): Professional navigation, zoom, and content tools
 
 ### Webview Architecture
-- **Templates**: Enhanced HTML in `src/webview/templates/pdfViewer.html` with content extraction sidebar
+- **Templates**: Enhanced HTML in `src/webview/templates/pdfViewer.html` with PDF Object Inspector sidebar
 - **Scripts**: Modern PDF.js v5.3.93 integration in `src/webview/scripts/pdfViewer.js` with ES modules
 - **Assets**: Comprehensive SVG icon set in `src/webview/assets/` (navigation, zoom, content tools)
 - **Styling**: VSCode theme integration with dark/light mode support
@@ -139,10 +139,36 @@ src/
 - Chat participant automatically registers slash commands from handled commands
 - Text extraction has 30s timeout with retry logic for reliability
 - Cache invalidation happens automatically on file modification detection
-- Content extraction sidebar provides tabbed interface for images and tables
+- PDF Object Inspector provides dual-mode hierarchical viewer for comprehensive document structure analysis
 - Enhanced toolbar with comprehensive navigation, zoom, and content tools
 - Full VSCode theme integration with dark/light mode support
 - E2E testing requires VSCode extension environment and Playwright setup
+
+## PDF Object Inspector Features
+
+### Dual-Mode Architecture
+- **Object-Centric Mode**: View all objects by type across the document (Images, Tables, Fonts, Annotations, Form Fields, Attachments, Bookmarks, JavaScript, Metadata)
+- **Page-Centric Mode**: View all objects organized by individual pages with cross-page object relationships
+- **Mode Switching**: Seamless toggle between viewing modes with shared cache efficiency
+
+### Advanced Object Extraction
+- **Comprehensive Coverage**: Extracts all PDF object types available via PDF.js v5.3.93 APIs
+- **Cross-Page Objects**: Proper handling of shared resources (fonts, form fields) with page reference indicators
+- **Object Properties**: Detailed information including dimensions, coordinates, properties, and metadata
+- **Export Capabilities**: Image extraction, table CSV export, metadata JSON export
+
+### Performance & UX Optimizations
+- **Lazy Loading**: User-controlled scanning with "click to scan" interface prevents automatic processing
+- **Progressive Display**: Real-time object discovery with batched results (20 pages, 15 objects per batch)
+- **Shared Cache**: Cross-mode efficiency with intelligent caching and race condition protection
+- **Progressive Loading**: Batch processing for large documents with "Load More" pagination
+- **Visual Feedback**: Loading indicators, progress tracking, and status messages during scanning
+
+### Technical Implementation
+- **PDFObjectInspector Class**: Central object management with dual-mode support in `src/webview/scripts/pdfViewer.js`
+- **Cache Integration**: File hash-based caching with automatic invalidation on PDF changes
+- **VSCode Integration**: Full theme support, accessibility compliance, and standard UI patterns
+- **Error Handling**: Graceful degradation and timeout management for large documents
 
 ## Troubleshooting
 

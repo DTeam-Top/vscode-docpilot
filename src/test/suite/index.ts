@@ -1,7 +1,7 @@
-import { use } from 'chai';
-import * as Mocha from 'mocha';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { use } from 'chai';
+import * as Mocha from 'mocha';
 
 const sinonChai = require('sinon-chai');
 

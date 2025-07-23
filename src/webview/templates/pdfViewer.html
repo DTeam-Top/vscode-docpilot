@@ -617,8 +617,8 @@
             <button id="textSelectionBtn" class="icon-button" onclick="toggleTextSelection()" title="Selection Mode">
                 <img id="textSelectionIcon" src="{{assetUri}}/view.svg" alt="Selection Mode" width="16" height="16">
             </button>
-            <button id="extractorBtn" class="icon-button" onclick="toggleExtractor()" title="PDF Inspector">
-                <img id="extractorIcon" src="{{assetUri}}/wand.svg" alt="PDF Inspector" width="16" height="16">
+            <button id="inspectorBtn" class="icon-button" onclick="toggleInspector()" title="PDF Inspector">
+                <img id="inspectorIcon" src="{{assetUri}}/wand.svg" alt="PDF Inspector" width="16" height="16">
             </button>
             <button id="debugBtn" class="icon-button" onclick="toggleDebug()" title="Debug Mode">
                 <img id="debugIcon" src="{{assetUri}}/bug-off.svg" alt="Debug Mode" width="16" height="16">
@@ -647,7 +647,7 @@
                 </div>
             </div>
         </div>
-        <div class="inspector-sidebar" id="extractorSidebar">
+        <div class="inspector-sidebar" id="inspectorSidebar">
             <div class="sidebar-header">
                 <div class="mode-switcher">
                     <button class="mode-btn active" data-mode="objects" title="View by object type">

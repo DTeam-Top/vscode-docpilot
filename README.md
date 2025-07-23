@@ -8,11 +8,12 @@ A comprehensive VSCode extension that combines advanced PDF viewing with intelli
 
 - **Automatic Activation** - Opens PDFs seamlessly via File → Open menu
 - **Local & Remote Support** - Open files from filesystem or URLs
-- **Crisp Rendering** - High-quality display with PDF.js engine
+- **Crisp Rendering** - High-quality display with PDF.js v5.3.93 engine
 - **Smart Navigation** - Zoom, fit-to-width/page, continuous scrolling
 - **Professional Toolbar** - Clean icon-based interface with intuitive controls
 - **Text Selection** - Interactive text selection with dynamic visual feedback
 - **Text Export** - Extract PDF content as clean text files
+- **PDF Object Inspector** - Dual-mode hierarchical viewer for comprehensive document structure analysis
 - **Debug Mode** - Developer tools for troubleshooting text layer rendering
 - **VSCode Integration** - Seamless theme matching and responsive UI
 
@@ -108,8 +109,36 @@ Will be available on VSCode Marketplace
 - **📝 AI Summarize**: Intelligent document analysis via Copilot Chat integration
 - **📤 Export Text**: Extract PDF content as clean text files with metadata
 - **👁️ Text Selection**: Toggle interactive text selection with dynamic visual feedback
-- **📋 Content Extractor**: Advanced sidebar with tabbed interface for images and tables
+- **🔍 PDF Object Inspector**: Dual-mode hierarchical viewer for comprehensive PDF structure analysis
 - **🐛 Debug Mode**: Developer tools for troubleshooting text layer rendering
+
+### 🔍 PDF Object Inspector - NEW!
+
+The PDF Object Inspector transforms document analysis with a dual-mode hierarchical viewer that reveals the internal structure of PDF documents:
+
+**Object-Centric Mode:**
+- **🖼️ Images**: All images across the document with page references
+- **📊 Tables**: Detected table structures with coordinate information
+- **🔤 Fonts**: Used fonts with page distribution and properties
+- **📝 Annotations**: Links, comments, and markup across pages
+- **📋 Form Fields**: Interactive form elements and their properties
+- **📎 Attachments**: Embedded files and document attachments
+- **🔖 Bookmarks**: Hierarchical document outline and navigation
+- **⚙️ JavaScript**: Document-level and page-level script actions
+- **📑 Metadata**: Document properties, author, creation date, etc.
+
+**Page-Centric Mode:**
+- **📄 Page Analysis**: Objects organized by individual pages
+- **Cross-Page Objects**: Shared resources marked with link indicators
+- **Progressive Loading**: Batch processing for large documents (20 pages at a time)
+- **Object Relationships**: Clear visualization of object distribution
+
+**Advanced Features:**
+- **Lazy Loading**: User-controlled scanning with "click to scan" interface
+- **Progressive Display**: Real-time object discovery with batched results
+- **Shared Cache**: Cross-mode efficiency with intelligent caching
+- **Export Capabilities**: Image extraction, table CSV export, metadata JSON
+- **VSCode Integration**: Full theme support and accessibility compliance
 
 **Accessibility & UX:**
 
@@ -141,7 +170,7 @@ vscode-docpilot/
 ### Key Technologies
 
 - **TypeScript** - Type-safe development with modern language features
-- **PDF.js v3.11.174** - Mozilla's robust PDF rendering engine
+- **PDF.js v5.3.93** - Mozilla's modern PDF rendering engine with ES modules
 - **VSCode Extension API** - Deep IDE integration and Chat participant support
 - **Language Model API** - Copilot integration for AI-powered analysis
 - **HTML5 Canvas** - Hardware-accelerated PDF rendering
@@ -236,7 +265,7 @@ The project includes comprehensive E2E testing using **Playwright** for real bro
 - ✅ Zoom controls (Zoom In/Out buttons, slider, level display)
 - ✅ Fit controls (Fit Width, Fit Page)
 - ✅ Navigation controls (First/Previous/Next/Last page, page info)
-- ✅ Toggle features (Text Selection, Content Extractor, Debug Mode)
+- ✅ Toggle features (Text Selection, PDF Object Inspector, Debug Mode)
 - ✅ Action buttons (Export Text, AI Summarize)
 - ✅ Accessibility attributes (titles, ARIA labels)
 - ✅ Real PDF rendering and user interaction workflows
@@ -300,6 +329,7 @@ src/test/
 ### Unified PDF Viewing System
 
 - **WebviewProvider**: Core PDF viewer with HTML generation and message handling
+- **PDF Object Inspector**: Dual-mode hierarchical viewer for comprehensive document structure analysis
 - **Custom Editor**: Automatic activation for File → Open, delegates to WebviewProvider
 - **Commands**: Manual PDF opening via command palette and context menu
 - **WebviewUtils**: Shared utilities for consistent panel creation across entry points

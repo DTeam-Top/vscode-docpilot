@@ -1,5 +1,5 @@
-import { runTests } from '@vscode/test-electron';
 import * as path from 'node:path';
+import { runTests } from '@vscode/test-electron';
 import { loadEnvFile } from './helpers/envLoader';
 
 async function main() {

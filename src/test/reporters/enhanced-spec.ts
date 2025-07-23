@@ -108,7 +108,7 @@ class EnhancedSpecReporter extends Mocha.reporters.Spec {
     const passRate = total > 0 ? ((this.customStats.passes / total) * 100).toFixed(1) : '0.0';
     const duration = (this.customStats.duration / 1000).toFixed(1);
 
-    console.log('\n' + '='.repeat(50));
+    console.log(`\n${'='.repeat(50)}`);
     console.log('              TEST RESULTS SUMMARY');
     console.log('='.repeat(50));
 
@@ -220,7 +220,7 @@ class EnhancedSpecReporter extends Mocha.reporters.Spec {
       console.log(`💥 ${this.customStats.failures} TEST(S) FAILED`);
     }
 
-    console.log('='.repeat(50) + '\n');
+    console.log(`${'='.repeat(50)}\n`);
   }
 }
 

@@ -60,43 +60,45 @@ class PDFObjectInspector {
     const allResults = [];
     const totalPages = pdfDoc.numPages;
     const batchSize = this.progressiveLoading.objectMode.batchSize;
-    
+
     // Update progress tracking
     const progress = this.progressiveLoading.objectMode.scanningProgress.get(objectType);
     progress.total = totalPages;
     progress.isProgressive = true;
-    
+
     // Auto-expand immediately to show progressive results
     this.expandedNodes.add(objectType);
-    
+
     for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
       try {
         // Update progress
         progress.current = pageNum;
-        
+
         // Scan this page
         const pageResults = await scanFunction(pageNum);
         if (pageResults && pageResults.length > 0) {
           allResults.push(...pageResults);
           progress.results = [...allResults]; // Keep current results
-          
+
           // Apply results immediately for real-time display
           applyObjectScanResults(objectType, allResults);
           renderObjectTree();
-          
+
           // Show progress feedback
-          showStatusMessage(`🔍 Scanning ${objectType}... ${pageNum}/${totalPages} pages (${allResults.length} found)`);
+          showStatusMessage(
+            `🔍 Scanning ${objectType}... ${pageNum}/${totalPages} pages (${allResults.length} found)`
+          );
         }
-        
+
         // Brief pause every batch for better UX and to avoid blocking
         if (pageNum % batchSize === 0) {
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise((resolve) => setTimeout(resolve, 100));
         }
       } catch (error) {
         console.warn(`Failed to extract ${objectType} from page ${pageNum}:`, error);
       }
     }
-    
+
     return allResults;
   }
 
@@ -198,13 +200,13 @@ async function initializePdf() {
       updatePageInfo();
       initializeTextSelection();
       initializePDFInspector();
-      
+
       // If the inspector was opened before PDF loading completed, initialize it now
       if (inspectorEnabled) {
         console.log('PDF loaded and inspector is open - initializing lazy inspector');
         await initializeLazyInspector();
       }
-      
+
       renderAllPages();
 
       // Signal that PDF is ready for text extraction
@@ -967,19 +969,19 @@ function openInBrowser() {
 }
 
 // PDF inspector functions - Updated for dual-mode system
-function toggleExtractor() {
+function toggleInspector() {
   inspectorEnabled = !inspectorEnabled;
-  const sidebar = document.getElementById('extractorSidebar');
+  const sidebar = document.getElementById('inspectorSidebar');
 
   if (inspectorEnabled) {
     sidebar.classList.add('open');
-    
+
     // Ensure globalInspector is initialized
     if (!globalInspector) {
-      console.log('toggleExtractor: initializing PDF inspector');
+      console.log('toggleInspector: initializing PDF inspector');
       initializePDFInspector();
     }
-    
+
     // Show immediate skeleton structure with lazy loading prompts
     initializeLazyInspector();
   } else {
@@ -1068,7 +1070,7 @@ function showStatusMessage(message) {
   const statusDiv = document.createElement('div');
   statusDiv.style.cssText = `
     position: fixed;
-    top: 50px;
+    bottom: 50px;
     right: 20px;
     background: var(--vscode-notifications-background);
     color: var(--vscode-notifications-foreground);
@@ -1504,7 +1506,8 @@ async function initializeLazyInspector() {
     // Show a message in the tree container instead of failing silently
     const container = document.getElementById('objectTree');
     if (container) {
-      container.innerHTML = '<div class="loading-message">PDF is still loading. Please wait...</div>';
+      container.innerHTML =
+        '<div class="loading-message">PDF is still loading. Please wait...</div>';
     }
     return;
   }
@@ -1547,12 +1550,6 @@ async function generatePdfFileHash() {
     globalInspector.pdfFileHash = `fallback_${Date.now()}`;
   }
 }
-
-
-
-
-
-
 
 async function scanPageForContent(pageNum) {
   let page = null;
@@ -1741,7 +1738,6 @@ function renderObjectTree() {
   attachTreeEventListeners();
 }
 
-
 function renderObjectCentricTree() {
   const objectTypes = [
     { key: 'images', label: 'Images', icon: '🖼️' },
@@ -1767,8 +1763,10 @@ function renderObjectCentricTree() {
 
     // Determine badge content with progressive scanning feedback
     let badgeContent = '';
-    const scanProgress = globalInspector.progressiveLoading.objectMode.scanningProgress.get(type.key);
-    
+    const scanProgress = globalInspector.progressiveLoading.objectMode.scanningProgress.get(
+      type.key
+    );
+
     if (scanProgress?.isProgressive) {
       // Show progressive scanning status with real-time count and progress
       const currentCount = scanProgress.results.length;
@@ -2502,7 +2500,7 @@ window.summarizeDocument = summarizeDocument;
 window.exportText = exportText;
 window.toggleTextSelection = toggleTextSelection;
 window.toggleDebug = toggleDebug;
-window.toggleExtractor = toggleExtractor;
+window.toggleInspector = toggleInspector;
 window.zoomIn = zoomIn;
 window.zoomOut = zoomOut;
 window.setZoom = setZoom;
@@ -2557,13 +2555,13 @@ async function scanObjectType(objectType) {
   console.log(`Starting progressive scan for object type: ${objectType}`);
   globalInspector.setCacheStatus(cacheKey, 'loading');
   globalInspector.pendingScans.add(cacheKey);
-  
+
   // Initialize progress tracking
-  globalInspector.progressiveLoading.objectMode.scanningProgress.set(objectType, { 
-    current: 0, 
-    total: 0, 
+  globalInspector.progressiveLoading.objectMode.scanningProgress.set(objectType, {
+    current: 0,
+    total: 0,
     results: [],
-    isProgressive: false 
+    isProgressive: false,
   });
 
   // Update UI to show scanning state
@@ -2599,7 +2597,7 @@ async function scanObjectType(objectType) {
 
     // Cache the final results
     globalInspector.setCacheStatus(cacheKey, 'complete', results);
-    
+
     // Clean up progress tracking
     globalInspector.progressiveLoading.objectMode.scanningProgress.delete(objectType);
 
@@ -2772,10 +2770,10 @@ async function scanPageFonts(pageNum) {
   try {
     const page = await pdfDoc.getPage(pageNum);
     const _operatorList = await page.getOperatorList();
-    
+
     // Check both commonObjs (shared fonts) and page.objs (page-specific fonts)
     const allObjs = new Map();
-    
+
     // Add shared fonts from commonObjs
     if (page.commonObjs) {
       for (const [objId, obj] of page.commonObjs._objs || new Map()) {
@@ -2784,7 +2782,7 @@ async function scanPageFonts(pageNum) {
         }
       }
     }
-    
+
     // Add page-specific fonts from page.objs
     if (page.objs) {
       for (const [objId, obj] of page.objs._objs || new Map()) {
@@ -2793,7 +2791,7 @@ async function scanPageFonts(pageNum) {
         }
       }
     }
-    
+
     // Extract font information
     allObjs.forEach((obj, objId) => {
       if (obj && (obj.name || obj.type)) {
@@ -2803,7 +2801,7 @@ async function scanPageFonts(pageNum) {
           name: obj.name || objId,
           pageNum,
           type: obj.type || 'Unknown',
-          objId: objId
+          objId: objId,
         });
       }
     });
@@ -2820,17 +2818,13 @@ async function scanPageAnnotations(pageNum) {
     return annotations.map((annotation, index) => ({
       id: `annotation_${pageNum}_${index}`,
       pageNum,
-      ...annotation
+      ...annotation,
     }));
   } catch (error) {
     console.warn(`Failed to extract annotations from page ${pageNum}:`, error);
     return [];
   }
 }
-
-
-
-
 
 // Helper function to scan document-level objects
 async function scanDocumentLevelObjects(objectTypes) {

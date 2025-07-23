@@ -1,5 +1,5 @@
-import * as vscode from 'vscode';
 import * as path from 'node:path';
+import * as vscode from 'vscode';
 import { Logger } from '../utils/logger';
 import { WebviewProvider } from '../webview/webviewProvider';
 

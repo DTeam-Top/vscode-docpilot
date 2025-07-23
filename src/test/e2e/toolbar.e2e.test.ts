@@ -22,7 +22,7 @@ test.beforeAll(async () => {
   // Load environment variables from .env file (needed for Copilot auth)
   loadEnvFile(path.resolve(__dirname, '../../../.env'));
   console.log('Environment variables loaded from .env file');
-  
+
   const executablePath = await downloadAndUnzipVSCode();
   console.log('VSCode executable path:', executablePath);
 
@@ -190,16 +190,16 @@ test('should interact with PDF viewer toolbar buttons', async () => {
 
   // Test toggle buttons
   const textSelectionBtn = frame.locator('#textSelectionBtn');
-  const extractorBtn = frame.locator('#extractorBtn');
+  const inspectorBtn = frame.locator('#inspectorBtn');
   const debugBtn = frame.locator('#debugBtn');
 
   // Verify toggle buttons are visible
   await expect(textSelectionBtn).toBeVisible();
-  await expect(extractorBtn).toBeVisible();
+  await expect(inspectorBtn).toBeVisible();
   await expect(debugBtn).toBeVisible();
 
   await textSelectionBtn.click();
-  await extractorBtn.click();
+  await inspectorBtn.click();
   await debugBtn.click();
   console.log('Toggle buttons test passed');
 
@@ -225,7 +225,7 @@ test('should interact with PDF viewer toolbar buttons', async () => {
   await expect(nextPageBtn).toHaveAttribute('title', 'Next Page');
   await expect(lastPageBtn).toHaveAttribute('title', 'Last Page');
   await expect(textSelectionBtn).toHaveAttribute('title', 'Selection Mode');
-  await expect(extractorBtn).toHaveAttribute('title', 'Content Extractor');
+  await expect(inspectorBtn).toHaveAttribute('title', 'PDF Inspector');
   await expect(debugBtn).toHaveAttribute('title', 'Debug Mode');
 
   // Export button title can change during export process ('Export Text' or 'Exporting...')
