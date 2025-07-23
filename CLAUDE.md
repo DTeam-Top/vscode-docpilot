@@ -170,6 +170,32 @@ src/
 - **VSCode Integration**: Full theme support, accessibility compliance, and standard UI patterns
 - **Error Handling**: Graceful degradation and timeout management for large documents
 
+## Text Search Implementation Lessons (July 2025)
+
+### Problem 1: HTML onclick handlers not finding functions
+**Reason**: Functions defined in module scope aren't accessible to HTML onclick handlers  
+**Solution**: Attach functions to window object - follow existing pattern at end of `pdfViewer.js`
+```javascript
+window.toggleSearch = toggleSearch;
+window.searchNext = searchNext;
+```
+
+### Problem 2: "Page container not found" errors  
+**Reason**: Used wrong selector `[data-page-number="${pageNum}"]` instead of existing pattern  
+**Solution**: Use correct selector matching page creation: `#page-${pageNum}`
+
+### Problem 3: Text layer not available for highlighting
+**Reason**: Text layers are lazy-loaded and may be hidden initially  
+**Solution**: Check and render text layer before highlighting
+```javascript
+if (textLayer.classList.contains('hidden') || textLayer.children.length === 0) {
+  await renderTextLayer(pageNum);
+}
+```
+
+### Key Learning: Study existing patterns first
+Always examine how similar features work in the codebase before implementing new ones. This prevents selector mismatches, scope issues, and architectural inconsistencies.
+
 ## Troubleshooting
 
 - **Webview issues**: Check VSCode Developer Tools console

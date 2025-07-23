@@ -466,6 +466,13 @@ document.addEventListener('keydown', (e) => {
     } else if (e.key === '0') {
       e.preventDefault();
       setZoom(1);
+    } else if (e.key === 'f' || e.key === 'F') {
+      // Don't trigger search if user is typing in an input field
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        return;
+      }
+      e.preventDefault();
+      toggleSearch();
     }
   } else {
     // Page navigation shortcuts (without modifier keys)

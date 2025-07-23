@@ -63,6 +63,7 @@ Successfully implemented vi-style text search functionality for DocPilot PDF vie
 #### Key Features:
 - **Lazy text extraction**: Pages are processed on-demand with caching
 - **Case-insensitive substring search** across all PDF pages
+- **Standard keyboard shortcut**: Ctrl+F (Cmd+F on Mac) to open search
 - **Vi-style navigation**: Enter/Shift+Enter for next/prev, ESC to close
 - **Visual highlighting**: Current match highlighted with orange outline
 - **Smooth scrolling**: Auto-scroll to search matches
