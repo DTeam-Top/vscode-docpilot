@@ -109,10 +109,35 @@ Will be available on VSCode Marketplace
 - **📝 AI Summarize**: Intelligent document analysis via Copilot Chat integration
 - **📤 Export Text**: Extract PDF content as clean text files with metadata
 - **👁️ Text Selection**: Toggle interactive text selection with dynamic visual feedback
+- **🔍 Text Search**: Vi-style text search across all pages with keyboard navigation
 - **🔍 PDF Object Inspector**: Dual-mode hierarchical viewer for comprehensive PDF structure analysis
 - **🐛 Debug Mode**: Developer tools for troubleshooting text layer rendering
 
-### 🔍 PDF Object Inspector - NEW!
+### 🔍 Text Search - NEW!
+
+DocPilot now includes powerful vi-style text search functionality for quick document navigation:
+
+**Core Features:**
+- **📄 Cross-Page Search**: Search across all pages in the PDF document
+- **⌨️ Keyboard Navigation**: Enter for next match, Shift+Enter for previous, ESC to close
+- **🔍 Case-Insensitive**: Finds matches regardless of letter case
+- **⚡ Lazy Loading**: Text extracted on-demand for optimal performance
+- **💾 Smart Caching**: Page text cached to avoid re-extraction
+- **🎯 Visual Highlighting**: Current match highlighted with orange outline
+- **📜 Auto-Scrolling**: Automatically scrolls to bring matches into view
+
+**How to Use:**
+1. Press `Ctrl+F` (or `Cmd+F` on Mac) or click the search button (🔍) in the toolbar
+2. Type your search term (minimum 2 characters)
+3. Use Enter/Shift+Enter or navigation buttons to move between matches
+4. Press ESC to close search
+
+**Vi-Style Experience:**
+- Simple, distraction-free interface with no match counters
+- Immediate search as you type with smart debouncing
+- Seamless integration with existing PDF navigation
+
+### 🔍 PDF Object Inspector
 
 The PDF Object Inspector transforms document analysis with a dual-mode hierarchical viewer that reveals the internal structure of PDF documents:
 
@@ -144,7 +169,7 @@ The PDF Object Inspector transforms document analysis with a dual-mode hierarchi
 
 - **Full Accessibility**: All buttons include proper titles and ARIA attributes
 - **Theme Integration**: Complete dark/light mode support with CSS filters
-- **Keyboard Shortcuts**: `Ctrl/Cmd + +/-/0` for zoom, standard navigation keys
+- **Keyboard Shortcuts**: `Ctrl/Cmd + F` to open search, `Ctrl/Cmd + +/-/0` for zoom, Enter/Shift+Enter for search navigation, ESC to close search
 - **Mouse Controls**: `Ctrl + Scroll` for zoom, natural scrolling
 - **Performance Awareness**: Automatic warnings and optimizations for large documents
 

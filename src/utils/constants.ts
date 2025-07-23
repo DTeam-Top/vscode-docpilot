@@ -48,6 +48,10 @@ export const WEBVIEW_MESSAGES = {
   EXPORT_STARTED: 'exportStarted',
   EXPORT_COMPLETED: 'exportCompleted',
   EXPORT_ERROR: 'exportError',
+  SEARCH_TEXT: 'searchText',
+  SEARCH_NEXT: 'searchNext',
+  SEARCH_PREVIOUS: 'searchPrevious',
+  SEARCH_CLOSE: 'searchClose',
 } as const;
 
 export const CHAT_COMMANDS = {
