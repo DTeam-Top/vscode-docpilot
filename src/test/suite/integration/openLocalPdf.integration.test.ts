@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import * as vscode from 'vscode';
 import {
   cleanupPdfViewers,
+  extractTextFromWebview,
   getPdfViewerTitle,
   isPdfViewerVisible,
   openRealLocalPdf,
@@ -119,6 +120,12 @@ describe('OpenLocalPdf Integration', () => {
     // Verify title shows the PDF
     const title = await getPdfViewerTitle();
     expect(title).to.include('normal.pdf');
+
+    // Extract text to verify the quality of our text grouping
+    const extractedText = await extractTextFromWebview(viewer1 as vscode.WebviewPanel);
+
+    // Verify the expected title is present and well-formed
+    expect(extractedText).to.include('Google’s Hybrid');
   });
 
   it('should maintain PDF state after opening', async function () {

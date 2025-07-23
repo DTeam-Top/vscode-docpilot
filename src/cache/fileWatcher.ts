@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import type { SummaryCache } from './summaryCache';
 import { Logger } from '../utils/logger';
+import type { SummaryCache } from './summaryCache';
 
 export class FileWatcher {
   private static readonly logger = Logger.getInstance();

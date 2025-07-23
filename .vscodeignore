@@ -1,0 +1,13 @@
+.env
+*.md
+*.json
+docs
+.vscode
+.claude
+.github
+.gitignore
+playwright*
+llms-txt
+test-results
+test-reports
+src

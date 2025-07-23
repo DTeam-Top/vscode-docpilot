@@ -44,7 +44,7 @@ coverage/
 
 # Test reports
 test-reports/
-test-results.*
+test-results/
 
 # TypeScript cache
 *.tsbuildinfo
@@ -66,3 +66,4 @@ test-results.*
 
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test/
+src/test/fixtures/pdfs/normal.txt

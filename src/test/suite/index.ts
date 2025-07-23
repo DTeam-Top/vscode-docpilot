@@ -1,7 +1,7 @@
-import { use } from 'chai';
-import * as Mocha from 'mocha';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { use } from 'chai';
+import * as Mocha from 'mocha';
 
 const sinonChai = require('sinon-chai');
 
@@ -106,11 +106,11 @@ export function run(): Promise<void> {
         // Run both unit and integration tests
         const unitDir = path.join(testsRoot, 'suite', 'unit');
         const integrationDir = path.join(testsRoot, 'suite', 'integration');
-        
+
         if (fs.existsSync(unitDir)) {
           files = files.concat(findTestFiles(unitDir));
         }
-        
+
         if (fs.existsSync(integrationDir)) {
           files = files.concat(findTestFiles(integrationDir));
         }

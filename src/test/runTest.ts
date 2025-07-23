@@ -1,31 +1,11 @@
-import { runTests } from '@vscode/test-electron';
-import * as fs from 'node:fs';
 import * as path from 'node:path';
-
-// Load environment variables from .env file
-function loadEnvFile() {
-  const envPath = path.resolve(__dirname, '../../.env');
-  if (fs.existsSync(envPath)) {
-    const envContent = fs.readFileSync(envPath, 'utf-8');
-    const lines = envContent.split('\n');
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (trimmed && !trimmed.startsWith('#')) {
-        const [key, ...valueParts] = trimmed.split('=');
-        if (key && valueParts.length > 0) {
-          const value = valueParts.join('=');
-          process.env[key] = value;
-        }
-      }
-    }
-  }
-}
+import { runTests } from '@vscode/test-electron';
+import { loadEnvFile } from './helpers/envLoader';
 
 async function main() {
   try {
     // Load environment variables from .env file (needed for Copilot auth)
-    loadEnvFile();
+    loadEnvFile(path.resolve(__dirname, '../../.env'));
 
     // The folder containing the Extension Manifest package.json
     const extensionDevelopmentPath = path.resolve(__dirname, '../../');

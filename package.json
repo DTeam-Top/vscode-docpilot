@@ -2,7 +2,13 @@
   "name": "vscode-docpilot",
   "displayName": "DocPilot",
   "description": "View PDF files in VSCode from local files or remote URLs",
-  "version": "0.0.1",
+  "version": "0.1.0",
+  "publisher": "DTeam",
+  "icon": "resources/docpilot-icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DTeam-Top/vscode-docpilot"
+  },
   "engines": {
     "vscode": "^1.74.0"
   },
@@ -74,18 +80,21 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./ && npm run copy-assets",
+    "compile-e2e": "tsc -p ./tsconfig.e2e.json --outDir out",
     "copy-assets": "mkdir -p out/webview && cp -r src/webview/assets out/webview/ && cp -r src/webview/templates out/webview/ && cp -r src/webview/scripts out/webview/",
     "watch": "tsc -watch -p ./",
-    "lint": "biome lint src/",
-    "format": "biome format --write src/",
     "check": "biome check src/",
-    "test": "npm run compile-tests && node out/test/runTest.js",
-    "test:unit": "npm run compile-tests && node out/test/runTest.js --suite unit",
-    "test:integration": "npm run compile-tests && node out/test/runTest.js --suite integration",
-    "compile-tests": "tsc -p ./ --outDir out && npm run copy-assets"
+    "format": "biome format --write src/",
+    "lint": "biome lint src/",
+    "test": "npm run compile && node out/test/runTest.js",
+    "test:unit": "npm run compile && node out/test/runTest.js --suite unit",
+    "test:integration": "npm run compile && node out/test/runTest.js --suite integration",
+    "test:e2e": "npm run compile && npm run compile-e2e && npx playwright test",
+    "package": "npx @vscode/vsce package"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.1.1",
+    "@playwright/test": "^1.54.1",
     "@types/chai": "^4.3.11",
     "@types/mocha": "^10.0.6",
     "@types/node": "16.x",

@@ -1,18 +1,18 @@
 import * as vscode from 'vscode';
 import { ChunkingStrategy } from '../pdf/chunkingStrategy';
-import { TokenEstimator } from '../utils/tokenEstimator';
-import { Logger } from '../utils/logger';
-import { ChatErrorHandler } from '../utils/errorHandler';
-import { RetryPolicy } from '../utils/retry';
-import { ModelRequestError } from '../utils/errors';
-import { CONFIG } from '../utils/constants';
 import type {
+  ChatCommandResult,
+  ChunkingConfig,
+  DocumentChunk,
   ProcessDocumentOptions,
   ProcessingResult,
-  ChatCommandResult,
-  DocumentChunk,
-  ChunkingConfig,
 } from '../types/interfaces';
+import { CONFIG } from '../utils/constants';
+import { ChatErrorHandler } from '../utils/errorHandler';
+import { ModelRequestError } from '../utils/errors';
+import { Logger } from '../utils/logger';
+import { RetryPolicy } from '../utils/retry';
+import { TokenEstimator } from '../utils/tokenEstimator';
 
 export class TextProcessor {
   private static readonly logger = Logger.getInstance();
