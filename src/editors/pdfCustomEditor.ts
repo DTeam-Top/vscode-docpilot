@@ -111,6 +111,24 @@ export class PdfCustomEditorProvider implements vscode.CustomReadonlyEditorProvi
         case WEBVIEW_MESSAGES.TEXT_EXTRACTION_ERROR:
           PdfCustomEditorProvider.logger.debug('Text extraction message received:', message.type);
           break;
+        // Enhanced object extraction messages - delegate to WebviewProvider
+        case WEBVIEW_MESSAGES.EXTRACT_OBJECTS:
+          await this.delegateToWebviewProvider(
+            'handleExtractObjectsRequest',
+            panel,
+            pdfSource,
+            message
+          );
+          break;
+        case WEBVIEW_MESSAGES.EXTRACTION_CANCELLED:
+          await this.delegateToWebviewProvider('handleExtractionCancellation', message);
+          break;
+        case WEBVIEW_MESSAGES.BROWSE_SAVE_FOLDER:
+          await this.delegateToWebviewProvider('handleBrowseSaveFolder', panel);
+          break;
+        case WEBVIEW_MESSAGES.GET_OBJECT_COUNTS:
+          await this.delegateToWebviewProvider('handleGetObjectCounts', panel);
+          break;
         default:
           PdfCustomEditorProvider.logger.debug('Unhandled webview message:', message.type);
           break;
@@ -204,6 +222,42 @@ export class PdfCustomEditorProvider implements vscode.CustomReadonlyEditorProvi
 
       vscode.window.showErrorMessage(
         `Failed to export PDF: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  private async delegateToWebviewProvider(method: string, ...args: unknown[]): Promise<void> {
+    try {
+      // Import WebviewProvider dynamically to avoid circular dependencies
+      const { WebviewProvider } = await import('../webview/webviewProvider');
+
+      // Call the appropriate method on WebviewProvider
+      switch (method) {
+        case 'handleExtractObjectsRequest':
+          await WebviewProvider.handleExtractObjectsRequest(
+            args[0] as vscode.WebviewPanel,
+            args[1] as string,
+            args[2] as any
+          );
+          break;
+        case 'handleExtractionCancellation':
+          await WebviewProvider.handleExtractionCancellation(
+            args[0] as { data?: { extractionId: string } }
+          );
+          break;
+        case 'handleBrowseSaveFolder':
+          await WebviewProvider.handleBrowseSaveFolder(args[0] as vscode.WebviewPanel);
+          break;
+        case 'handleGetObjectCounts':
+          await WebviewProvider.handleGetObjectCounts(args[0] as vscode.WebviewPanel);
+          break;
+        default:
+          PdfCustomEditorProvider.logger.error(`Unknown delegation method: ${method}`);
+      }
+    } catch (error) {
+      PdfCustomEditorProvider.logger.error(
+        `Failed to delegate to WebviewProvider: ${method}`,
+        error
       );
     }
   }

@@ -2,15 +2,25 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { TextExtractor } from '../pdf/textExtractor';
+import { ObjectExtractor } from '../pdf/objectExtractor';
 import { WEBVIEW_MESSAGES } from '../utils/constants';
 import { Logger } from '../utils/logger';
+import type { ObjectExtractionRequest, ObjectCounts, ObjectData, ObjectType } from '../types/interfaces';
 
-interface WebviewMessage {
+interface LocalWebviewMessage {
   type: string;
   error?: string;
   fileName?: string;
   isUrl?: boolean;
   pdfUri?: string;
+  data?: {
+    selectedTypes: string[];
+    saveFolder: string;
+    fileName: string;
+    extractionId: string;
+    objectData: ObjectData;
+    webviewStartTime: number;
+  };
 }
 
 // biome-ignore lint/complexity/noStaticOnlyClass: This follows existing extension patterns
@@ -115,6 +125,7 @@ export class WebviewProvider {
   ): void {
     panel.webview.onDidReceiveMessage(async (message) => {
       WebviewProvider.logger.debug('Received webview message:', message.type);
+      WebviewProvider.logger.debug('Message details:', JSON.stringify(message, null, 2));
       WebviewProvider.logger.debug('EXPORT_TEXT constant:', WEBVIEW_MESSAGES.EXPORT_TEXT);
       switch (message.type) {
         case WEBVIEW_MESSAGES.SUMMARIZE_REQUEST:
@@ -124,19 +135,27 @@ export class WebviewProvider {
           WebviewProvider.logger.error('Webview summarization error:', message.error);
           vscode.window.showErrorMessage(`Summarization failed: ${message.error}`);
           break;
-        case WEBVIEW_MESSAGES.EXPORT_TEXT:
-          WebviewProvider.logger.debug('Handling export request...');
-          await WebviewProvider.handleExportRequest(panel, pdfSource, extensionContext);
-          break;
-        case WEBVIEW_MESSAGES.EXPORT_ERROR:
-          WebviewProvider.logger.error('Webview export error:', message.error);
-          vscode.window.showErrorMessage(`Export failed: ${message.error}`);
-          break;
+        // Legacy EXPORT_TEXT message removed - webview now uses enhanced extraction
+        // But keeping EXPORT_STARTED/COMPLETED/ERROR for pdfCustomEditor.ts compatibility
         case WEBVIEW_MESSAGES.EXTRACT_ALL_TEXT:
         case WEBVIEW_MESSAGES.TEXT_EXTRACTED:
         case WEBVIEW_MESSAGES.TEXT_EXTRACTION_ERROR:
           // These are handled by TextExtractor, just log for now
           WebviewProvider.logger.debug('Text extraction message received:', message.type);
+          break;
+        // Enhanced object extraction messages
+        case WEBVIEW_MESSAGES.EXTRACT_OBJECTS:
+          await WebviewProvider.handleExtractObjectsRequest(panel, pdfSource, message);
+          break;
+        case WEBVIEW_MESSAGES.EXTRACTION_CANCELLED:
+          await WebviewProvider.handleExtractionCancellation(message);
+          break;
+        case WEBVIEW_MESSAGES.BROWSE_SAVE_FOLDER:
+          WebviewProvider.logger.info('Received BROWSE_SAVE_FOLDER message from webview');
+          await WebviewProvider.handleBrowseSaveFolder(panel);
+          break;
+        case WEBVIEW_MESSAGES.GET_OBJECT_COUNTS:
+          await WebviewProvider.handleGetObjectCounts(panel);
           break;
         default:
           WebviewProvider.logger.debug('Unhandled webview message:', message.type);
@@ -148,7 +167,7 @@ export class WebviewProvider {
   private static async handleSummarizeRequest(
     panel: vscode.WebviewPanel,
     pdfSource: string,
-    _message: WebviewMessage,
+    _message: LocalWebviewMessage,
     _extensionContext: vscode.ExtensionContext
   ): Promise<void> {
     try {
@@ -193,42 +212,8 @@ export class WebviewProvider {
     }
   }
 
-  private static async handleExportRequest(
-    panel: vscode.WebviewPanel,
-    pdfSource: string,
-    _extensionContext: vscode.ExtensionContext
-  ): Promise<void> {
-    try {
-      WebviewProvider.logger.info('Handling export request from webview', { pdfSource });
-
-      // Notify webview that export has started
-      panel.webview.postMessage({
-        type: WEBVIEW_MESSAGES.EXPORT_STARTED,
-      });
-
-      // Directly handle the export logic here
-      await WebviewProvider.exportPdfToMarkdown(panel, pdfSource);
-
-      // Notify webview that export completed
-      panel.webview.postMessage({
-        type: WEBVIEW_MESSAGES.EXPORT_COMPLETED,
-      });
-
-      WebviewProvider.logger.info('Export request processed successfully');
-    } catch (error) {
-      WebviewProvider.logger.error('Failed to handle export request', error);
-
-      // Notify webview of error
-      panel.webview.postMessage({
-        type: WEBVIEW_MESSAGES.EXPORT_ERROR,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-
-      vscode.window.showErrorMessage(
-        `Failed to export PDF: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
-  }
+  // Removed handleExportRequest - no longer used by webview (uses enhanced extraction)
+  // exportPdfToMarkdown kept as utility method for pdfCustomEditor.ts
 
   static async exportPdfToMarkdown(panel: vscode.WebviewPanel, pdfSource: string): Promise<void> {
     // Show progress
@@ -412,6 +397,144 @@ export class WebviewProvider {
       "'": '&#039;',
     };
     return text.replace(/[&<>"']/g, (m) => map[m]);
+  }
+
+  // Enhanced object extraction handlers
+  public static async handleExtractObjectsRequest(
+    panel: vscode.WebviewPanel,
+    pdfSource: string,
+    message: LocalWebviewMessage
+  ): Promise<void> {
+    try {
+      WebviewProvider.logger.info('Handling extract objects request', {
+        pdfSource,
+        data: message.data,
+      });
+
+      if (!message.data) {
+        throw new Error('Missing extraction request data');
+      }
+
+      const request: ObjectExtractionRequest & {
+        objectData?: ObjectData;
+        webviewStartTime?: number;
+      } = {
+        selectedTypes: message.data.selectedTypes as ObjectType[],
+        saveFolder: message.data.saveFolder,
+        fileName: message.data.fileName || WebviewProvider.getFileName(pdfSource),
+        objectData: message.data.objectData, // Pass through object data from webview
+        webviewStartTime: message.data.webviewStartTime, // Pass through webview start time
+      };
+
+      // Start extraction in background
+      const result = await ObjectExtractor.extractObjects(panel, request);
+
+      // Send completion message to webview
+      panel.webview.postMessage({
+        type: WEBVIEW_MESSAGES.EXTRACTION_COMPLETED,
+        data: result,
+      });
+
+      WebviewProvider.logger.info('Object extraction completed successfully', {
+        totalObjects: result.totalObjects,
+        filesCreated: result.filesCreated.length,
+        processingTime: result.processingTime,
+      });
+    } catch (error) {
+      WebviewProvider.logger.error('Failed to extract objects', error);
+
+      // Send error to webview
+      panel.webview.postMessage({
+        type: WEBVIEW_MESSAGES.EXTRACTION_ERROR,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  public static async handleExtractionCancellation(message: {
+    data?: { extractionId: string };
+  }): Promise<void> {
+    try {
+      WebviewProvider.logger.info('Handling extraction cancellation', {
+        extractionId: message.data?.extractionId,
+      });
+      ObjectExtractor.cancelExtraction();
+    } catch (error) {
+      WebviewProvider.logger.error('Failed to cancel extraction', error);
+    }
+  }
+
+  public static async handleBrowseSaveFolder(panel: vscode.WebviewPanel): Promise<void> {
+    try {
+      WebviewProvider.logger.info('Handling browse save folder request');
+
+      // Show immediate feedback to user
+      vscode.window.showInformationMessage('Opening folder selection dialog...');
+
+      const folderUri = await vscode.window.showOpenDialog({
+        canSelectFiles: false,
+        canSelectFolders: true,
+        canSelectMany: false,
+        openLabel: 'Select Save Folder',
+        title: 'Select folder to save extracted PDF objects',
+      });
+
+      if (folderUri?.[0]) {
+        const folderPath = folderUri[0].fsPath;
+        WebviewProvider.logger.debug('Folder selected:', folderPath);
+
+        // Send folder path to webview
+        panel.webview.postMessage({
+          type: WEBVIEW_MESSAGES.FOLDER_SELECTED,
+          data: { folderPath },
+        });
+      } else {
+        WebviewProvider.logger.debug('Folder selection cancelled');
+      }
+    } catch (error) {
+      WebviewProvider.logger.error('Failed to browse save folder', error);
+      vscode.window.showErrorMessage(
+        `Failed to select folder: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  public static async handleGetObjectCounts(panel: vscode.WebviewPanel): Promise<void> {
+    try {
+      WebviewProvider.logger.info('Handling get object counts request');
+
+      // Request object counts (this would typically come from the PDF Object Inspector)
+      const counts = await ObjectExtractor.getObjectCounts(panel);
+
+      // Send counts to webview
+      panel.webview.postMessage({
+        type: WEBVIEW_MESSAGES.OBJECT_COUNTS_UPDATED,
+        data: counts,
+      });
+
+      WebviewProvider.logger.debug('Object counts sent to webview', counts);
+    } catch (error) {
+      WebviewProvider.logger.error('Failed to get object counts', error);
+
+      // Send empty counts on error
+      const emptyCounts: ObjectCounts = {
+        text: 0,
+        images: 0,
+        tables: 0,
+        fonts: 0,
+        annotations: 0,
+        formFields: 0,
+        attachments: 0,
+        bookmarks: 0,
+        javascript: 0,
+        metadata: 0,
+      };
+
+      panel.webview.postMessage({
+        type: WEBVIEW_MESSAGES.OBJECT_COUNTS_UPDATED,
+        data: emptyCounts,
+      });
+    }
   }
 
   private static getFallbackTemplate(data: TemplateData): string {

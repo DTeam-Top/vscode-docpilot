@@ -15,9 +15,43 @@ export interface TextExtractionOptions {
 }
 
 export interface WebviewMessage {
-  readonly type: 'textExtracted' | 'textExtractionError' | 'extractAllText';
+  readonly type:
+    | 'textExtracted'
+    | 'textExtractionError'
+    | 'extractAllText'
+    | 'extractObjects'
+    | 'extractionProgress'
+    | 'extractionCompleted'
+    | 'extractionError'
+    | 'extractionCancelled'
+    | 'browseSaveFolder'
+    | 'folderSelected'
+    | 'getObjectCounts'
+    | 'objectCountsUpdated';
   readonly text?: string;
   readonly error?: string;
+  readonly data?:
+    | ObjectData
+    | ObjectCounts
+    | ObjectExtractionProgress
+    | { folderPath: string }
+    | { extractionId: string }
+    | ExtractionSummary;
+}
+
+export interface ExtractionProgressStatus {
+  current: number;
+  total: number;
+  percentage: number;
+  status: 'pending' | 'processing' | 'completed' | 'error';
+  message?: string;
+}
+
+export interface ObjectData {
+  [key: string]: {
+    count: number;
+    data: string | Record<string, unknown> | unknown[];
+  };
 }
 
 // Chunking interfaces
@@ -115,4 +149,92 @@ export interface RetryOptions {
   readonly maxAttempts?: number;
   readonly backoffMs?: number;
   readonly shouldRetry?: (error: unknown) => boolean;
+}
+
+// Enhanced object extraction interfaces
+export interface ObjectExtractionRequest {
+  readonly selectedTypes: ObjectType[];
+  readonly saveFolder: string;
+  readonly fileName: string;
+}
+
+export interface ObjectExtractionProgress {
+  overall: ProgressInfo;
+  types: Record<ObjectType, ProgressInfo>;
+  currentType?: ObjectType;
+  currentOperation?: string;
+  filesCreated: string[];
+  estimatedTimeRemaining?: number;
+}
+
+export interface ProgressInfo {
+  current: number;
+  total: number;
+  percentage: number;
+  status: 'pending' | 'processing' | 'completed' | 'error' | 'cancelled';
+  message?: string;
+}
+
+export type ProgressCallback = (progress: ProgressInfo) => void;
+
+export interface ObjectExtractionResult {
+  readonly success: boolean;
+  readonly extractedTypes: ObjectType[];
+  readonly filesCreated: string[];
+  readonly folderPath: string;
+  readonly totalObjects: number;
+  readonly processingTime: number;
+  readonly errors?: string[];
+  readonly summary?: ExtractionSummary;
+}
+
+export interface ExtractionSummary {
+  readonly documentName: string;
+  readonly extractionDate: string;
+  readonly selectedTypes: ObjectType[];
+  readonly results: Record<ObjectType, ObjectTypeResult>;
+  readonly totalFiles: number;
+  readonly totalSize: number;
+  readonly processingTime: number;
+}
+
+export interface ObjectTypeResult {
+  readonly count: number;
+  readonly files: string[];
+  readonly size: number;
+  readonly status: 'success' | 'partial' | 'failed';
+  readonly errors?: string[];
+}
+
+export interface ObjectCounts {
+  readonly text: number;
+  readonly images: number;
+  readonly tables: number;
+  readonly fonts: number;
+  readonly annotations: number;
+  readonly formFields: number;
+  readonly attachments: number;
+  readonly bookmarks: number;
+  readonly javascript: number;
+  readonly metadata: number;
+}
+
+export type ObjectType =
+  | 'text'
+  | 'images'
+  | 'tables'
+  | 'fonts'
+  | 'annotations'
+  | 'formFields'
+  | 'attachments'
+  | 'bookmarks'
+  | 'javascript'
+  | 'metadata';
+
+export interface FileExtractionConfig {
+  readonly type: ObjectType;
+  readonly extension: string;
+  readonly mimeType?: string;
+  readonly encoding?: string;
+  readonly createSubfolder?: boolean;
 }
