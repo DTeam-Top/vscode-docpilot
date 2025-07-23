@@ -569,6 +569,65 @@
             font-style: italic;
             color: var(--vscode-descriptionForeground);
         }
+        
+        /* Search overlay styles */
+        .search-overlay {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background-color: var(--vscode-editor-background);
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            padding: 8px;
+        }
+        .search-container {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .search-overlay input {
+            padding: 6px 8px;
+            border: 1px solid var(--vscode-input-border);
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border-radius: 3px;
+            font-size: 13px;
+            outline: none;
+            width: 200px;
+        }
+        .search-overlay input:focus {
+            border-color: var(--vscode-focusBorder);
+        }
+        .search-overlay button {
+            padding: 6px 8px;
+            background-color: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+            border: 1px solid var(--vscode-button-border, transparent);
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            min-width: 24px;
+        }
+        .search-overlay button:hover {
+            background-color: var(--vscode-button-secondaryHoverBackground);
+        }
+        .search-overlay button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Search highlight styles */
+        .search-highlight {
+            background-color: rgba(255, 255, 0, 0.3);
+            border-radius: 2px;
+        }
+        .search-highlight.current {
+            background-color: rgba(255, 165, 0, 0.5);
+            outline: 1px solid orange;
+        }
     </style>
     <script type="module">
         // Import PDF.js as ES module
@@ -617,6 +676,9 @@
             <button id="textSelectionBtn" class="icon-button" onclick="toggleTextSelection()" title="Selection Mode">
                 <img id="textSelectionIcon" src="{{assetUri}}/view.svg" alt="Selection Mode" width="16" height="16">
             </button>
+            <button id="searchBtn" class="icon-button" onclick="toggleSearch()" title="Search Text">
+                <img id="searchIcon" src="{{assetUri}}/text-search.svg" alt="Search Text" width="16" height="16">
+            </button>
             <button id="inspectorBtn" class="icon-button" onclick="toggleInspector()" title="PDF Inspector">
                 <img id="inspectorIcon" src="{{assetUri}}/wand.svg" alt="PDF Inspector" width="16" height="16">
             </button>
@@ -637,6 +699,14 @@
     </div>
     <div class="warning-banner" id="warningBanner">
         ⚠️ Large document detected. Text selection may impact performance.
+    </div>
+    <div class="search-overlay" id="searchOverlay" style="display: none;">
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search text..." autocomplete="off">
+            <button id="searchPrevBtn" title="Previous match" onclick="searchPrevious()">↑</button>
+            <button id="searchNextBtn" title="Next match" onclick="searchNext()">↓</button>
+            <button id="searchCloseBtn" title="Close search" onclick="closeSearch()">×</button>
+        </div>
     </div>
     <div class="main-content">
         <div class="pdf-container" id="pdfContainer">

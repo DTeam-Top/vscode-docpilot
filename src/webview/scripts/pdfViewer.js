@@ -2532,6 +2532,12 @@ window.scanDocumentWideObjects = scanDocumentWideObjects;
 window.loadMorePages = loadMorePages;
 window.loadMoreObjects = loadMoreObjects;
 
+// Search functions
+window.toggleSearch = toggleSearch;
+window.searchNext = searchNext;
+window.searchPrevious = searchPrevious;
+window.closeSearch = closeSearch;
+
 // ===== LAZY LOADING SCAN FUNCTIONS =====
 
 // Scan specific object type (Object-Centric mode)
@@ -3056,5 +3062,273 @@ function loadMoreObjects(objectType) {
     );
   }, 300);
 }
+
+// Search functionality
+const searchState = {
+  isActive: false,
+  query: '',
+  matches: [],
+  currentMatchIndex: -1,
+  pageTextCache: new Map() // Cache extracted text per page
+};
+
+function toggleSearch() {
+  const overlay = document.getElementById('searchOverlay');
+  const input = document.getElementById('searchInput');
+  
+  if (searchState.isActive) {
+    closeSearch();
+  } else {
+    searchState.isActive = true;
+    overlay.style.display = 'block';
+    input.focus();
+    
+    // Setup input event listener for real-time search
+    input.addEventListener('input', debounce(handleSearchInput, 300));
+    input.addEventListener('keydown', handleSearchKeydown);
+  }
+}
+
+function closeSearch() {
+  const overlay = document.getElementById('searchOverlay');
+  const input = document.getElementById('searchInput');
+  
+  searchState.isActive = false;
+  overlay.style.display = 'none';
+  input.value = '';
+  clearSearchHighlights();
+  searchState.query = '';
+  searchState.matches = [];
+  searchState.currentMatchIndex = -1;
+  
+  // Remove event listeners
+  input.removeEventListener('input', handleSearchInput);
+  input.removeEventListener('keydown', handleSearchKeydown);
+}
+
+function handleSearchInput(event) {
+  const query = event.target.value.trim();
+  if (query.length < 2) {
+    clearSearchHighlights();
+    return;
+  }
+  
+  performSearch(query);
+}
+
+function handleSearchKeydown(event) {
+  if (event.key === 'Escape') {
+    closeSearch();
+  } else if (event.key === 'Enter') {
+    event.preventDefault();
+    if (event.shiftKey) {
+      searchPrevious();
+    } else {
+      searchNext();
+    }
+  }
+}
+
+async function performSearch(query) {
+  if (!query || query === searchState.query) return;
+  
+  searchState.query = query.toLowerCase();
+  searchState.matches = [];
+  searchState.currentMatchIndex = -1;
+  clearSearchHighlights();
+  
+  // Search through all pages
+  for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+    const pageText = await getPageText(pageNum);
+    if (pageText) {
+      findMatchesInPage(pageText, pageNum);
+    }
+  }
+  
+  // Highlight first match if found
+  if (searchState.matches.length > 0) {
+    searchState.currentMatchIndex = 0;
+    highlightCurrentMatch();
+    updateSearchButtons();
+  }
+}
+
+async function getPageText(pageNum) {
+  // Check cache first
+  if (searchState.pageTextCache.has(pageNum)) {
+    return searchState.pageTextCache.get(pageNum);
+  }
+  
+  try {
+    const page = await pdfDoc.getPage(pageNum);
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items.map(item => item.str).join(' ').toLowerCase();
+    
+    // Cache the text
+    searchState.pageTextCache.set(pageNum, pageText);
+    return pageText;
+  } catch (error) {
+    console.warn(`Failed to extract text from page ${pageNum}:`, error);
+    return '';
+  }
+}
+
+function findMatchesInPage(pageText, pageNum) {
+  const query = searchState.query;
+  let index = 0;
+  
+  // Find all matches in the page text
+  let foundIndex = pageText.indexOf(query, index);
+  while (foundIndex !== -1) {
+    searchState.matches.push({
+      pageNum,
+      textIndex: foundIndex
+    });
+    index = foundIndex + query.length;
+    foundIndex = pageText.indexOf(query, index);
+  }
+}
+
+function searchNext() {
+  if (searchState.matches.length === 0) return;
+  
+  searchState.currentMatchIndex = (searchState.currentMatchIndex + 1) % searchState.matches.length;
+  highlightCurrentMatch();
+}
+
+function searchPrevious() {
+  if (searchState.matches.length === 0) return;
+  
+  searchState.currentMatchIndex = searchState.currentMatchIndex <= 0 
+    ? searchState.matches.length - 1 
+    : searchState.currentMatchIndex - 1;
+  highlightCurrentMatch();
+}
+
+async function highlightCurrentMatch() {
+  if (searchState.currentMatchIndex < 0 || searchState.currentMatchIndex >= searchState.matches.length) {
+    return;
+  }
+  
+  const match = searchState.matches[searchState.currentMatchIndex];
+  
+  // Clear previous highlights
+  clearSearchHighlights();
+  
+  // Navigate to the page containing the match
+  await goToPage(match.pageNum);
+  
+  // Wait for page to be rendered and text layer to be available
+  setTimeout(async () => {
+    await highlightMatchInTextLayer(match.pageNum, searchState.query);
+  }, 300); // Increased delay to ensure text layer is ready
+}
+
+async function highlightMatchInTextLayer(pageNum, query) {
+  const pageContainer = document.querySelector(`#page-${pageNum}`);
+  if (!pageContainer) {
+    return;
+  }
+  
+  const textLayer = pageContainer.querySelector('.textLayer');
+  if (!textLayer) {
+    return;
+  }
+  
+  // Ensure text layer is rendered and visible
+  if (textLayer.classList.contains('hidden') || textLayer.children.length === 0) {
+    // Render the text layer first
+    await renderTextLayer(pageNum);
+  }
+  
+  // Get the current match
+  const currentMatch = searchState.matches[searchState.currentMatchIndex];
+  if (!currentMatch || currentMatch.pageNum !== pageNum) {
+    return;
+  }
+  
+  // Count how many matches we've seen on this page so far
+  let matchesOnThisPage = 0;
+  let targetMatchIndex = 0;
+  
+  for (let i = 0; i < searchState.matches.length; i++) {
+    if (searchState.matches[i].pageNum === pageNum) {
+      if (i === searchState.currentMatchIndex) {
+        targetMatchIndex = matchesOnThisPage;
+        break;
+      }
+      matchesOnThisPage++;
+    }
+  }
+  
+  // Find all spans that contain the query and highlight the correct one
+  const textSpans = textLayer.querySelectorAll('span');
+  let foundMatches = 0;
+  let foundMatch = false;
+  
+  for (const span of textSpans) {
+    const spanText = span.textContent.toLowerCase();
+    let queryIndex = spanText.indexOf(query);
+    
+    while (queryIndex !== -1) {
+      if (foundMatches === targetMatchIndex) {
+        // This is our target match
+        const originalText = span.textContent;
+        const before = originalText.substring(0, queryIndex);
+        const matchText = originalText.substring(queryIndex, queryIndex + query.length);
+        const after = originalText.substring(queryIndex + query.length);
+        
+        span.innerHTML = before + 
+          `<span class="search-highlight current">${matchText}</span>` + 
+          after;
+        
+        // Scroll to the match
+        span.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        foundMatch = true;
+        break;
+      }
+      
+      foundMatches++;
+      queryIndex = spanText.indexOf(query, queryIndex + 1);
+    }
+    
+    if (foundMatch) break;
+  }
+  
+  // If match not found, silently continue
+}
+
+function clearSearchHighlights() {
+  // Remove all search highlights
+  const highlights = document.querySelectorAll('.search-highlight');
+  highlights.forEach(highlight => {
+    const parent = highlight.parentNode;
+    parent.replaceChild(document.createTextNode(highlight.textContent), highlight);
+    parent.normalize(); // Merge adjacent text nodes
+  });
+}
+
+function updateSearchButtons() {
+  const prevBtn = document.getElementById('searchPrevBtn');
+  const nextBtn = document.getElementById('searchNextBtn');
+  
+  const hasMatches = searchState.matches.length > 0;
+  prevBtn.disabled = !hasMatches;
+  nextBtn.disabled = !hasMatches;
+}
+
+// Utility function for debouncing
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
 
 console.log('Webview script loaded and ready for messages');
