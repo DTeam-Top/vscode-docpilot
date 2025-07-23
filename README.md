@@ -12,7 +12,7 @@ A comprehensive VSCode extension that combines advanced PDF viewing with intelli
 - **Smart Navigation** - Zoom, fit-to-width/page, continuous scrolling
 - **Professional Toolbar** - Clean icon-based interface with intuitive controls
 - **Text Selection** - Interactive text selection with dynamic visual feedback
-- **Text Export** - Extract PDF content as clean text files
+- **Enhanced Object Extraction** - Extract text, images, tables, metadata, and 6 other object types
 - **PDF Object Inspector** - Dual-mode hierarchical viewer for comprehensive document structure analysis
 - **Debug Mode** - Developer tools for troubleshooting text layer rendering
 - **VSCode Integration** - Seamless theme matching and responsive UI
