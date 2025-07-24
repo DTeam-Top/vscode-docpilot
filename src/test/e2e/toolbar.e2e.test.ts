@@ -212,6 +212,15 @@ test('should interact with PDF viewer toolbar buttons', async () => {
   await expect(summarizeBtn).toBeVisible();
 
   await exportBtn.click();
+
+  // Close the extraction modal that was opened by the export button
+  const extractionCloseBtn = frame.locator('.extraction-close');
+  await expect(extractionCloseBtn).toBeVisible();
+  await extractionCloseBtn.click();
+
+  // Wait for the overlay to be hidden
+  await expect(frame.locator('#extractionOverlay')).toBeHidden();
+
   await summarizeBtn.click();
   console.log('Action buttons test passed');
 
@@ -228,10 +237,10 @@ test('should interact with PDF viewer toolbar buttons', async () => {
   await expect(inspectorBtn).toHaveAttribute('title', 'PDF Inspector');
   await expect(debugBtn).toHaveAttribute('title', 'Debug Mode');
 
-  // Export button title can change during export process ('Export Text' or 'Exporting...')
+  // Export button title can change during export process ('Extract Objects' or 'Exporting...')
   const exportTitle = await exportBtn.getAttribute('title');
   console.log('Export button title:', exportTitle);
-  expect(['Export Text', 'Exporting...']).toContain(exportTitle);
+  expect(['Extract Objects', 'Exporting...']).toContain(exportTitle);
 
   await expect(summarizeBtn).toHaveAttribute('title', 'Summarize this PDF using AI');
   console.log('Button accessibility attributes test passed');
