@@ -196,6 +196,89 @@ if (textLayer.classList.contains('hidden') || textLayer.children.length === 0) {
 ### Key Learning: Study existing patterns first
 Always examine how similar features work in the codebase before implementing new ones. This prevents selector mismatches, scope issues, and architectural inconsistencies.
 
+## Enhanced Object Extraction Implementation Lessons (July 2025)
+
+### Problem 1: Browse button not working in custom editor context
+**Reason**: PDFs opened via File → Open use `pdfCustomEditor.ts` but lack extraction message handlers  
+**Solution**: Add delegation methods to route extraction messages to `WebviewProvider`
+```typescript
+case WEBVIEW_MESSAGES.BROWSE_SAVE_FOLDER:
+  await this.delegateToWebviewProvider('handleBrowseSaveFolder', panel);
+  break;
+```
+
+### Problem 2: Infinite loops in PDF.js image object retrieval
+**Reason**: `page.objs.get()` can hang indefinitely when PDF objects are malformed or large  
+**Solution**: Implement timeout promises and operation limits
+```javascript
+const imgPromise = new Promise((resolve, reject) => {
+  const timeout = setTimeout(() => {
+    reject(new Error(`Timeout getting image ${imgName}`));
+  }, 5000); // 5 second timeout
+  
+  page.objs.get(imgName, (img) => {
+    clearTimeout(timeout);
+    resolve(img || null);
+  });
+});
+```
+
+### Problem 3: Incorrect timing calculations showing "0s"
+**Reason**: Extension-side `processingTime` didn't include webview collection phase  
+**Solution**: Pass `webviewStartTime` from webview to extension for complete timing
+```javascript
+// In webview
+extractionState.startTime = Date.now();
+// Pass to extension
+message.data.webviewStartTime = extractionState.startTime;
+```
+
+### Problem 4: Circular dependencies in extraction architecture
+**Reason**: Original design had extension request webview data, then webview call back to extension  
+**Solution**: Redesign flow - webview collects ALL data first, then sends to extension once
+```javascript
+// Webview collects everything first
+const objectData = await collectObjectDataAndExtract();
+// Then sends complete data to extension
+vscode.postMessage({
+  type: WEBVIEW_MESSAGES.EXTRACT_OBJECTS,
+  data: { selectedTypes, saveFolder, fileName, objectData, webviewStartTime }
+});
+```
+
+### Problem 5: UI responsiveness during extraction
+**Reason**: Long-running operations blocked UI updates  
+**Solution**: Implement progressive extraction with batch processing and real-time progress
+```javascript
+// Process in small batches with yield points
+for (let i = 0; i < pages.length; i += BATCH_SIZE) {
+  // Process batch
+  updateProgress((i / pages.length) * 100);
+  await new Promise(resolve => setTimeout(resolve, 0)); // Yield to UI
+}
+```
+
+### Problem 6: TypeScript any types causing maintenance issues
+**Reason**: Using `any` types bypassed type checking, leading to runtime errors  
+**Solution**: Create proper interfaces for all data structures
+```typescript
+interface ObjectExtractionRequest {
+  selectedTypes: ObjectType[];
+  saveFolder: string;
+  fileName: string;
+  objectData?: ObjectData;
+  webviewStartTime?: number;
+}
+```
+
+### Key Learnings: Complex Feature Development
+1. **Architecture First**: Design message flows and data structures before implementation
+2. **Timeout Everything**: PDF.js operations can hang - always use timeouts and limits
+3. **Progressive UX**: Long operations need progress indicators and UI yield points  
+4. **Type Safety**: Proper interfaces prevent runtime errors and improve maintainability
+5. **Dual Context Handling**: VSCode extensions have multiple entry points requiring delegation patterns
+6. **Performance Monitoring**: Track timing across webview-extension boundaries for accurate metrics
+
 ## Troubleshooting
 
 - **Webview issues**: Check VSCode Developer Tools console

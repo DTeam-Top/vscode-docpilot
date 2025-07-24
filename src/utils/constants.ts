@@ -44,7 +44,7 @@ export const WEBVIEW_MESSAGES = {
   SUMMARIZE_STARTED: 'summarizeStarted',
   SUMMARIZE_COMPLETED: 'summarizeCompleted',
   SUMMARIZE_ERROR: 'summarizeError',
-  EXPORT_TEXT: 'exportText',
+  EXPORT_TEXT: 'exportText', // Still used by pdfCustomEditor.ts
   EXPORT_STARTED: 'exportStarted',
   EXPORT_COMPLETED: 'exportCompleted',
   EXPORT_ERROR: 'exportError',
@@ -52,6 +52,16 @@ export const WEBVIEW_MESSAGES = {
   SEARCH_NEXT: 'searchNext',
   SEARCH_PREVIOUS: 'searchPrevious',
   SEARCH_CLOSE: 'searchClose',
+  // Enhanced object extraction messages
+  EXTRACT_OBJECTS: 'extractObjects',
+  EXTRACTION_PROGRESS: 'extractionProgress',
+  EXTRACTION_COMPLETED: 'extractionCompleted',
+  EXTRACTION_ERROR: 'extractionError',
+  EXTRACTION_CANCELLED: 'extractionCancelled',
+  BROWSE_SAVE_FOLDER: 'browseSaveFolder',
+  FOLDER_SELECTED: 'folderSelected',
+  GET_OBJECT_COUNTS: 'getObjectCounts',
+  OBJECT_COUNTS_UPDATED: 'objectCountsUpdated',
 } as const;
 
 export const CHAT_COMMANDS = {

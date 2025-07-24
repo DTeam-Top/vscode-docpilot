@@ -773,7 +773,6 @@ function toggleDebug() {
 async function extractAllTextContent() {
   try {
     let allText = '';
-    console.log('Starting text extraction for all pages...');
 
     for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
       const page = await pdfDoc.getPage(pageNum);
@@ -806,8 +805,6 @@ window.addEventListener('message', async (event) => {
 
   if (message.type === 'extractAllText') {
     try {
-      console.log('Starting text extraction, PDF loaded:', !!pdfDoc);
-
       if (!pdfDoc) {
         throw new Error('PDF not loaded yet');
       }
@@ -870,43 +867,14 @@ async function summarizeDocument() {
   }
 }
 
-async function exportText() {
-  console.log('Export button clicked - function called');
-  const exportBtn = document.getElementById('exportBtn');
+// Legacy export text function - now redirects to enhanced extraction modal
+function exportText() {
+  console.log('Export button clicked - redirecting to extraction modal');
 
-  if (!pdfDoc) {
-    console.error('PDF not loaded yet');
-    return;
-  }
-
-  try {
-    // Disable button and show loading state
-    exportBtn.disabled = true;
-    exportBtn.style.opacity = '0.6';
-    exportBtn.title = 'Exporting...';
-
-    console.log('Starting PDF export...');
-
-    // Send export request to extension
-    vscode.postMessage({
-      type: 'exportText',
-      fileName: PDF_CONFIG.fileName,
-      isUrl: PDF_CONFIG.isUrl,
-      pdfUri: PDF_CONFIG.pdfUri,
-    });
-  } catch (error) {
-    console.error('Error starting export:', error);
-
-    // Reset button state
-    exportBtn.disabled = false;
-    exportBtn.style.opacity = '1';
-    exportBtn.title = 'Export Text';
-
-    vscode.postMessage({
-      type: 'exportError',
-      error: error.message || 'Failed to start export',
-    });
-  }
+  // Pre-select only text type for backward compatibility
+  extractionState.selectedTypes.clear();
+  extractionState.selectedTypes.add('text');
+  showExtractionModal();
 }
 
 // Listen for summarization and export status updates
@@ -954,6 +922,42 @@ window.addEventListener('message', (event) => {
       exportBtn.disabled = false;
       exportBtn.style.opacity = '1';
       exportBtn.title = 'Export Text';
+      break;
+
+    // Enhanced extraction messages
+    case 'folderSelected':
+      console.log('Folder selected:', message.data);
+      if (message.data && message.data.folderPath) {
+        handleFolderSelected(message.data.folderPath);
+      }
+      break;
+
+    case 'objectCountsUpdated':
+      console.log('Object counts updated:', message.data);
+      if (message.data) {
+        updateObjectCounts(message.data);
+      }
+      break;
+
+    case 'extractionProgress':
+      console.log('Extraction progress:', message.data);
+      if (message.data) {
+        updateExtractionProgress(message.data);
+      }
+      break;
+
+    case 'extractionCompleted':
+      console.log('Extraction completed:', message.data);
+      if (message.data) {
+        handleExtractionCompleted(message.data);
+      }
+      break;
+
+    case 'extractionError':
+      console.error('Extraction error:', message.error);
+      if (message.error) {
+        handleExtractionError(message.error);
+      }
       break;
   }
 });
@@ -1166,8 +1170,6 @@ async function extractImagesFromPage(page, pageNum) {
   const images = [];
 
   try {
-    console.log(`Starting image extraction for page ${pageNum}`);
-
     const operatorList = await page.getOperatorList();
     console.log(`Page ${pageNum} operator list:`, operatorList);
     console.log(`Found ${operatorList.fnArray.length} operations`);
@@ -3076,20 +3078,20 @@ const searchState = {
   query: '',
   matches: [],
   currentMatchIndex: -1,
-  pageTextCache: new Map() // Cache extracted text per page
+  pageTextCache: new Map(), // Cache extracted text per page
 };
 
 function toggleSearch() {
   const overlay = document.getElementById('searchOverlay');
   const input = document.getElementById('searchInput');
-  
+
   if (searchState.isActive) {
     closeSearch();
   } else {
     searchState.isActive = true;
     overlay.style.display = 'block';
     input.focus();
-    
+
     // Setup input event listener for real-time search
     input.addEventListener('input', debounce(handleSearchInput, 300));
     input.addEventListener('keydown', handleSearchKeydown);
@@ -3099,7 +3101,7 @@ function toggleSearch() {
 function closeSearch() {
   const overlay = document.getElementById('searchOverlay');
   const input = document.getElementById('searchInput');
-  
+
   searchState.isActive = false;
   overlay.style.display = 'none';
   input.value = '';
@@ -3107,7 +3109,7 @@ function closeSearch() {
   searchState.query = '';
   searchState.matches = [];
   searchState.currentMatchIndex = -1;
-  
+
   // Remove event listeners
   input.removeEventListener('input', handleSearchInput);
   input.removeEventListener('keydown', handleSearchKeydown);
@@ -3119,7 +3121,7 @@ function handleSearchInput(event) {
     clearSearchHighlights();
     return;
   }
-  
+
   performSearch(query);
 }
 
@@ -3138,12 +3140,12 @@ function handleSearchKeydown(event) {
 
 async function performSearch(query) {
   if (!query || query === searchState.query) return;
-  
+
   searchState.query = query.toLowerCase();
   searchState.matches = [];
   searchState.currentMatchIndex = -1;
   clearSearchHighlights();
-  
+
   // Search through all pages
   for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
     const pageText = await getPageText(pageNum);
@@ -3151,7 +3153,7 @@ async function performSearch(query) {
       findMatchesInPage(pageText, pageNum);
     }
   }
-  
+
   // Highlight first match if found
   if (searchState.matches.length > 0) {
     searchState.currentMatchIndex = 0;
@@ -3165,12 +3167,15 @@ async function getPageText(pageNum) {
   if (searchState.pageTextCache.has(pageNum)) {
     return searchState.pageTextCache.get(pageNum);
   }
-  
+
   try {
     const page = await pdfDoc.getPage(pageNum);
     const textContent = await page.getTextContent();
-    const pageText = textContent.items.map(item => item.str).join(' ').toLowerCase();
-    
+    const pageText = textContent.items
+      .map((item) => item.str)
+      .join(' ')
+      .toLowerCase();
+
     // Cache the text
     searchState.pageTextCache.set(pageNum, pageText);
     return pageText;
@@ -3183,13 +3188,13 @@ async function getPageText(pageNum) {
 function findMatchesInPage(pageText, pageNum) {
   const query = searchState.query;
   let index = 0;
-  
+
   // Find all matches in the page text
   let foundIndex = pageText.indexOf(query, index);
   while (foundIndex !== -1) {
     searchState.matches.push({
       pageNum,
-      textIndex: foundIndex
+      textIndex: foundIndex,
     });
     index = foundIndex + query.length;
     foundIndex = pageText.indexOf(query, index);
@@ -3198,33 +3203,37 @@ function findMatchesInPage(pageText, pageNum) {
 
 function searchNext() {
   if (searchState.matches.length === 0) return;
-  
+
   searchState.currentMatchIndex = (searchState.currentMatchIndex + 1) % searchState.matches.length;
   highlightCurrentMatch();
 }
 
 function searchPrevious() {
   if (searchState.matches.length === 0) return;
-  
-  searchState.currentMatchIndex = searchState.currentMatchIndex <= 0 
-    ? searchState.matches.length - 1 
-    : searchState.currentMatchIndex - 1;
+
+  searchState.currentMatchIndex =
+    searchState.currentMatchIndex <= 0
+      ? searchState.matches.length - 1
+      : searchState.currentMatchIndex - 1;
   highlightCurrentMatch();
 }
 
 async function highlightCurrentMatch() {
-  if (searchState.currentMatchIndex < 0 || searchState.currentMatchIndex >= searchState.matches.length) {
+  if (
+    searchState.currentMatchIndex < 0 ||
+    searchState.currentMatchIndex >= searchState.matches.length
+  ) {
     return;
   }
-  
+
   const match = searchState.matches[searchState.currentMatchIndex];
-  
+
   // Clear previous highlights
   clearSearchHighlights();
-  
+
   // Navigate to the page containing the match
   await goToPage(match.pageNum);
-  
+
   // Wait for page to be rendered and text layer to be available
   setTimeout(async () => {
     await highlightMatchInTextLayer(match.pageNum, searchState.query);
@@ -3236,28 +3245,28 @@ async function highlightMatchInTextLayer(pageNum, query) {
   if (!pageContainer) {
     return;
   }
-  
+
   const textLayer = pageContainer.querySelector('.textLayer');
   if (!textLayer) {
     return;
   }
-  
+
   // Ensure text layer is rendered and visible
   if (textLayer.classList.contains('hidden') || textLayer.children.length === 0) {
     // Render the text layer first
     await renderTextLayer(pageNum);
   }
-  
+
   // Get the current match
   const currentMatch = searchState.matches[searchState.currentMatchIndex];
   if (!currentMatch || currentMatch.pageNum !== pageNum) {
     return;
   }
-  
+
   // Count how many matches we've seen on this page so far
   let matchesOnThisPage = 0;
   let targetMatchIndex = 0;
-  
+
   for (let i = 0; i < searchState.matches.length; i++) {
     if (searchState.matches[i].pageNum === pageNum) {
       if (i === searchState.currentMatchIndex) {
@@ -3267,16 +3276,16 @@ async function highlightMatchInTextLayer(pageNum, query) {
       matchesOnThisPage++;
     }
   }
-  
+
   // Find all spans that contain the query and highlight the correct one
   const textSpans = textLayer.querySelectorAll('span');
   let foundMatches = 0;
   let foundMatch = false;
-  
+
   for (const span of textSpans) {
     const spanText = span.textContent.toLowerCase();
     let queryIndex = spanText.indexOf(query);
-    
+
     while (queryIndex !== -1) {
       if (foundMatches === targetMatchIndex) {
         // This is our target match
@@ -3284,31 +3293,30 @@ async function highlightMatchInTextLayer(pageNum, query) {
         const before = originalText.substring(0, queryIndex);
         const matchText = originalText.substring(queryIndex, queryIndex + query.length);
         const after = originalText.substring(queryIndex + query.length);
-        
-        span.innerHTML = before + 
-          `<span class="search-highlight current">${matchText}</span>` + 
-          after;
-        
+
+        span.innerHTML =
+          before + `<span class="search-highlight current">${matchText}</span>` + after;
+
         // Scroll to the match
         span.scrollIntoView({ behavior: 'smooth', block: 'center' });
         foundMatch = true;
         break;
       }
-      
+
       foundMatches++;
       queryIndex = spanText.indexOf(query, queryIndex + 1);
     }
-    
+
     if (foundMatch) break;
   }
-  
+
   // If match not found, silently continue
 }
 
 function clearSearchHighlights() {
   // Remove all search highlights
   const highlights = document.querySelectorAll('.search-highlight');
-  highlights.forEach(highlight => {
+  highlights.forEach((highlight) => {
     const parent = highlight.parentNode;
     parent.replaceChild(document.createTextNode(highlight.textContent), highlight);
     parent.normalize(); // Merge adjacent text nodes
@@ -3318,7 +3326,7 @@ function clearSearchHighlights() {
 function updateSearchButtons() {
   const prevBtn = document.getElementById('searchPrevBtn');
   const nextBtn = document.getElementById('searchNextBtn');
-  
+
   const hasMatches = searchState.matches.length > 0;
   prevBtn.disabled = !hasMatches;
   nextBtn.disabled = !hasMatches;
@@ -3337,5 +3345,1112 @@ function debounce(func, wait) {
   };
 }
 
+// Enhanced Object Extraction System
+let extractionState = {
+  isOpen: false,
+  isExtracting: false,
+  isCompleted: false,
+  selectedTypes: new Set(['text']), // Default to text
+  saveFolder: '',
+  objectCounts: {},
+  extractionId: null,
+  extractionSummary: null,
+};
+
+// Show extraction modal
+function showExtractionModal() {
+  console.log('Opening extraction modal');
+  extractionState.isOpen = true;
+
+  const overlay = document.getElementById('extractionOverlay');
+  if (!overlay) {
+    console.error('Extraction overlay element not found!');
+    return;
+  }
+
+  overlay.style.display = 'flex';
+  console.log('Modal overlay display set to flex');
+
+  // Reset modal state
+  resetExtractionModal();
+
+  // Verify browse button is accessible
+  const browseBtn = document.querySelector('.folder-browse-btn');
+  if (browseBtn) {
+    console.log('Browse button found and accessible:', browseBtn);
+    console.log('Browse button click handler:', browseBtn.onclick);
+  } else {
+    console.error('Browse button not found in modal!');
+  }
+
+  // Request object counts from PDF Object Inspector
+  requestObjectCounts();
+
+  // Focus on the modal
+  setTimeout(() => {
+    const firstCheckbox = document.getElementById('type-text');
+    if (firstCheckbox) firstCheckbox.focus();
+  }, 100);
+}
+
+// Close extraction modal
+function closeExtractionModal() {
+  console.log('Closing extraction modal');
+  extractionState.isOpen = false;
+  extractionState.isExtracting = false;
+
+  const overlay = document.getElementById('extractionOverlay');
+  overlay.style.display = 'none';
+
+  // Cancel any ongoing extraction
+  if (extractionState.extractionId) {
+    cancelExtraction();
+  }
+}
+
+// Reset modal to initial state
+function resetExtractionModal() {
+  // Reset extraction state flags
+  extractionState.isExtracting = false;
+  extractionState.isCompleted = false;
+  extractionState.extractionId = null;
+  extractionState.extractionSummary = null;
+
+  // Reset extraction progress
+  const progressContainer = document.getElementById('extractionProgress');
+  progressContainer.classList.remove('show');
+
+  // Reset progress bar
+  const progressBarFill = document.getElementById('progressBarFill');
+  progressBarFill.style.width = '0%';
+
+  // Reset progress text
+  document.getElementById('progressTitle').textContent = 'Extracting objects...';
+  document.getElementById('progressStatus').textContent = 'Preparing extraction...';
+  document.getElementById('progressDetails').innerHTML = '';
+
+  // Update extract button state
+  updateExtractButton();
+}
+
+// Toggle object type selection (called by checkbox onchange)
+function toggleObjectType(objectType) {
+  console.log(`Toggling object type: ${objectType}`);
+
+  const checkbox = document.getElementById(`type-${objectType}`);
+  if (!checkbox) return;
+
+  // Update selected types based on checkbox state (no need to toggle, checkbox already changed)
+  if (checkbox.checked) {
+    extractionState.selectedTypes.add(objectType);
+  } else {
+    extractionState.selectedTypes.delete(objectType);
+  }
+
+  // Update extract button
+  updateExtractButton();
+
+  console.log('Selected types:', Array.from(extractionState.selectedTypes));
+}
+
+// Toggle by clicking label (triggers checkbox)
+function toggleObjectTypeByLabel(objectType) {
+  const checkbox = document.getElementById(`type-${objectType}`);
+  if (!checkbox || checkbox.disabled) return;
+
+  checkbox.checked = !checkbox.checked;
+  toggleObjectType(objectType); // Update state
+}
+
+// Update extract button state
+function updateExtractButton() {
+  const extractBtn = document.getElementById('startExtractionBtn');
+  const hasSelection = extractionState.selectedTypes.size > 0;
+  const hasFolder = extractionState.saveFolder.length > 0;
+
+  // Handle completion state
+  if (extractionState.isCompleted) {
+    extractBtn.disabled = false;
+    extractBtn.textContent = 'Close';
+    extractBtn.onclick = closeExtractionModal;
+    return;
+  }
+
+  // Reset onclick to startExtraction if not completed
+  extractBtn.onclick = startExtraction;
+
+  extractBtn.disabled = !hasSelection || !hasFolder || extractionState.isExtracting;
+
+  if (!hasSelection) {
+    extractBtn.textContent = 'Select Object Types';
+  } else if (!hasFolder) {
+    extractBtn.textContent = 'Select Save Folder';
+  } else if (extractionState.isExtracting) {
+    extractBtn.textContent = 'Extracting...';
+  } else {
+    extractBtn.textContent = `Extract ${extractionState.selectedTypes.size} Type${extractionState.selectedTypes.size > 1 ? 's' : ''}`;
+  }
+
+  // Update Select All button text based on current selection
+  updateSelectAllButton();
+}
+
+function updateSelectAllButton() {
+  const selectAllBtn = document.querySelector('.select-all-btn');
+  if (!selectAllBtn) return;
+
+  const allCheckboxes = document.querySelectorAll('.object-types-grid input[type="checkbox"]');
+  const allSelected = Array.from(allCheckboxes).every((checkbox) => checkbox.checked);
+
+  selectAllBtn.textContent = allSelected ? 'Deselect All' : 'Select All';
+}
+
+// Browse for save folder
+function browseSaveFolder() {
+  console.log('Browse button clicked - starting folder selection');
+  console.log('Current extraction state:', extractionState);
+
+  try {
+    // Check if vscode API is available
+    if (typeof vscode === 'undefined') {
+      console.error('VSCode API not available!');
+      return;
+    }
+
+    console.log('VSCode API available, sending message...');
+
+    // Send message to extension to open folder picker
+    const message = {
+      type: 'browseSaveFolder',
+    };
+    console.log('Sending message:', message);
+
+    vscode.postMessage(message);
+
+    console.log('Message sent to extension for folder browsing');
+  } catch (error) {
+    console.error('Error in browseSaveFolder:', error);
+  }
+}
+
+// Handle folder selection from extension
+function handleFolderSelected(folderPath) {
+  console.log('Folder selected:', folderPath);
+
+  extractionState.saveFolder = folderPath;
+  const folderInput = document.getElementById('folderPath');
+  folderInput.value = folderPath;
+
+  updateExtractButton();
+}
+
+// Show predefined object types immediately (no scanning needed)
+function requestObjectCounts() {
+  console.log('Showing predefined object types');
+
+  // Show all object types without counts - extraction will determine actual availability
+  const predefinedCounts = {
+    text: '',
+    images: '',
+    tables: '',
+    fonts: '',
+    annotations: '',
+    formFields: '',
+    attachments: '',
+    bookmarks: '',
+    javascript: '',
+    metadata: '',
+  };
+
+  updateObjectCounts(predefinedCounts);
+}
+
+// Update object counts in UI
+function updateObjectCounts(counts) {
+  console.log('Updating object counts:', counts);
+
+  extractionState.objectCounts = counts;
+
+  // Update count badges in UI
+  Object.entries(counts).forEach(([type, count]) => {
+    const countElement = document.getElementById(`count-${type}`);
+    if (countElement) {
+      // Hide count display - just show object type without numbers
+      if (count === '' || count === null || count === undefined) {
+        countElement.style.display = 'none';
+      } else {
+        countElement.textContent = count.toString();
+        countElement.style.display = 'inline';
+      }
+
+      // All object types are enabled by default - extraction will handle empty results
+      const typeItem = countElement.closest('.object-type-item');
+      const checkbox = document.getElementById(`type-${type}`);
+
+      // Keep all items enabled and available for selection
+      typeItem.style.opacity = '1';
+      typeItem.style.cursor = 'pointer';
+      checkbox.disabled = false;
+    }
+  });
+
+  updateExtractButton();
+}
+
+// Start extraction process
+function startExtraction() {
+  if (extractionState.selectedTypes.size === 0 || !extractionState.saveFolder) {
+    console.warn('Cannot start extraction: missing selection or folder');
+    return;
+  }
+
+  extractionState.isExtracting = true;
+  extractionState.extractionId = Date.now().toString();
+  extractionState.startTime = Date.now(); // Track extraction start time
+
+  // Show progress container
+  const progressContainer = document.getElementById('extractionProgress');
+  progressContainer.classList.add('show');
+
+  // Update UI
+  updateExtractButton();
+
+  // Collect all object data first, then send to extension
+  collectObjectDataAndExtract();
+}
+
+// Collect object data and send extraction request
+async function collectObjectDataAndExtract() {
+  try {
+    console.log('Collecting object data for extraction...');
+
+    const selectedTypesArray = Array.from(extractionState.selectedTypes);
+    const totalTypes = selectedTypesArray.length;
+
+    // Initialize object data collection
+    const objectData = {};
+
+    // Update progress to show we're collecting data
+    updateExtractionProgress({
+      overall: { current: 0, total: totalTypes, percentage: 0, status: 'processing' },
+      types: Object.fromEntries(
+        selectedTypesArray.map((type) => [
+          type,
+          {
+            current: 0,
+            total: 1,
+            percentage: 0,
+            status: 'pending',
+            message: `Waiting to collect ${type}...`,
+          },
+        ])
+      ),
+      currentOperation: 'Collecting object data from PDF...',
+      filesCreated: [],
+    });
+
+    for (let i = 0; i < selectedTypesArray.length; i++) {
+      const objectType = selectedTypesArray[i];
+      console.log(`Collecting ${objectType} data...`);
+
+      // Update progress to show current collection phase
+      const collectionProgress = {
+        overall: {
+          current: i,
+          total: totalTypes,
+          percentage: (i / totalTypes) * 100,
+          status: 'processing',
+        },
+        types: Object.fromEntries(
+          selectedTypesArray.map((type, index) => [
+            type,
+            {
+              current: index < i ? 1 : index === i ? 0.5 : 0,
+              total: 1,
+              percentage: index < i ? 100 : index === i ? 50 : 0,
+              status: index < i ? 'completed' : index === i ? 'processing' : 'pending',
+              message:
+                index < i
+                  ? `${type} collected`
+                  : index === i
+                    ? `Collecting ${type}...`
+                    : `Waiting for ${type}`,
+            },
+          ])
+        ),
+        currentOperation: `Collecting ${objectType} data from PDF...`,
+        filesCreated: [],
+      };
+
+      updateExtractionProgress(collectionProgress);
+
+      switch (objectType) {
+        case 'text':
+          objectData[objectType] = await collectTextData();
+          break;
+
+        case 'images':
+          objectData[objectType] = await collectImageData();
+          break;
+
+        case 'tables':
+          objectData[objectType] = await collectTableData();
+          break;
+
+        case 'fonts':
+          objectData[objectType] = await collectFontData();
+          break;
+
+        case 'annotations':
+          objectData[objectType] = await collectAnnotationData();
+          break;
+
+        case 'formFields':
+          objectData[objectType] = await collectFormFieldData();
+          break;
+
+        case 'attachments':
+          objectData[objectType] = await collectAttachmentData();
+          break;
+
+        case 'bookmarks':
+          objectData[objectType] = await collectBookmarkData();
+          break;
+
+        case 'javascript':
+          objectData[objectType] = await collectJavaScriptData();
+          break;
+
+        case 'metadata':
+          objectData[objectType] = await collectMetadataData();
+          break;
+
+        default:
+          console.warn(`Unknown object type: ${objectType}`);
+          objectData[objectType] = { count: 0, data: [] };
+      }
+
+      // Update progress to show this type is completed
+      collectionProgress.types[objectType] = {
+        current: 1,
+        total: 1,
+        percentage: 100,
+        status: 'completed',
+        message: `${objectType} collected (${objectData[objectType].count} items)`,
+      };
+      collectionProgress.overall.current = i + 1;
+      collectionProgress.overall.percentage = ((i + 1) / totalTypes) * 100;
+
+      updateExtractionProgress(collectionProgress);
+
+      // Add a small delay to make progress visible for fast operations
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    console.log('Collected object data:', objectData);
+
+    // Update progress to show we're sending to extension
+    updateExtractionProgress({
+      overall: { current: totalTypes, total: totalTypes, percentage: 100, status: 'processing' },
+      types: Object.fromEntries(
+        selectedTypesArray.map((type) => [
+          type,
+          {
+            current: 1,
+            total: 1,
+            percentage: 100,
+            status: 'completed',
+            message: `${type} ready for extraction`,
+          },
+        ])
+      ),
+      currentOperation: 'Sending data to extension for file creation...',
+      filesCreated: [],
+    });
+
+    // Send extraction request with collected data
+    vscode.postMessage({
+      type: 'extractObjects',
+      data: {
+        selectedTypes: selectedTypesArray,
+        saveFolder: extractionState.saveFolder,
+        fileName: PDF_CONFIG.fileName,
+        extractionId: extractionState.extractionId,
+        objectData: objectData, // Include collected object data
+        webviewStartTime: extractionState.startTime, // Include webview start time for accurate timing
+      },
+    });
+  } catch (error) {
+    console.error('Failed to collect object data:', error);
+    updateExtractionProgress({
+      overall: { current: 0, total: 1, percentage: 0, status: 'error' },
+      currentOperation: `Error: ${error.message}`,
+      filesCreated: [],
+    });
+  }
+}
+
+// Object data collection functions
+async function collectTextData() {
+  if (!pdfDoc) return { count: 0, data: '' };
+
+  try {
+    const totalPages = pdfDoc.numPages;
+    let fullText = '';
+
+    for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+      // Update progress every 10 pages
+      if (pageNum % 10 === 0 || pageNum === totalPages) {
+        const progress = Math.round((pageNum / totalPages) * 100);
+        updateExtractionProgress({
+          overall: { current: 0, total: 1, percentage: progress / 2, status: 'processing' },
+          currentOperation: `Extracting text from page ${pageNum}/${totalPages}`,
+          filesCreated: [],
+        });
+      }
+
+      try {
+        const page = await pdfDoc.getPage(pageNum);
+        const textContent = await page.getTextContent();
+
+        // Combine text items with spaces
+        const pageText = textContent.items
+          .map((item) => item.str)
+          .join(' ')
+          .trim();
+
+        if (pageText) {
+          fullText += `\n\n--- Page ${pageNum} ---\n\n${pageText}`;
+        }
+      } catch (pageError) {
+        console.warn(`Failed to extract text from page ${pageNum}:`, pageError);
+      }
+    }
+
+    console.log(`Text extraction completed. Extracted ${fullText.length} characters.`);
+    return { count: fullText.length, data: fullText.trim() };
+  } catch (error) {
+    console.error('Error collecting text data:', error);
+    return { count: 0, data: '' };
+  }
+}
+
+async function collectImageData() {
+  const images = [];
+  if (!pdfDoc) return { count: 0, data: images };
+
+  try {
+    const totalPages = pdfDoc.numPages;
+    const maxImages = 100; // Limit total images to prevent memory issues
+
+    for (let pageNum = 1; pageNum <= totalPages && images.length < maxImages; pageNum++) {
+      console.log(
+        `Extracting images from page ${pageNum}/${totalPages}... (found ${images.length} so far)`
+      );
+
+      // Update progress for image collection (shows every 10 pages or on last page)
+      if (pageNum % 10 === 0 || pageNum === totalPages) {
+        const progress = Math.round((pageNum / totalPages) * 100);
+        updateExtractionProgress({
+          overall: { current: 0, total: 1, percentage: progress / 2, status: 'processing' }, // Half the progress since this is just one type
+          currentOperation: `Extracting images from page ${pageNum}/${totalPages}... (${images.length} found)`,
+          filesCreated: [],
+        });
+      }
+
+      try {
+        // Add timeout for page processing to prevent getting stuck
+        const pagePromise = pdfDoc.getPage(pageNum);
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error(`Timeout processing page ${pageNum}`)), 10000); // 10 second timeout per page
+        });
+
+        const page = await Promise.race([pagePromise, timeoutPromise]);
+
+        // Get all images from the page
+        const ops = await page.getOperatorList();
+        const pageImages = [];
+
+        // Look for image operations (limit to prevent infinite loops)
+        const maxOperations = Math.min(ops.fnArray.length, 1000); // Limit to 1000 operations per page
+        let imageOpsProcessed = 0;
+        const maxImageOpsPerPage = 50; // Limit image operations per page to prevent infinite loops
+
+        for (let i = 0; i < maxOperations; i++) {
+          if (ops.fnArray[i] === pdfjsLib.OPS.paintImageXObject) {
+            // Check if we've reached the limit for image operations per page
+            if (imageOpsProcessed >= maxImageOpsPerPage) {
+              console.log(
+                `Reached maximum image operations per page (${maxImageOpsPerPage}), skipping remaining images on page ${pageNum}`
+              );
+              break;
+            }
+            imageOpsProcessed++;
+
+            const imgName = ops.argsArray[i][0];
+            console.log(`Found image: ${imgName} on page ${pageNum}`);
+
+            try {
+              // Get image from page objects with timeout
+              const imgPromise = new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                  reject(new Error(`Timeout getting image ${imgName}`));
+                }, 5000); // 5 second timeout
+
+                page.objs.get(
+                  imgName,
+                  (img) => {
+                    clearTimeout(timeout);
+                    resolve(img || null);
+                  },
+                  (error) => {
+                    clearTimeout(timeout);
+                    console.warn(`Failed to get image ${imgName}:`, error);
+                    resolve(null); // Return null instead of rejecting to continue processing
+                  }
+                );
+              });
+
+              const img = await imgPromise;
+              if (img && (img.data || img.bitmap || img instanceof ImageBitmap)) {
+                console.log(`Processing image ${imgName}:`, {
+                  width: img.width,
+                  height: img.height,
+                  kind: img.kind,
+                });
+
+                // Create canvas and draw image
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                // Set canvas size with reasonable limits to prevent memory issues
+                const maxDimension = 2048; // Limit image dimensions to prevent infinite loops
+                const imgWidth = Math.min(img.width || 200, maxDimension);
+                const imgHeight = Math.min(img.height || 200, maxDimension);
+                canvas.width = imgWidth;
+                canvas.height = imgHeight;
+
+                // Handle different image types
+                if (img.bitmap) {
+                  // ImageBitmap
+                  ctx.drawImage(img.bitmap, 0, 0);
+                } else if (img.data) {
+                  // Raw image data
+                  const imageData = ctx.createImageData(canvas.width, canvas.height);
+                  const data = new Uint8ClampedArray(img.data);
+
+                  // Handle different pixel formats with safety checks
+                  const totalPixels = canvas.width * canvas.height;
+                  const maxPixels = 4194304; // 2048x2048 maximum to prevent infinite loops
+
+                  if (totalPixels > maxPixels) {
+                    console.warn(
+                      `Skipping large image ${imgName}: ${canvas.width}x${canvas.height} (${totalPixels} pixels)`
+                    );
+                    continue; // Skip this image
+                  }
+
+                  if (data.length === totalPixels * 4) {
+                    // RGBA
+                    imageData.data.set(data);
+                  } else if (data.length === totalPixels * 3) {
+                    // RGB - convert to RGBA
+                    for (let j = 0; j < totalPixels; j++) {
+                      imageData.data[j * 4] = data[j * 3]; // R
+                      imageData.data[j * 4 + 1] = data[j * 3 + 1]; // G
+                      imageData.data[j * 4 + 2] = data[j * 3 + 2]; // B
+                      imageData.data[j * 4 + 3] = 255; // A
+                    }
+                  } else if (data.length === totalPixels) {
+                    // Grayscale - convert to RGBA
+                    for (let j = 0; j < totalPixels; j++) {
+                      const gray = data[j];
+                      imageData.data[j * 4] = gray; // R
+                      imageData.data[j * 4 + 1] = gray; // G
+                      imageData.data[j * 4 + 2] = gray; // B
+                      imageData.data[j * 4 + 3] = 255; // A
+                    }
+                  }
+
+                  ctx.putImageData(imageData, 0, 0);
+                } else {
+                  // Fallback: try to draw the image directly
+                  try {
+                    ctx.drawImage(img, 0, 0);
+                  } catch (drawError) {
+                    console.warn(`Cannot draw image ${imgName}:`, drawError);
+                    continue;
+                  }
+                }
+
+                // Convert to base64
+                const base64 = canvas.toDataURL('image/png');
+                if (base64 && base64.length > 100) {
+                  // Basic validation
+                  images.push({
+                    id: `img_p${pageNum}_${images.length + 1}`,
+                    page: pageNum,
+                    name: imgName,
+                    width: canvas.width,
+                    height: canvas.height,
+                    base64: base64,
+                  });
+
+                  console.log(
+                    `Successfully extracted image ${imgName} (${canvas.width}x${canvas.height})`
+                  );
+                }
+              } else {
+                console.warn(`No valid image data found for ${imgName}`);
+              }
+            } catch (imgError) {
+              console.warn(`Failed to extract image ${imgName} on page ${pageNum}:`, imgError);
+            }
+
+            // Break if we've reached the max image limit
+            if (images.length >= maxImages) {
+              console.log(`Reached maximum image limit (${maxImages}), stopping extraction`);
+              break;
+            }
+          }
+
+          // Yield control periodically to prevent blocking the main thread
+          if (imageOpsProcessed % 10 === 0 && imageOpsProcessed > 0) {
+            await new Promise((resolve) => setTimeout(resolve, 0));
+          }
+        }
+
+        // Add images from this page to the overall collection
+        images.push(...pageImages);
+      } catch (pageError) {
+        console.warn(`Failed to process page ${pageNum} for images:`, pageError);
+      }
+    }
+
+    console.log(`Image extraction completed. Found ${images.length} images.`);
+  } catch (error) {
+    console.error('Error collecting image data:', error);
+  }
+
+  return { count: images.length, data: images };
+}
+
+async function collectTableData() {
+  // Placeholder for table extraction
+  return { count: 0, data: [], message: 'Table extraction not yet implemented' };
+}
+
+async function collectFontData() {
+  const fonts = [];
+  if (!pdfDoc) return { count: 0, data: fonts };
+
+  try {
+    for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+      const page = await pdfDoc.getPage(pageNum);
+      const fonts_page = await page.getOperatorList();
+      // Font extraction logic would go here
+    }
+  } catch (error) {
+    console.error('Error collecting font data:', error);
+  }
+
+  return { count: fonts.length, data: fonts };
+}
+
+async function collectAnnotationData() {
+  const annotations = [];
+  if (!pdfDoc) return { count: 0, data: annotations };
+
+  try {
+    const totalPages = pdfDoc.numPages;
+
+    for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+      // Update progress for annotation collection (every 20 pages)
+      if (pageNum % 20 === 0 || pageNum === totalPages) {
+        const progress = Math.round((pageNum / totalPages) * 100);
+        updateExtractionProgress({
+          overall: { current: 0, total: 1, percentage: progress / 2, status: 'processing' },
+          currentOperation: `Collecting annotations from page ${pageNum}/${totalPages}...`,
+          filesCreated: [],
+        });
+      }
+
+      const page = await pdfDoc.getPage(pageNum);
+      const pageAnnotations = await page.getAnnotations();
+
+      pageAnnotations.forEach((annotation, index) => {
+        annotations.push({
+          id: `ann_p${pageNum}_${index}`,
+          page: pageNum,
+          type: annotation.subtype || 'Unknown',
+          content: annotation.contents || '',
+          rect: annotation.rect,
+          data: annotation,
+        });
+      });
+    }
+  } catch (error) {
+    console.error('Error collecting annotation data:', error);
+  }
+
+  return { count: annotations.length, data: annotations };
+}
+
+async function collectFormFieldData() {
+  // Placeholder - would use page.getAnnotations() and filter for form fields
+  return { count: 0, data: [], message: 'Form field extraction not yet implemented' };
+}
+
+async function collectAttachmentData() {
+  // Placeholder - would use doc.getAttachments()
+  return { count: 0, data: [], message: 'Attachment extraction not yet implemented' };
+}
+
+async function collectBookmarkData() {
+  const bookmarks = [];
+  if (!pdfDoc) return { count: 0, data: bookmarks };
+
+  try {
+    const outline = await pdfDoc.getOutline();
+    if (outline) {
+      const flattenOutline = (items, level = 0) => {
+        items.forEach((item, index) => {
+          bookmarks.push({
+            id: `bookmark_${level}_${index}`,
+            title: item.title,
+            level: level,
+            dest: item.dest,
+            url: item.url,
+            data: item,
+          });
+
+          if (item.items && item.items.length > 0) {
+            flattenOutline(item.items, level + 1);
+          }
+        });
+      };
+
+      flattenOutline(outline);
+    }
+  } catch (error) {
+    console.error('Error collecting bookmark data:', error);
+  }
+
+  return { count: bookmarks.length, data: bookmarks };
+}
+
+async function collectJavaScriptData() {
+  // Placeholder - would extract JS actions from the PDF
+  return { count: 0, data: [], message: 'JavaScript extraction not yet implemented' };
+}
+
+async function collectMetadataData() {
+  const metadata = {};
+  if (!pdfDoc) return { count: 0, data: metadata };
+
+  try {
+    const info = await pdfDoc.getMetadata();
+    metadata.info = info.info;
+    metadata.metadata = info.metadata;
+    metadata.contentDispositionFilename = info.contentDispositionFilename;
+    metadata.contentLength = info.contentLength;
+  } catch (error) {
+    console.error('Error collecting metadata:', error);
+  }
+
+  return { count: Object.keys(metadata).length, data: metadata };
+}
+
+// Cancel extraction
+function cancelExtraction() {
+  if (!extractionState.isExtracting) return;
+
+  console.log('Cancelling extraction');
+
+  // Send cancellation to extension
+  vscode.postMessage({
+    type: 'extractionCancelled',
+    data: { extractionId: extractionState.extractionId },
+  });
+
+  // Reset state
+  extractionState.isExtracting = false;
+  extractionState.extractionId = null;
+
+  // Update UI
+  updateExtractButton();
+
+  // Hide progress
+  const progressContainer = document.getElementById('extractionProgress');
+  progressContainer.classList.remove('show');
+}
+
+// Update extraction progress
+function updateExtractionProgress(progress) {
+  console.log('Updating extraction progress:', progress);
+
+  // Update progress bar
+  const progressBarFill = document.getElementById('progressBarFill');
+  progressBarFill.style.width = `${progress.overall.percentage}%`;
+
+  // Update progress status
+  const progressStatus = document.getElementById('progressStatus');
+  if (progress.currentOperation) {
+    progressStatus.textContent = progress.currentOperation;
+  } else if (progress.currentType) {
+    progressStatus.textContent = `Extracting ${progress.currentType}...`;
+  } else {
+    progressStatus.textContent = `${Math.round(progress.overall.percentage)}% complete`;
+  }
+
+  // Update progress details
+  const progressDetails = document.getElementById('progressDetails');
+  if (progress.types && Object.keys(progress.types).length > 0) {
+    const detailsHtml = Object.entries(progress.types)
+      .map(
+        ([type, typeProgress]) => `
+        <div class="detail-item">
+          <span>${type}</span>
+          <span>${typeProgress.status === 'completed' ? '✓' : typeProgress.status === 'error' ? '✗' : '⋯'}</span>
+        </div>
+      `
+      )
+      .join('');
+    progressDetails.innerHTML = detailsHtml;
+  }
+
+  // Show files created count
+  if (progress.filesCreated && progress.filesCreated.length > 0) {
+    const filesInfo = document.createElement('div');
+    filesInfo.textContent = `${progress.filesCreated.length} files created`;
+    filesInfo.style.fontSize = '11px';
+    filesInfo.style.color = 'var(--vscode-descriptionForeground)';
+    filesInfo.style.marginTop = '4px';
+    progressDetails.appendChild(filesInfo);
+  }
+}
+
+// Handle extraction completion
+function handleExtractionCompleted(result) {
+  console.log('Extraction completed:', result);
+
+  extractionState.isExtracting = false;
+  extractionState.isCompleted = true;
+  extractionState.extractionId = null;
+  extractionState.extractionSummary = result;
+
+  // Update progress to show completion
+  updateExtractionProgress({
+    overall: {
+      current: result.extractedTypes.length,
+      total: result.extractedTypes.length,
+      percentage: 100,
+      status: 'completed',
+    },
+    types: Object.fromEntries(
+      result.extractedTypes.map((type) => [
+        type,
+        { status: 'completed', message: 'Extraction completed' },
+      ])
+    ),
+    filesCreated: result.filesCreated,
+    currentOperation: 'Extraction completed successfully!',
+  });
+
+  // Update progress status
+  const progressStatus = document.getElementById('progressStatus');
+  const objectCount = result.totalObjects || 0;
+  const fileCount = result.filesCreated ? result.filesCreated.length : 0;
+
+  // Calculate total time including webview collection phase
+  let totalProcessingTime = 0;
+  if (extractionState.startTime) {
+    totalProcessingTime = Math.round((Date.now() - extractionState.startTime) / 1000);
+  } else {
+    // Fallback to extension processing time if startTime is missing
+    totalProcessingTime = result.processingTime ? Math.round(result.processingTime / 1000) : 0;
+  }
+
+  if (objectCount === 0) {
+    progressStatus.textContent = `ℹ️ No objects found for selected types. Check if PDF contains the requested object types.`;
+  } else {
+    progressStatus.textContent = `✅ Extraction completed! ${objectCount} objects extracted to ${fileCount} files in ${totalProcessingTime}s`;
+  }
+
+  // Update extract button
+  updateExtractButton();
+
+  // Show extraction summary in the dialog
+  showExtractionSummary(result);
+
+  // Populate shared object data for PDF Object Inspector if extraction found objects
+  if (result.summary && result.summary.results) {
+    populateSharedObjectData(result.summary.results);
+  }
+
+  // Show appropriate completion message
+  setTimeout(() => {
+    if (objectCount === 0) {
+      alert(
+        `No objects found for the selected types.\\n\\nThe PDF may not contain: ${Array.from(extractionState.selectedTypes).join(', ')}.\\n\\nTry selecting different object types or check if the PDF has the content you're looking for.`
+      );
+    } else {
+      const message = `Extraction completed successfully!\\n\\n${objectCount} objects extracted to ${fileCount} files in ${totalProcessingTime}s.\\n\\nWould you like to open the extraction folder?`;
+      if (confirm(message)) {
+        vscode.postMessage({
+          type: 'openFolder',
+          data: { folderPath: result.folderPath },
+        });
+      }
+    }
+  }, 500);
+}
+
+// Populate shared object data for PDF Object Inspector
+function populateSharedObjectData(extractionResults) {
+  console.log('Populating shared object data for PDF Object Inspector:', extractionResults);
+
+  // If PDF Object Inspector is initialized, populate it with extraction results
+  if (globalInspector && extractionResults) {
+    try {
+      // Update inspector with extracted data counts
+      Object.entries(extractionResults).forEach(([objectType, result]) => {
+        if (result.count > 0) {
+          console.log(`Found ${result.count} ${objectType} objects`);
+          // The actual object data would be populated during the extraction process
+          // This gives users visual feedback in the Inspector if they open it later
+        }
+      });
+
+      // Refresh inspector display if it's open
+      const inspectorSidebar = document.getElementById('inspectorSidebar');
+      if (inspectorSidebar && inspectorSidebar.classList.contains('open')) {
+        console.log('Refreshing PDF Object Inspector display with new data');
+        // The inspector will show updated data next time it renders
+      }
+    } catch (error) {
+      console.warn('Failed to populate shared object data:', error);
+    }
+  }
+}
+
+// Handle extraction error
+function handleExtractionError(error) {
+  console.error('Extraction error:', error);
+
+  extractionState.isExtracting = false;
+  extractionState.extractionId = null;
+
+  // Update progress status
+  const progressStatus = document.getElementById('progressStatus');
+  progressStatus.textContent = `❌ Extraction failed: ${error}`;
+
+  // Update extract button
+  updateExtractButton();
+
+  // Show error message
+  alert(`Extraction failed: ${error}`);
+}
+
+// Show extraction summary in the dialog
+function showExtractionSummary(result) {
+  const progressDetails = document.getElementById('progressDetails');
+
+  if (!result || !result.summary || !result.summary.results) {
+    return;
+  }
+
+  console.log('Showing extraction summary:', result.summary);
+
+  // Create summary HTML
+  const summaryHtml = `
+    <div class="extraction-summary">
+      <h4>📊 Extraction Summary</h4>
+      <div class="summary-stats">
+        <div class="stat-item">
+          <span class="stat-label">Total Objects:</span>
+          <span class="stat-value">${result.totalObjects || 0}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Files Created:</span>
+          <span class="stat-value">${result.filesCreated ? result.filesCreated.length : 0}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Processing Time:</span>
+          <span class="stat-value">${result.processingTime ? Math.round(result.processingTime / 1000) : 0}s</span>
+        </div>
+      </div>
+      <div class="summary-details">
+        ${Object.entries(result.summary.results)
+          .map(
+            ([type, typeResult]) => `
+          <div class="summary-type">
+            <span class="type-name">${type.charAt(0).toUpperCase() + type.slice(1)}:</span>
+            <span class="type-count">${typeResult.count || 0} objects</span>
+            <span class="type-files">(${typeResult.files ? typeResult.files.length : 0} files)</span>
+            ${
+              typeResult.status === 'error'
+                ? '<span class="type-error">❌ Error</span>'
+                : typeResult.count > 0
+                  ? '<span class="type-success">✅</span>'
+                  : '<span class="type-empty">⚪ Empty</span>'
+            }
+          </div>
+        `
+          )
+          .join('')}
+      </div>
+      <div class="summary-location">
+        <strong>📁 Saved to:</strong> ${result.extractionFolder || extractionState.saveFolder}
+      </div>
+    </div>
+  `;
+
+  progressDetails.innerHTML = summaryHtml;
+}
+
+// Select/Deselect all object types
+function toggleSelectAll() {
+  const selectAllBtn = document.querySelector('.select-all-btn');
+  const allCheckboxes = document.querySelectorAll('.object-types-grid input[type="checkbox"]');
+
+  // Check if all are currently selected
+  const allSelected = Array.from(allCheckboxes).every((checkbox) => checkbox.checked);
+
+  if (allSelected) {
+    // Deselect all
+    allCheckboxes.forEach((checkbox) => {
+      if (checkbox.checked) {
+        checkbox.checked = false;
+        const objectType = checkbox.id.replace('type-', '');
+        extractionState.selectedTypes.delete(objectType);
+      }
+    });
+    selectAllBtn.textContent = 'Select All';
+  } else {
+    // Select all
+    allCheckboxes.forEach((checkbox) => {
+      if (!checkbox.checked) {
+        checkbox.checked = true;
+        const objectType = checkbox.id.replace('type-', '');
+        extractionState.selectedTypes.add(objectType);
+      }
+    });
+    selectAllBtn.textContent = 'Deselect All';
+  }
+
+  // Update extract button
+  updateExtractButton();
+}
+
+// Make functions available to window for onclick handlers
+window.showExtractionModal = showExtractionModal;
+window.closeExtractionModal = closeExtractionModal;
+window.toggleObjectType = toggleObjectType;
+window.toggleObjectTypeByLabel = toggleObjectTypeByLabel;
+window.toggleSelectAll = toggleSelectAll;
+window.browseSaveFolder = browseSaveFolder;
+window.startExtraction = startExtraction;
+window.cancelExtraction = cancelExtraction;
 
 console.log('Webview script loaded and ready for messages');

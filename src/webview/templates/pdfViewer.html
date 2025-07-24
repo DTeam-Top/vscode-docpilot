@@ -628,6 +628,322 @@
             background-color: rgba(255, 165, 0, 0.5);
             outline: 1px solid orange;
         }
+        
+        /* Enhanced extraction modal styles */
+        .extraction-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .extraction-modal {
+            background-color: var(--vscode-editor-background);
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 6px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            width: 600px;
+            max-width: 95vw;
+            max-height: 85vh;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .extraction-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .extraction-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--vscode-foreground);
+            margin: 0;
+        }
+        .extraction-close {
+            background: none;
+            border: none;
+            color: var(--vscode-foreground);
+            font-size: 18px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 3px;
+        }
+        .extraction-close:hover {
+            background-color: var(--vscode-toolbar-hoverBackground);
+        }
+        .extraction-content {
+            padding: 16px;
+        }
+        .extraction-section {
+            margin-bottom: 20px;
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .extraction-section h3 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--vscode-foreground);
+        }
+        .select-all-btn {
+            background-color: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+            border: 1px solid var(--vscode-button-border, transparent);
+            padding: 4px 8px;
+            font-size: 11px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .select-all-btn:hover {
+            background-color: var(--vscode-button-secondaryHoverBackground);
+        }
+        .object-types-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        .object-type-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 4px;
+            background-color: var(--vscode-input-background);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .object-type-item:hover {
+            background-color: var(--vscode-list-hoverBackground);
+            border-color: var(--vscode-focusBorder);
+        }
+        .object-type-item input[type="checkbox"] {
+            margin: 0 8px 0 0;
+        }
+        .object-type-icon {
+            font-size: 16px;
+            margin-right: 8px;
+        }
+        .object-type-label {
+            flex: 1;
+            font-size: 13px;
+            color: var(--vscode-foreground);
+        }
+        .object-type-count {
+            font-size: 11px;
+            color: var(--vscode-descriptionForeground);
+            background-color: var(--vscode-badge-background);
+            padding: 1px 6px;
+            border-radius: 10px;
+            margin-left: 4px;
+        }
+        .folder-picker {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .folder-input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid var(--vscode-input-border);
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .folder-input:focus {
+            border-color: var(--vscode-focusBorder);
+            outline: none;
+        }
+        .folder-browse-btn {
+            padding: 8px 12px;
+            background-color: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+            border: 1px solid var(--vscode-button-border, transparent);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .folder-browse-btn:hover {
+            background-color: var(--vscode-button-secondaryHoverBackground);
+        }
+        .extraction-actions {
+            padding: 16px;
+            border-top: 1px solid var(--vscode-panel-border);
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+        .extraction-btn {
+            padding: 8px 16px;
+            border: 1px solid var(--vscode-button-border, transparent);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        .extraction-btn.primary {
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+        }
+        .extraction-btn.primary:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+        .extraction-btn.primary:disabled {
+            background-color: var(--vscode-button-background);
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .extraction-btn.secondary {
+            background-color: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+        }
+        .extraction-btn.secondary:hover {
+            background-color: var(--vscode-button-secondaryHoverBackground);
+        }
+        .extraction-progress {
+            display: none;
+            margin-top: 16px;
+            padding: 12px;
+            background-color: var(--vscode-input-background);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 4px;
+        }
+        .extraction-progress.show {
+            display: block;
+        }
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .progress-title {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--vscode-foreground);
+        }
+        .progress-cancel {
+            padding: 4px 8px;
+            background-color: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+            border: 1px solid var(--vscode-button-border, transparent);
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        .progress-cancel:hover {
+            background-color: var(--vscode-button-secondaryHoverBackground);
+        }
+        .progress-bar-container {
+            width: 100%;
+            height: 12px;
+            background-color: var(--vscode-input-background);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            position: relative;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--vscode-progressBar-background), var(--vscode-button-background));
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 5px;
+        }
+        .progress-status {
+            font-size: 12px;
+            color: var(--vscode-descriptionForeground);
+            text-align: center;
+        }
+        .progress-details {
+            margin-top: 8px;
+            font-size: 11px;
+            color: var(--vscode-descriptionForeground);
+            max-height: 100px;
+            overflow-y: auto;
+        }
+        .progress-details .detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 0;
+        }
+        .extraction-summary {
+            margin-top: 16px;
+            padding: 12px;
+            background-color: var(--vscode-input-background);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 4px;
+        }
+        .extraction-summary h4 {
+            margin: 0 0 12px 0;
+            font-size: 13px;
+            color: var(--vscode-foreground);
+        }
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+        }
+        .stat-label {
+            color: var(--vscode-descriptionForeground);
+        }
+        .stat-value {
+            font-weight: 600;
+            color: var(--vscode-foreground);
+        }
+        .summary-details {
+            margin-bottom: 12px;
+        }
+        .summary-type {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+            font-size: 11px;
+        }
+        .type-name {
+            font-weight: 500;
+            min-width: 80px;
+        }
+        .type-count {
+            color: var(--vscode-foreground);
+        }
+        .type-files {
+            color: var(--vscode-descriptionForeground);
+        }
+        .type-success {
+            color: var(--vscode-testing-iconPassed);
+        }
+        .type-error {
+            color: var(--vscode-testing-iconFailed);
+        }
+        .type-empty {
+            color: var(--vscode-descriptionForeground);
+        }
+        .summary-location {
+            font-size: 11px;
+            color: var(--vscode-descriptionForeground);
+            word-break: break-all;
+        }
     </style>
     <script type="module">
         // Import PDF.js as ES module
@@ -670,8 +986,8 @@
             <button id="summarizeBtn" class="icon-button" onclick="summarizeDocument()" title="Summarize this PDF using AI">
                 <img id="summarizeIcon" src="{{assetUri}}/summarize.svg" alt="Summarize PDF" width="16" height="16">
             </button>
-            <button id="exportBtn" class="icon-button" onclick="exportText()" title="Export Text">
-                <img id="exportIcon" src="{{assetUri}}/export.svg" alt="Export Text" width="16" height="16">
+            <button id="exportBtn" class="icon-button" onclick="showExtractionModal()" title="Extract Objects">
+                <img id="exportIcon" src="{{assetUri}}/export.svg" alt="Extract Objects" width="16" height="16">
             </button>
             <button id="textSelectionBtn" class="icon-button" onclick="toggleTextSelection()" title="Selection Mode">
                 <img id="textSelectionIcon" src="{{assetUri}}/view.svg" alt="Selection Mode" width="16" height="16">
@@ -732,6 +1048,108 @@
                 <div class="tree-container" id="objectTree">
                     <div class="loading-message">Click the inspector button to scan for PDF objects</div>
                 </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Enhanced Extraction Modal -->
+    <div class="extraction-overlay" id="extractionOverlay">
+        <div class="extraction-modal">
+            <div class="extraction-header">
+                <h2 class="extraction-title">📤 Extract PDF Objects</h2>
+                <button class="extraction-close" onclick="closeExtractionModal()" title="Close">×</button>
+            </div>
+            <div class="extraction-content">
+                <div class="extraction-section">
+                    <div class="section-header">
+                        <h3>🎯 Select Object Types</h3>
+                        <button class="select-all-btn" onclick="toggleSelectAll()">Select All</button>
+                    </div>
+                    <div class="object-types-grid">
+                        <div class="object-type-item">
+                            <input type="checkbox" id="type-text" checked onchange="toggleObjectType('text')">
+                            <span class="object-type-icon">📝</span>
+                            <span class="object-type-label" onclick="toggleObjectTypeByLabel('text')">Text Content</span>
+                            <span class="object-type-count" id="count-text">-</span>
+                        </div>
+                        <div class="object-type-item">
+                            <input type="checkbox" id="type-images" onchange="toggleObjectType('images')">
+                            <span class="object-type-icon">🖼️</span>
+                            <span class="object-type-label" onclick="toggleObjectTypeByLabel('images')">Images</span>
+                            <span class="object-type-count" id="count-images">-</span>
+                        </div>
+                        <div class="object-type-item">
+                            <input type="checkbox" id="type-tables" onchange="toggleObjectType('tables')">
+                            <span class="object-type-icon">📊</span>
+                            <span class="object-type-label" onclick="toggleObjectTypeByLabel('tables')">Tables</span>
+                            <span class="object-type-count" id="count-tables">-</span>
+                        </div>
+                        <div class="object-type-item">
+                            <input type="checkbox" id="type-fonts" onchange="toggleObjectType('fonts')">
+                            <span class="object-type-icon">🔤</span>
+                            <span class="object-type-label" onclick="toggleObjectTypeByLabel('fonts')">Fonts</span>
+                            <span class="object-type-count" id="count-fonts">-</span>
+                        </div>
+                        <div class="object-type-item">
+                            <input type="checkbox" id="type-annotations" onchange="toggleObjectType('annotations')">
+                            <span class="object-type-icon">📝</span>
+                            <span class="object-type-label" onclick="toggleObjectTypeByLabel('annotations')">Annotations</span>
+                            <span class="object-type-count" id="count-annotations">-</span>
+                        </div>
+                        <div class="object-type-item">
+                            <input type="checkbox" id="type-formFields" onchange="toggleObjectType('formFields')">
+                            <span class="object-type-icon">📋</span>
+                            <span class="object-type-label" onclick="toggleObjectTypeByLabel('formFields')">Form Fields</span>
+                            <span class="object-type-count" id="count-formFields">-</span>
+                        </div>
+                        <div class="object-type-item">
+                            <input type="checkbox" id="type-attachments" onchange="toggleObjectType('attachments')">
+                            <span class="object-type-icon">📎</span>
+                            <span class="object-type-label" onclick="toggleObjectTypeByLabel('attachments')">Attachments</span>
+                            <span class="object-type-count" id="count-attachments">-</span>
+                        </div>
+                        <div class="object-type-item">
+                            <input type="checkbox" id="type-bookmarks" onchange="toggleObjectType('bookmarks')">
+                            <span class="object-type-icon">🔖</span>
+                            <span class="object-type-label" onclick="toggleObjectTypeByLabel('bookmarks')">Bookmarks</span>
+                            <span class="object-type-count" id="count-bookmarks">-</span>
+                        </div>
+                        <div class="object-type-item">
+                            <input type="checkbox" id="type-javascript" onchange="toggleObjectType('javascript')">
+                            <span class="object-type-icon">⚙️</span>
+                            <span class="object-type-label" onclick="toggleObjectTypeByLabel('javascript')">JavaScript</span>
+                            <span class="object-type-count" id="count-javascript">-</span>
+                        </div>
+                        <div class="object-type-item">
+                            <input type="checkbox" id="type-metadata" onchange="toggleObjectType('metadata')">
+                            <span class="object-type-icon">📑</span>
+                            <span class="object-type-label" onclick="toggleObjectTypeByLabel('metadata')">Metadata</span>
+                            <span class="object-type-count" id="count-metadata">-</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="extraction-section">
+                    <h3>📁 Save Location</h3>
+                    <div class="folder-picker">
+                        <input type="text" class="folder-input" id="folderPath" placeholder="Select folder to save extracted files..." readonly>
+                        <button class="folder-browse-btn" onclick="browseSaveFolder()">Browse</button>
+                    </div>
+                </div>
+                <div class="extraction-progress" id="extractionProgress">
+                    <div class="progress-header">
+                        <span class="progress-title" id="progressTitle">Extracting objects...</span>
+                        <button class="progress-cancel" onclick="cancelExtraction()">Cancel</button>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" id="progressBarFill"></div>
+                    </div>
+                    <div class="progress-status" id="progressStatus">Preparing extraction...</div>
+                    <div class="progress-details" id="progressDetails"></div>
+                </div>
+            </div>
+            <div class="extraction-actions">
+                <button class="extraction-btn secondary" onclick="closeExtractionModal()">Cancel</button>
+                <button class="extraction-btn primary" id="startExtractionBtn" onclick="startExtraction()" disabled>Extract Selected</button>
             </div>
         </div>
     </div>
