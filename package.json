@@ -79,9 +79,10 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./ && npm run copy-assets",
+    "compile": "tsc -p ./ && npm run copy-assets && npm run bundle-webview",
     "compile-e2e": "tsc -p ./tsconfig.e2e.json --outDir out",
     "copy-assets": "mkdir -p out/webview && cp -r src/webview/assets out/webview/ && cp -r src/webview/templates out/webview/ && cp -r src/webview/scripts out/webview/",
+    "bundle-webview": "rollup -c",
     "watch": "tsc -watch -p ./",
     "check": "biome check src/",
     "format": "biome format --write src/",
@@ -95,6 +96,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.1.1",
     "@playwright/test": "^1.54.1",
+    "@rollup/plugin-node-resolve": "^16.0.1",
     "@types/chai": "^4.3.11",
     "@types/mocha": "^10.0.6",
     "@types/node": "16.x",
@@ -104,6 +106,8 @@
     "@vscode/test-electron": "^2.3.8",
     "chai": "^4.4.1",
     "mocha": "^10.2.0",
+    "rollup": "^4.46.0",
+    "rollup-plugin-esbuild-minify": "^1.3.0",
     "sinon": "^17.0.1",
     "sinon-chai": "^3.7.0",
     "typescript": "^4.9.4"

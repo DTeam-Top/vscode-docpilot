@@ -1,11 +1,16 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
-import { TextExtractor } from '../pdf/textExtractor';
 import { ObjectExtractor } from '../pdf/objectExtractor';
+import { TextExtractor } from '../pdf/textExtractor';
+import type {
+  ObjectCounts,
+  ObjectData,
+  ObjectExtractionRequest,
+  ObjectType,
+} from '../types/interfaces';
 import { WEBVIEW_MESSAGES } from '../utils/constants';
 import { Logger } from '../utils/logger';
-import type { ObjectExtractionRequest, ObjectCounts, ObjectData, ObjectType } from '../types/interfaces';
 
 interface LocalWebviewMessage {
   type: string;
@@ -341,7 +346,7 @@ export class WebviewProvider {
       'out',
       'webview',
       'scripts',
-      'pdfViewer.js'
+      'pdfViewer.min.js'
     );
     return webview.asWebviewUri(scriptPath).toString();
   }
