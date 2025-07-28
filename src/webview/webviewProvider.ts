@@ -2,7 +2,6 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { ObjectExtractor } from '../pdf/objectExtractor';
-import { TextExtractor } from '../pdf/textExtractor';
 import type {
   ObjectCounts,
   ObjectData,
@@ -131,7 +130,6 @@ export class WebviewProvider {
     panel.webview.onDidReceiveMessage(async (message) => {
       WebviewProvider.logger.debug('Received webview message:', message.type);
       WebviewProvider.logger.debug('Message details:', JSON.stringify(message, null, 2));
-      WebviewProvider.logger.debug('EXPORT_TEXT constant:', WEBVIEW_MESSAGES.EXPORT_TEXT);
       switch (message.type) {
         case WEBVIEW_MESSAGES.SUMMARIZE_REQUEST:
           await WebviewProvider.handleSummarizeRequest(panel, pdfSource, message, extensionContext);
@@ -140,8 +138,6 @@ export class WebviewProvider {
           WebviewProvider.logger.error('Webview summarization error:', message.error);
           vscode.window.showErrorMessage(`Summarization failed: ${message.error}`);
           break;
-        // Legacy EXPORT_TEXT message removed - webview now uses enhanced extraction
-        // But keeping EXPORT_STARTED/COMPLETED/ERROR for pdfCustomEditor.ts compatibility
         case WEBVIEW_MESSAGES.EXTRACT_ALL_TEXT:
         case WEBVIEW_MESSAGES.TEXT_EXTRACTED:
         case WEBVIEW_MESSAGES.TEXT_EXTRACTION_ERROR:
@@ -161,6 +157,12 @@ export class WebviewProvider {
           break;
         case WEBVIEW_MESSAGES.GET_OBJECT_COUNTS:
           await WebviewProvider.handleGetObjectCounts(panel);
+          break;
+        case 'showMessage':
+          await WebviewProvider.handleShowMessage(panel, message);
+          break;
+        case 'openFolder':
+          await WebviewProvider.handleOpenFolder(message);
           break;
         default:
           WebviewProvider.logger.debug('Unhandled webview message:', message.type);
@@ -215,94 +217,6 @@ export class WebviewProvider {
         `Failed to summarize PDF: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
-  }
-
-  // Removed handleExportRequest - no longer used by webview (uses enhanced extraction)
-  // exportPdfToMarkdown kept as utility method for pdfCustomEditor.ts
-
-  static async exportPdfToMarkdown(panel: vscode.WebviewPanel, pdfSource: string): Promise<void> {
-    // Show progress
-    await vscode.window.withProgress(
-      {
-        location: vscode.ProgressLocation.Notification,
-        title: 'Extracting text from PDF...',
-        cancellable: false,
-      },
-      async (progress) => {
-        progress.report({ increment: 0 });
-
-        // Extract text from PDF
-        const extractedText = await TextExtractor.extractTextWithRetry(panel, pdfSource, {
-          timeout: 30000,
-          retryAttempts: 2,
-          progressCallback: (percent) => {
-            progress.report({ increment: percent * 50 });
-          },
-        });
-
-        progress.report({ increment: 50, message: 'Formatting text...' });
-
-        // Convert text to clean format
-        const textContent = WebviewProvider.convertToText(extractedText, pdfSource);
-
-        progress.report({ increment: 25, message: 'Saving file...' });
-
-        // Choose save location
-        const saveResult = await vscode.window.showSaveDialog({
-          defaultUri: vscode.Uri.file(
-            path.join(path.dirname(pdfSource), `${path.basename(pdfSource, '.pdf')}.txt`)
-          ),
-          filters: {
-            'Text Files': ['txt'],
-            'Markdown Files': ['md'],
-          },
-          title: 'Save exported text',
-        });
-
-        if (saveResult) {
-          // Write text content to file
-          fs.writeFileSync(saveResult.fsPath, textContent, 'utf8');
-
-          progress.report({ increment: 25, message: 'Complete!' });
-
-          // Show success message and option to open
-          const openFile = await vscode.window.showInformationMessage(
-            `PDF exported successfully: ${path.basename(saveResult.fsPath)}`,
-            'Open File'
-          );
-
-          if (openFile === 'Open File') {
-            const doc = await vscode.workspace.openTextDocument(saveResult);
-            await vscode.window.showTextDocument(doc);
-          }
-
-          WebviewProvider.logger.info(`PDF exported: ${saveResult.fsPath}`);
-        } else {
-          WebviewProvider.logger.info('Save cancelled by user');
-        }
-      }
-    );
-  }
-
-  private static convertToText(text: string, pdfPath: string): string {
-    const path = require('node:path');
-    const fileName = path.basename(pdfPath, '.pdf');
-    const exportDate = new Date().toISOString().split('T')[0];
-
-    // Simple text header
-    let output = `${fileName}\n`;
-    output += `Exported from PDF on ${exportDate}\n`;
-    output += `Source: ${pdfPath}\n`;
-    output += `${'='.repeat(50)}\n\n`;
-
-    // Clean up the text
-    const cleanedText = text
-      .replace(/\n\n\n+/g, '\n\n') // Remove excessive line breaks
-      .trim();
-
-    output += cleanedText;
-
-    return output;
   }
 
   static getWebviewContent(
@@ -587,6 +501,49 @@ export class WebviewProvider {
       return url.toLowerCase().includes('.pdf') || url.includes('pdf');
     } catch {
       return false;
+    }
+  }
+
+  public static async handleShowMessage(panel: vscode.WebviewPanel, message: any): Promise<void> {
+    try {
+      const { type, message: text, actions, folderPath } = message.data;
+
+      switch (type) {
+        case 'info':
+          if (actions && actions.length > 0) {
+            const result = await vscode.window.showInformationMessage(text, ...actions);
+            if (result === 'Open Folder' && folderPath) {
+              await vscode.commands.executeCommand(
+                'vscode.openFolder',
+                vscode.Uri.file(folderPath)
+              );
+            }
+          } else {
+            await vscode.window.showInformationMessage(text);
+          }
+          break;
+        case 'warning':
+          await vscode.window.showWarningMessage(text);
+          break;
+        case 'error':
+          await vscode.window.showErrorMessage(text);
+          break;
+        default:
+          await vscode.window.showInformationMessage(text);
+      }
+    } catch (error) {
+      WebviewProvider.logger.error('Failed to show message', error);
+    }
+  }
+
+  public static async handleOpenFolder(message: any): Promise<void> {
+    try {
+      const { folderPath } = message.data;
+      if (folderPath) {
+        await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(folderPath));
+      }
+    } catch (error) {
+      WebviewProvider.logger.error('Failed to open folder', error);
     }
   }
 }

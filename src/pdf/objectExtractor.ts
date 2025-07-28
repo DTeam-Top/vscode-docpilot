@@ -214,7 +214,8 @@ export class ObjectExtractor {
   static cancelExtraction(): void {
     if (ObjectExtractor.extractionInProgress) {
       ObjectExtractor.cancellationRequested = true;
-      ObjectExtractor.logger.info('Extraction cancellation requested');
+      ObjectExtractor.extractionInProgress = false; // Reset flag to allow new extractions
+      ObjectExtractor.logger.info('Extraction cancelled and reset for new operations');
     }
   }
 

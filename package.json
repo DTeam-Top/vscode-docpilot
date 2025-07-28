@@ -2,7 +2,7 @@
   "name": "vscode-docpilot",
   "displayName": "DocPilot",
   "description": "View PDF files in VSCode from local files or remote URLs",
-  "version": "0.2.0",
+  "version": "0.2.5",
   "publisher": "DTeam",
   "icon": "resources/docpilot-icon.png",
   "repository": {

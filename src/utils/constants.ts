@@ -44,10 +44,6 @@ export const WEBVIEW_MESSAGES = {
   SUMMARIZE_STARTED: 'summarizeStarted',
   SUMMARIZE_COMPLETED: 'summarizeCompleted',
   SUMMARIZE_ERROR: 'summarizeError',
-  EXPORT_TEXT: 'exportText', // Still used by pdfCustomEditor.ts
-  EXPORT_STARTED: 'exportStarted',
-  EXPORT_COMPLETED: 'exportCompleted',
-  EXPORT_ERROR: 'exportError',
   SEARCH_TEXT: 'searchText',
   SEARCH_NEXT: 'searchNext',
   SEARCH_PREVIOUS: 'searchPrevious',

@@ -744,6 +744,7 @@
             font-size: 11px;
             color: var(--vscode-descriptionForeground);
             background-color: var(--vscode-badge-background);
+            display: none; /* Hide by default, show only when counts are available */
             padding: 1px 6px;
             border-radius: 10px;
             margin-left: 4px;
@@ -964,49 +965,49 @@
         </div>
         <div class="controls">
             <div class="navigation-controls">
-                <button class="icon-button" onclick="goToFirstPage()" title="First Page" id="firstPageBtn">
+                <button class="icon-button" title="First Page" id="firstPageBtn">
                     <img src="{{assetUri}}/first.svg" alt="First Page" width="16" height="16">
                 </button>
-                <button class="icon-button" onclick="goToPreviousPage()" title="Previous Page" id="prevPageBtn">
+                <button class="icon-button" title="Previous Page" id="prevPageBtn">
                     <img src="{{assetUri}}/previous.svg" alt="Previous Page" width="16" height="16">
                 </button>
-                <button class="icon-button" onclick="goToNextPage()" title="Next Page" id="nextPageBtn">
+                <button class="icon-button" title="Next Page" id="nextPageBtn">
                     <img src="{{assetUri}}/next.svg" alt="Next Page" width="16" height="16">
                 </button>
-                <button class="icon-button" onclick="goToLastPage()" title="Last Page" id="lastPageBtn">
+                <button class="icon-button" title="Last Page" id="lastPageBtn">
                     <img src="{{assetUri}}/last.svg" alt="Last Page" width="16" height="16">
                 </button>
             </div>
-            <button class="icon-button" onclick="fitToWidth()" title="Fit Width" id="fitWidthBtn">
+            <button class="icon-button" title="Fit Width" id="fitWidthBtn">
                 <img src="{{assetUri}}/fit-width.svg" alt="Fit Width" width="16" height="16">
             </button>
-            <button class="icon-button" onclick="fitToPage()" title="Fit Page" id="fitPageBtn">
+            <button class="icon-button" title="Fit Page" id="fitPageBtn">
                 <img src="{{assetUri}}/fit-page.svg" alt="Fit Page" width="16" height="16">
             </button>
-            <button id="summarizeBtn" class="icon-button" onclick="summarizeDocument()" title="Summarize this PDF using AI">
+            <button id="summarizeBtn" class="icon-button" title="Summarize this PDF using AI">
                 <img id="summarizeIcon" src="{{assetUri}}/summarize.svg" alt="Summarize PDF" width="16" height="16">
             </button>
-            <button id="exportBtn" class="icon-button" onclick="showExtractionModal()" title="Extract Objects">
+            <button id="exportBtn" class="icon-button" title="Extract Objects">
                 <img id="exportIcon" src="{{assetUri}}/export.svg" alt="Extract Objects" width="16" height="16">
             </button>
-            <button id="textSelectionBtn" class="icon-button" onclick="toggleTextSelection()" title="Selection Mode">
+            <button id="textSelectionBtn" class="icon-button" title="Selection Mode">
                 <img id="textSelectionIcon" src="{{assetUri}}/view.svg" alt="Selection Mode" width="16" height="16">
             </button>
-            <button id="searchBtn" class="icon-button" onclick="toggleSearch()" title="Search Text">
+            <button id="searchBtn" class="icon-button" title="Search Text">
                 <img id="searchIcon" src="{{assetUri}}/text-search.svg" alt="Search Text" width="16" height="16">
             </button>
-            <button id="inspectorBtn" class="icon-button" onclick="toggleInspector()" title="PDF Inspector">
+            <button id="inspectorBtn" class="icon-button" title="PDF Inspector">
                 <img id="inspectorIcon" src="{{assetUri}}/wand.svg" alt="PDF Inspector" width="16" height="16">
             </button>
-            <button id="debugBtn" class="icon-button" onclick="toggleDebug()" title="Debug Mode">
+            <button id="debugBtn" class="icon-button" title="Debug Mode">
                 <img id="debugIcon" src="{{assetUri}}/bug-off.svg" alt="Debug Mode" width="16" height="16">
             </button>
             <div class="zoom-controls">
-                <button class="icon-button" onclick="zoomOut()" title="Zoom Out" id="zoomOutBtn">
+                <button class="icon-button" title="Zoom Out" id="zoomOutBtn">
                     <img src="{{assetUri}}/zoom-out.svg" alt="Zoom Out" width="16" height="16">
                 </button>
-                <input type="range" id="zoomSlider" min="0.25" max="3" step="0.25" value="1" oninput="setZoom(this.value)" title="Zoom">
-                <button class="icon-button" onclick="zoomIn()" title="Zoom In" id="zoomInBtn">
+                <input type="range" id="zoomSlider" min="0.25" max="3" step="0.25" value="1" title="Zoom">
+                <button class="icon-button" title="Zoom In" id="zoomInBtn">
                     <img src="{{assetUri}}/zoom-in.svg" alt="Zoom In" width="16" height="16">
                 </button>
                 <span id="zoomLevel">100%</span>
@@ -1019,9 +1020,9 @@
     <div class="search-overlay" id="searchOverlay" style="display: none;">
         <div class="search-container">
             <input type="text" id="searchInput" placeholder="Search text..." autocomplete="off">
-            <button id="searchPrevBtn" title="Previous match" onclick="searchPrevious()">↑</button>
-            <button id="searchNextBtn" title="Next match" onclick="searchNext()">↓</button>
-            <button id="searchCloseBtn" title="Close search" onclick="closeSearch()">×</button>
+            <button id="searchPrevBtn" title="Previous match">↑</button>
+            <button id="searchNextBtn" title="Next match">↓</button>
+            <button id="searchCloseBtn" title="Close search">×</button>
         </div>
     </div>
     <div class="main-content">
@@ -1057,74 +1058,74 @@
         <div class="extraction-modal">
             <div class="extraction-header">
                 <h2 class="extraction-title">📤 Extract PDF Objects</h2>
-                <button class="extraction-close" onclick="closeExtractionModal()" title="Close">×</button>
+                <button class="extraction-close" title="Close">×</button>
             </div>
             <div class="extraction-content">
                 <div class="extraction-section">
                     <div class="section-header">
                         <h3>🎯 Select Object Types</h3>
-                        <button class="select-all-btn" onclick="toggleSelectAll()">Select All</button>
+                        <button class="select-all-btn">Select All</button>
                     </div>
                     <div class="object-types-grid">
                         <div class="object-type-item">
-                            <input type="checkbox" id="type-text" checked onchange="toggleObjectType('text')">
+                            <input type="checkbox" id="type-text" checked>
                             <span class="object-type-icon">📝</span>
-                            <span class="object-type-label" onclick="toggleObjectTypeByLabel('text')">Text Content</span>
-                            <span class="object-type-count" id="count-text">-</span>
+                            <span class="object-type-label">Text Content</span>
+                            <span class="object-type-count" id="count-text"></span>
                         </div>
                         <div class="object-type-item">
-                            <input type="checkbox" id="type-images" onchange="toggleObjectType('images')">
+                            <input type="checkbox" id="type-images">
                             <span class="object-type-icon">🖼️</span>
-                            <span class="object-type-label" onclick="toggleObjectTypeByLabel('images')">Images</span>
-                            <span class="object-type-count" id="count-images">-</span>
+                            <span class="object-type-label">Images</span>
+                            <span class="object-type-count" id="count-images"></span>
                         </div>
                         <div class="object-type-item">
-                            <input type="checkbox" id="type-tables" onchange="toggleObjectType('tables')">
+                            <input type="checkbox" id="type-tables">
                             <span class="object-type-icon">📊</span>
-                            <span class="object-type-label" onclick="toggleObjectTypeByLabel('tables')">Tables</span>
-                            <span class="object-type-count" id="count-tables">-</span>
+                            <span class="object-type-label">Tables</span>
+                            <span class="object-type-count" id="count-tables"></span>
                         </div>
                         <div class="object-type-item">
-                            <input type="checkbox" id="type-fonts" onchange="toggleObjectType('fonts')">
+                            <input type="checkbox" id="type-fonts">
                             <span class="object-type-icon">🔤</span>
-                            <span class="object-type-label" onclick="toggleObjectTypeByLabel('fonts')">Fonts</span>
-                            <span class="object-type-count" id="count-fonts">-</span>
+                            <span class="object-type-label">Fonts</span>
+                            <span class="object-type-count" id="count-fonts"></span>
                         </div>
                         <div class="object-type-item">
-                            <input type="checkbox" id="type-annotations" onchange="toggleObjectType('annotations')">
+                            <input type="checkbox" id="type-annotations">
                             <span class="object-type-icon">📝</span>
-                            <span class="object-type-label" onclick="toggleObjectTypeByLabel('annotations')">Annotations</span>
-                            <span class="object-type-count" id="count-annotations">-</span>
+                            <span class="object-type-label">Annotations</span>
+                            <span class="object-type-count" id="count-annotations"></span>
                         </div>
                         <div class="object-type-item">
-                            <input type="checkbox" id="type-formFields" onchange="toggleObjectType('formFields')">
+                            <input type="checkbox" id="type-formFields">
                             <span class="object-type-icon">📋</span>
-                            <span class="object-type-label" onclick="toggleObjectTypeByLabel('formFields')">Form Fields</span>
-                            <span class="object-type-count" id="count-formFields">-</span>
+                            <span class="object-type-label">Form Fields</span>
+                            <span class="object-type-count" id="count-formFields"></span>
                         </div>
                         <div class="object-type-item">
-                            <input type="checkbox" id="type-attachments" onchange="toggleObjectType('attachments')">
+                            <input type="checkbox" id="type-attachments">
                             <span class="object-type-icon">📎</span>
-                            <span class="object-type-label" onclick="toggleObjectTypeByLabel('attachments')">Attachments</span>
-                            <span class="object-type-count" id="count-attachments">-</span>
+                            <span class="object-type-label">Attachments</span>
+                            <span class="object-type-count" id="count-attachments"></span>
                         </div>
                         <div class="object-type-item">
-                            <input type="checkbox" id="type-bookmarks" onchange="toggleObjectType('bookmarks')">
+                            <input type="checkbox" id="type-bookmarks">
                             <span class="object-type-icon">🔖</span>
-                            <span class="object-type-label" onclick="toggleObjectTypeByLabel('bookmarks')">Bookmarks</span>
-                            <span class="object-type-count" id="count-bookmarks">-</span>
+                            <span class="object-type-label">Bookmarks</span>
+                            <span class="object-type-count" id="count-bookmarks"></span>
                         </div>
                         <div class="object-type-item">
-                            <input type="checkbox" id="type-javascript" onchange="toggleObjectType('javascript')">
+                            <input type="checkbox" id="type-javascript">
                             <span class="object-type-icon">⚙️</span>
-                            <span class="object-type-label" onclick="toggleObjectTypeByLabel('javascript')">JavaScript</span>
-                            <span class="object-type-count" id="count-javascript">-</span>
+                            <span class="object-type-label">JavaScript</span>
+                            <span class="object-type-count" id="count-javascript"></span>
                         </div>
                         <div class="object-type-item">
-                            <input type="checkbox" id="type-metadata" onchange="toggleObjectType('metadata')">
+                            <input type="checkbox" id="type-metadata">
                             <span class="object-type-icon">📑</span>
-                            <span class="object-type-label" onclick="toggleObjectTypeByLabel('metadata')">Metadata</span>
-                            <span class="object-type-count" id="count-metadata">-</span>
+                            <span class="object-type-label">Metadata</span>
+                            <span class="object-type-count" id="count-metadata"></span>
                         </div>
                     </div>
                 </div>
@@ -1132,13 +1133,13 @@
                     <h3>📁 Save Location</h3>
                     <div class="folder-picker">
                         <input type="text" class="folder-input" id="folderPath" placeholder="Select folder to save extracted files..." readonly>
-                        <button class="folder-browse-btn" onclick="browseSaveFolder()">Browse</button>
+                        <button class="folder-browse-btn">Browse</button>
                     </div>
                 </div>
                 <div class="extraction-progress" id="extractionProgress">
                     <div class="progress-header">
                         <span class="progress-title" id="progressTitle">Extracting objects...</span>
-                        <button class="progress-cancel" onclick="cancelExtraction()">Cancel</button>
+                        <button class="progress-cancel">Cancel</button>
                     </div>
                     <div class="progress-bar-container">
                         <div class="progress-bar-fill" id="progressBarFill"></div>
@@ -1148,8 +1149,8 @@
                 </div>
             </div>
             <div class="extraction-actions">
-                <button class="extraction-btn secondary" onclick="closeExtractionModal()">Cancel</button>
-                <button class="extraction-btn primary" id="startExtractionBtn" onclick="startExtraction()" disabled>Extract Selected</button>
+                <button class="extraction-btn secondary" id="cancelExtractionBtn">Cancel</button>
+                <button class="extraction-btn primary" id="startExtractionBtn" disabled>Extract Selected</button>
             </div>
         </div>
     </div>

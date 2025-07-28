@@ -99,13 +99,6 @@ export class PdfCustomEditorProvider implements vscode.CustomReadonlyEditorProvi
           PdfCustomEditorProvider.logger.error('Webview summarization error:', message.error);
           vscode.window.showErrorMessage(`Summarization failed: ${message.error}`);
           break;
-        case WEBVIEW_MESSAGES.EXPORT_TEXT:
-          await this.handleExportRequest(panel, pdfSource);
-          break;
-        case WEBVIEW_MESSAGES.EXPORT_ERROR:
-          PdfCustomEditorProvider.logger.error('Webview export error:', message.error);
-          vscode.window.showErrorMessage(`Export failed: ${message.error}`);
-          break;
         case WEBVIEW_MESSAGES.EXTRACT_ALL_TEXT:
         case WEBVIEW_MESSAGES.TEXT_EXTRACTED:
         case WEBVIEW_MESSAGES.TEXT_EXTRACTION_ERROR:
@@ -186,45 +179,7 @@ export class PdfCustomEditorProvider implements vscode.CustomReadonlyEditorProvi
     }
   }
 
-  private async handleExportRequest(panel: vscode.WebviewPanel, pdfSource: string): Promise<void> {
-    try {
-      PdfCustomEditorProvider.logger.info('Handling export request from custom editor', {
-        pdfSource,
-      });
-
-      const { WEBVIEW_MESSAGES } = await import('../utils/constants');
-
-      // Notify webview that export has started
-      panel.webview.postMessage({
-        type: WEBVIEW_MESSAGES.EXPORT_STARTED,
-      });
-
-      // Use the WebviewProvider's export method
-      const { WebviewProvider } = await import('../webview/webviewProvider');
-      await WebviewProvider.exportPdfToMarkdown(panel, pdfSource);
-
-      // Notify webview that export completed
-      panel.webview.postMessage({
-        type: WEBVIEW_MESSAGES.EXPORT_COMPLETED,
-      });
-
-      PdfCustomEditorProvider.logger.info('Export request processed successfully');
-    } catch (error) {
-      PdfCustomEditorProvider.logger.error('Failed to handle export request', error);
-
-      const { WEBVIEW_MESSAGES } = await import('../utils/constants');
-
-      // Notify webview of error
-      panel.webview.postMessage({
-        type: WEBVIEW_MESSAGES.EXPORT_ERROR,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-
-      vscode.window.showErrorMessage(
-        `Failed to export PDF: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
-  }
+  // handleExportRequest removed - webview now uses enhanced extraction modal
 
   private async delegateToWebviewProvider(method: string, ...args: unknown[]): Promise<void> {
     try {
