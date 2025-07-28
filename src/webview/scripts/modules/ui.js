@@ -2,10 +2,14 @@ import { requestSummary } from './communication.js';
 import {
   browseSaveFolder,
   cancelExtraction,
+  extractionState,
+  initializeSelectionState,
+  resetProcessState,
   startExtraction,
   toggleObjectType,
   toggleObjectTypeByLabel,
   toggleSelectAll,
+  updateExtractButton,
 } from './extractor.js';
 import { toggleInspector } from './inspector.js';
 import { renderVisibleTextLayers, rerenderAllPages, toggleTextSelection } from './renderer.js';
@@ -157,6 +161,15 @@ export function showExtractionModal() {
   const overlay = document.getElementById('extractionOverlay');
   if (overlay) {
     overlay.style.display = 'flex';
+    
+    // Reset only process state (progress, completion status)
+    resetProcessState();
+    
+    // Initialize selection state (preserves previous selections)
+    initializeSelectionState();
+    
+    // Update extract button state
+    updateExtractButton();
   }
 }
 
@@ -165,6 +178,12 @@ export function closeExtractionModal() {
   if (overlay) {
     overlay.style.display = 'none';
   }
+
+  // Cancel any ongoing extraction and reset process state
+  if (extractionState.extractionId && extractionState.isExtracting) {
+    cancelExtraction();
+  }
+  resetProcessState();
 }
 
 export function initializeEventListeners() {
@@ -204,7 +223,14 @@ export function initializeEventListeners() {
     );
   });
   document.querySelector('.folder-browse-btn').addEventListener('click', browseSaveFolder);
-  document.getElementById('startExtractionBtn').addEventListener('click', startExtraction);
+  document.getElementById('startExtractionBtn').addEventListener('click', (e) => {
+    const action = e.target.dataset.action;
+    if (action === 'close') {
+      closeExtractionModal();
+    } else {
+      startExtraction();
+    }
+  });
   document.getElementById('cancelExtractionBtn').addEventListener('click', closeExtractionModal);
   document.querySelector('.progress-cancel').addEventListener('click', cancelExtraction);
 

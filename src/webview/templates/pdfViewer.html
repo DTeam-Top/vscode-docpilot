@@ -744,6 +744,7 @@
             font-size: 11px;
             color: var(--vscode-descriptionForeground);
             background-color: var(--vscode-badge-background);
+            display: none; /* Hide by default, show only when counts are available */
             padding: 1px 6px;
             border-radius: 10px;
             margin-left: 4px;
@@ -1070,61 +1071,61 @@
                             <input type="checkbox" id="type-text" checked>
                             <span class="object-type-icon">📝</span>
                             <span class="object-type-label">Text Content</span>
-                            <span class="object-type-count" id="count-text">-</span>
+                            <span class="object-type-count" id="count-text"></span>
                         </div>
                         <div class="object-type-item">
                             <input type="checkbox" id="type-images">
                             <span class="object-type-icon">🖼️</span>
                             <span class="object-type-label">Images</span>
-                            <span class="object-type-count" id="count-images">-</span>
+                            <span class="object-type-count" id="count-images"></span>
                         </div>
                         <div class="object-type-item">
                             <input type="checkbox" id="type-tables">
                             <span class="object-type-icon">📊</span>
                             <span class="object-type-label">Tables</span>
-                            <span class="object-type-count" id="count-tables">-</span>
+                            <span class="object-type-count" id="count-tables"></span>
                         </div>
                         <div class="object-type-item">
                             <input type="checkbox" id="type-fonts">
                             <span class="object-type-icon">🔤</span>
                             <span class="object-type-label">Fonts</span>
-                            <span class="object-type-count" id="count-fonts">-</span>
+                            <span class="object-type-count" id="count-fonts"></span>
                         </div>
                         <div class="object-type-item">
                             <input type="checkbox" id="type-annotations">
                             <span class="object-type-icon">📝</span>
                             <span class="object-type-label">Annotations</span>
-                            <span class="object-type-count" id="count-annotations">-</span>
+                            <span class="object-type-count" id="count-annotations"></span>
                         </div>
                         <div class="object-type-item">
                             <input type="checkbox" id="type-formFields">
                             <span class="object-type-icon">📋</span>
                             <span class="object-type-label">Form Fields</span>
-                            <span class="object-type-count" id="count-formFields">-</span>
+                            <span class="object-type-count" id="count-formFields"></span>
                         </div>
                         <div class="object-type-item">
                             <input type="checkbox" id="type-attachments">
                             <span class="object-type-icon">📎</span>
                             <span class="object-type-label">Attachments</span>
-                            <span class="object-type-count" id="count-attachments">-</span>
+                            <span class="object-type-count" id="count-attachments"></span>
                         </div>
                         <div class="object-type-item">
                             <input type="checkbox" id="type-bookmarks">
                             <span class="object-type-icon">🔖</span>
                             <span class="object-type-label">Bookmarks</span>
-                            <span class="object-type-count" id="count-bookmarks">-</span>
+                            <span class="object-type-count" id="count-bookmarks"></span>
                         </div>
                         <div class="object-type-item">
                             <input type="checkbox" id="type-javascript">
                             <span class="object-type-icon">⚙️</span>
                             <span class="object-type-label">JavaScript</span>
-                            <span class="object-type-count" id="count-javascript">-</span>
+                            <span class="object-type-count" id="count-javascript"></span>
                         </div>
                         <div class="object-type-item">
                             <input type="checkbox" id="type-metadata">
                             <span class="object-type-icon">📑</span>
                             <span class="object-type-label">Metadata</span>
-                            <span class="object-type-count" id="count-metadata">-</span>
+                            <span class="object-type-count" id="count-metadata"></span>
                         </div>
                     </div>
                 </div>

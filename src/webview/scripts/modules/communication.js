@@ -1,5 +1,6 @@
 import { state } from './state.js';
 import { extractAllTextContent } from './renderer.js';
+import { handleFolderSelected, handleExtractionCompleted, handleExtractionError, updateExtractionProgress } from './extractor.js';
 /* global PDF_CONFIG */
 
 // This module handles all communication with the VS Code extension host.
@@ -77,8 +78,34 @@ async function handleExtensionMessage(event) {
                 exportBtn.title = 'Export Text';
             }
             break;
+
+        case 'folderSelected':
+            console.log('Folder selected:', message.data.folderPath);
+            handleFolderSelected(message.data.folderPath);
+            break;
+
+        case 'extractionProgress':
+            console.log('Extraction progress:', message.progress);
+            if (message.progress) {
+                updateExtractionProgress(message.progress);
+            }
+            break;
+
+        case 'extractionCompleted':
+            console.log('Extraction completed:', message.data);
+            if (message.data) {
+                handleExtractionCompleted(message.data);
+            }
+            break;
+
+        case 'extractionError':
+            console.error('Extraction error:', message.error);
+            if (message.error) {
+                handleExtractionError(message.error);
+            }
+            break;
         
-        // ... other message types like 'folderSelected', 'objectCountsUpdated', etc.
+        // ... other message types like 'objectCountsUpdated', etc.
     }
 }
 
