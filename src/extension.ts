@@ -5,9 +5,6 @@ import { OpenPdfFromUrlCommand } from './commands/openPdfFromUrl';
 import { PdfCustomEditorProvider } from './editors/pdfCustomEditor';
 import { Logger } from './utils/logger';
 
-/**
- * Extension activation function
- */
 export function activate(context: vscode.ExtensionContext): void {
   const logger = Logger.getInstance();
   logger.info('Activating DocPilot extension...');
@@ -43,18 +40,12 @@ export function activate(context: vscode.ExtensionContext): void {
   }
 }
 
-/**
- * Extension deactivation function
- */
 export function deactivate(): void {
   const logger = Logger.getInstance();
   logger.info('Deactivating DocPilot extension...');
 
   try {
-    // Cleanup logger
     logger.dispose();
-
-    // Any additional cleanup would go here
   } catch (error) {
     console.error('Error during DocPilot deactivation:', error);
   }

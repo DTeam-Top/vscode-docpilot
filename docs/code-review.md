@@ -1,69 +1,106 @@
-# DocPilot Code Review (Revised)
-
-This document provides a comprehensive review of the `vscode-docpilot` extension's source code. This revised report incorporates a deeper analysis of the architectural design, code duplication, and testing strategies.
+# Code Review Report: `src/webview/scripts/pdfViewer.js`
 
 ## 1. Executive Summary
 
-The DocPilot codebase is of **high quality, demonstrating a professional and mature approach to VS Code extension development**. It is well-architected, robust, and feature-rich. The code exhibits a clear separation of concerns, comprehensive error handling, and a multi-layered testing strategy. The project is a stellar example of how to build a complex and reliable extension.
+The `pdfViewer.js` script is the powerful client-side engine of the DocPilot extension. It is feature-rich, robust, and provides a sophisticated user experience, including an advanced PDF Object Inspector and interactive text layers.
 
-## 2. Architecture and Design
+However, at over 4,400 lines, the script has become a monolithic entity that is difficult to maintain, debug, and extend. Its size and complexity obscure the underlying logic and make future development risky.
 
-The extension's architecture is well-defined and modular. It correctly separates concerns into distinct domains, making the codebase scalable and maintainable.
+This report provides a refactoring plan to improve the script's structure and maintainability by decomposing it into smaller, focused ES modules. The goal is to **refactor the existing code for clarity and modularity without altering its external behavior**, leveraging the project's existing E2E tests to ensure safety.
 
--   **Core Logic vs. VS Code Integration:** The design smartly separates the core application logic (PDF processing, caching, summarization) from the VS Code-specific integration points. For example, `WebviewProvider` contains the core logic for creating and managing PDF viewers, while `PdfCustomEditorProvider` acts as a thin **adapter** to integrate this logic with VS Code's Custom Editor API. This is a strong architectural pattern.
+## 2. Analysis based on Refactoring Best Practices
 
--   **Dual Entry Points for PDF Viewing:** The system correctly handles two main ways a user can open a PDF:
-    1.  **Command-Driven:** A user runs a command like `docpilot.openLocalPdf`. This directly uses the `WebviewProvider` factory.
-    2.  **UI-Driven:** A user clicks a PDF file in the explorer. This activates the `PdfCustomEditorProvider`, which then delegates to the `WebviewProvider`.
+The script exhibits several "code smells" that are prime candidates for refactoring, based on the principles in `llm-skills/refactor.md`.
 
--   **Separation of Concerns:**
-    -   **Chat:** `ChatParticipant` is a clean entry point that routes commands to the `SummaryHandler`, which orchestrates backend services.
-    -   **PDF Processing:** `TextExtractor` and `ChunkingStrategy` are properly isolated, containing the complex logic for PDF content handling.
-    -   **Caching:** The caching mechanism is robust, with `SummaryCache` handling storage and `FileWatcher` ensuring data freshness.
-    -   **Utilities:** Centralizing cross-cutting concerns like `Logger`, `ChatErrorHandler`, and `RetryPolicy` in `utils/` is a best practice that has been followed well.
+-   **Large Class / Long Script:** This is the most significant issue. The single file is responsible for:
+    -   PDF rendering and lifecycle management.
+    -   Toolbar UI logic and event handling.
+    -   State management (current page, zoom, etc.).
+    -   Text selection and layer rendering.
+    -   A complex, multi-mode Object Inspector.
+    -   Vi-style text search.
+    -   Communication with the VS Code extension host.
+    This violates the Single Responsibility Principle and makes the code hard to reason about.
 
-## 3. Key Strengths
+-   **Primitive Obsession & Dispersed State:** State is managed through numerous global variables (`pdfDoc`, `scale`, `currentPage`, `textSelectionEnabled`, `inspectorEnabled`, `debugMode`). This global state is modified from various functions throughout the script, making it difficult to track changes and dependencies.
 
--   **Robustness and Resilience:** The use of custom errors, a centralized `ChatErrorHandler`, and a generic `RetryPolicy` makes the extension highly resilient to transient network or model failures. The `PdfProxy` for handling CORS issues is a particularly thoughtful feature.
--   **Advanced PDF/LLM Features:** The implementation of semantic chunking and token estimation shows a deep understanding of the challenges of working with LLMs and large documents.
--   **Sophisticated Webview:** `pdfViewer.js` is a feature-rich, client-side application that provides an excellent user experience, complete with an advanced object inspector.
+-   **Feature Envy:** The code contains logical "features" (like the Inspector, Search, and Text Layer) whose functions are intertwined with the main script body. These features would be more coherent if they were self-contained modules, managing their own logic and state.
 
-## 4. Testing Strategy
+-   **Long Method:** Several functions are excessively long. The main `window.addEventListener('message', ...)` block, for instance, handles many different message types in a single location. The `initializePdf()` function also orchestrates too many disparate setup tasks.
 
-The project's commitment to quality is most evident in its comprehensive, multi-layered testing strategy.
+## 3. Proposed Refactoring Plan
 
--   **Unit Tests (`test/suite/unit/`):** These are well-focused, using stubs (e.g., for `TokenEstimator`) to test individual components like `ChunkingStrategy` in isolation.
--   **Integration Tests (`test/suite/integration/`):** The integration tests are outstanding. They run within a real VS Code instance and test the interaction between components. For example, `userWorkflows.test.ts` validates that commands are registered and that chat integration works, while `errorScenarios.test.ts` uses real network and file system helpers to ensure the application handles failures gracefully.
--   **End-to-End (E2E) Tests (`test/e2e/`):** The use of Playwright to directly test the webview UI is a best practice that is often skipped in extension development. This guarantees that the toolbar buttons and other UI elements are not only rendered but are also fully functional.
--   **Custom Reporter (`enhanced-spec.ts`):** The creation of a custom test reporter demonstrates a mature approach to the development workflow, providing clear and actionable test feedback.
+The core of the plan is to apply the **Extract Class** and **Extract Method** techniques by breaking `pdfViewer.js` into a collection of ES modules. This will improve separation of concerns and make the codebase more organized and maintainable.
 
-## 5. Opportunities for Refinement
+### 3.1. New File Structure
 
-### 5.1. Code Duplication and Architectural Polish
+It is proposed to create a new directory `src/webview/scripts/modules/` and decompose `pdfViewer.js` as follows:
 
-As you correctly identified, there is noticeable code duplication, particularly in the message handling logic between `PdfCustomEditorProvider` and `WebviewProvider`.
+```
+src/webview/scripts/
+├── modules/
+│   ├── state.js          # Centralized state management
+│   ├── ui.js             # Toolbar/UI event listeners and DOM updates
+│   ├── renderer.js       # Canvas and text layer rendering logic
+│   ├── communication.js  # VS Code message handling (postMessage/addEventListener)
+│   ├── search.js         # All text search functionality
+│   ├── inspector.js      # The PDFObjectInspector class and related logic
+│   └── utils.js          # Shared helper functions
+└── pdfViewer.js          # Main entry point (will be much smaller)
+```
 
--   **Observation:** Both files set up nearly identical `onDidReceiveMessage` listeners to handle events from the webview (e.g., `summarizeRequest`, `exportText`).
--   **Reason:** This duplication arises because they are two distinct entry points into the application that must produce an identically behaving webview. `PdfCustomEditorProvider` acts as an adapter for the VS Code Custom Editor API, while `WebviewProvider` is the internal factory used by commands.
--   **Suggestion:** This can be refactored to improve code reuse.
-    1.  Create a dedicated function, perhaps `WebviewProvider.registerMessageHandler(panel, pdfSource, context)`, that encapsulates the entire `onDidReceiveMessage` logic.
-    2.  Both `PdfCustomEditorProvider` and `WebviewProvider` would then call this single function to attach the handler to the webview panel they create. This would eliminate the duplicated code while preserving the clear architectural separation.
+### 3.2. Module Responsibilities
 
-### 5.2. Webview Script Complexity
+-   **`pdfViewer.js` (New Entry Point):**
+    -   Imports all other modules.
+    -   Contains the primary `initializePdf` function which orchestrates the initialization sequence by calling functions from the imported modules.
+    -   Acts as the central coordinator.
 
-The `webview/scripts/pdfViewer.js` file is over 3000 lines long. While highly functional, its size and scope make it difficult to maintain.
+-   **`state.js`:**
+    -   Exports a state object or class to manage shared state like `pdfDoc`, `currentPage`, `scale`, `vscodeApi`, etc.
+    -   This encapsulates the global state, making it explicit and easier to track.
 
--   **Suggestion:** Refactor `pdfViewer.js` into smaller, more focused ES modules. For example:
-    -   `inspector.js`: For all PDF Object Inspector logic.
-    -   `toolbar.js`: For toolbar event listeners and UI updates.
-    -   `textLayer.js`: For managing the text selection layer.
-    -   `main.js` (formerly `pdfViewer.js`): Would import these modules and orchestrate them.
+-   **`ui.js`:**
+    -   Manages all DOM interactions and event listeners for the toolbar (e.g., `zoomIn`, `fitToWidth`, `goToNextPage`).
+    -   Contains DOM update functions like `updatePageInfo()` and `updateZoomInfo()`.
+    -   Depends on `state.js` to get data and `communication.js` to send messages.
 
-### 5.3. Dependency and Configuration Management
+-   **`renderer.js`:**
+    -   Handles all PDF.js rendering logic for the canvas (`renderPage`, `rerenderAllPages`).
+    -   Manages the text layer, including its creation, visibility, and performance monitoring (`renderTextLayer`, `toggleTextSelection`).
 
--   **CDN Dependency:** The webview template loads `pdf.js` from a CDN. For better security and offline capability, this dependency should be bundled with the extension using a tool like `esbuild` or `webpack`.
--   **Hardcoded Constants:** Many configuration values in `src/utils/constants.ts` (e.g., timeouts, cache TTL) could be exposed as user-configurable settings in VS Code for greater flexibility.
+-   **`communication.js`:**
+    -   Initializes and exports the `vscode` API object.
+    -   Contains a single, clean `window.addEventListener('message', ...)` that delegates message handling to specific functions based on `message.type`.
+    -   Provides wrapper functions for `vscode.postMessage` (e.g., `requestSummary()`, `sendError()`).
 
-## 6. Conclusion
+-   **`search.js`:**
+    -   Encapsulates all logic for the text search feature: the search bar UI, event listeners (`Ctrl+F`), and search execution logic.
 
-The DocPilot extension is a well-crafted piece of software that serves as an excellent reference for building modern, complex VS Code extensions. Its architecture is sound, its features are robust, and its testing is thorough. The opportunities for refinement—primarily around refactoring duplicated code and modularizing the main webview script—are minor and typical for a project of this scale and do not detract from its overall high quality.
+-   **`inspector.js`:**
+    -   Contains the large `PDFObjectInspector` class.
+    -   Includes all related functions for scanning, rendering the object tree, and handling inspector UI events.
+
+-   **`utils.js`:**
+    -   A home for shared helper functions like `showStatusMessage`.
+
+### 3.3. Dependency Management
+
+The webview currently loads `pdf.js` from a CDN. For better security, offline capability, and performance, this dependency should be bundled with the extension.
+
+-   **Action:** Modify `rollup.config.js` to process and bundle `pdfViewer.js` and its new modules, including the `pdf.js` library from `node_modules`. This will produce a single, self-contained script for the webview.
+
+## 4. How to Refactor Safely
+
+This refactoring should be performed incrementally, following best practices to minimize risk.
+
+1.  **Use Version Control:** Commit after each successful, small step.
+2.  **Start with State:** Create `state.js` and move the global state variables into it. Update the rest of the script to import and use the shared state object.
+3.  **Extract Pure Functions:** Move utility functions like `showStatusMessage` to `utils.js`.
+4.  **Extract Features Incrementally:**
+    -   Move all search-related code into `search.js`.
+    -   Move the `PDFObjectInspector` class and its related functions into `inspector.js`.
+    -   Continue this process for each new module (`ui.js`, `renderer.js`, etc.).
+5.  **Run Tests Constantly:** The project has an excellent E2E test suite (`toolbar.e2e.test.ts`). These tests are **critical** for this refactoring. **Run the tests after every small change** to ensure that no functionality has been broken. The tests will act as a safety net, verifying that the UI and its behavior remain unchanged from the user's perspective.
+
+By following this plan, `pdfViewer.js` can be transformed from a monolithic script into a well-structured, maintainable, and modular codebase, making future development faster and safer.
