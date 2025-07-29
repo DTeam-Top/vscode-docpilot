@@ -161,13 +161,13 @@ export function showExtractionModal() {
   const overlay = document.getElementById('extractionOverlay');
   if (overlay) {
     overlay.style.display = 'flex';
-    
+
     // Reset only process state (progress, completion status)
     resetProcessState();
-    
+
     // Initialize selection state (preserves previous selections)
     initializeSelectionState();
-    
+
     // Update extract button state
     updateExtractButton();
   }
@@ -277,11 +277,20 @@ export function initializeEventListeners() {
   });
 
   // Mouse wheel zoom
-  document.addEventListener('wheel', (e) => {
-    if (e.ctrlKey) {
-      e.preventDefault();
-      if (e.deltaY < 0) zoomIn();
-      else zoomOut();
-    }
+  document.addEventListener(
+    'wheel',
+    (e) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+        if (e.deltaY < 0) zoomIn();
+        else zoomOut();
+      }
+    },
+    { passive: false }
+  );
+
+  // Disable default context menu
+  document.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
   });
 }
