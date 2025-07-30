@@ -10,6 +10,8 @@ import type {
 } from '../types/interfaces';
 import { WEBVIEW_MESSAGES } from '../utils/constants';
 import { Logger } from '../utils/logger';
+import { TemplateEngine } from '../utils/templateEngine';
+
 
 interface LocalWebviewMessage {
   type: string;
@@ -232,7 +234,7 @@ export class WebviewProvider {
       assetUri: WebviewProvider.getAssetUri(webview, extensionContext),
     };
 
-    return WebviewProvider.renderTemplate(templateData, extensionContext);
+    return TemplateEngine.render(extensionContext, 'pdfViewer', templateData);
   }
 
   private static resolvePdfUri(webview: vscode.Webview, pdfSource: string): string {
@@ -276,46 +278,6 @@ export class WebviewProvider {
       'assets'
     );
     return webview.asWebviewUri(assetPath).toString();
-  }
-
-  private static renderTemplate(
-    data: TemplateData,
-    extensionContext: vscode.ExtensionContext
-  ): string {
-    const templatePath = path.join(
-      extensionContext.extensionPath,
-      'out',
-      'webview',
-      'templates',
-      'pdfViewer.html'
-    );
-
-    try {
-      let template = fs.readFileSync(templatePath, 'utf8');
-
-      // Simple template replacement
-      template = template.replace(/{{pdfUri}}/g, data.pdfUri);
-      template = template.replace(/{{isUrl}}/g, data.isUrl.toString());
-      template = template.replace(/{{fileName}}/g, WebviewProvider.escapeHtml(data.fileName));
-      template = template.replace(/{{scriptUri}}/g, data.scriptUri);
-      template = template.replace(/{{assetUri}}/g, data.assetUri);
-
-      return template;
-    } catch (error) {
-      WebviewProvider.logger.error('Failed to load webview template', error);
-      return WebviewProvider.getFallbackTemplate(data);
-    }
-  }
-
-  private static escapeHtml(text: string): string {
-    const map: Record<string, string> = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#039;',
-    };
-    return text.replace(/[&<>"']/g, (m) => map[m]);
   }
 
   // Enhanced object extraction handlers
@@ -454,37 +416,6 @@ export class WebviewProvider {
         data: emptyCounts,
       });
     }
-  }
-
-  private static getFallbackTemplate(data: TemplateData): string {
-    // Minimal fallback template if file loading fails
-    return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>PDF Viewer</title>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-      </head>
-      <body>
-        <div style="padding: 20px; text-align: center;">
-          <h3>PDF Viewer</h3>
-          <p>Loading ${WebviewProvider.escapeHtml(data.fileName)}...</p>
-          <div id="pdfContainer"></div>
-        </div>
-        <script>
-          const PDF_CONFIG = {
-            pdfUri: '${data.pdfUri}',
-            isUrl: ${data.isUrl},
-            fileName: '${WebviewProvider.escapeHtml(data.fileName)}'
-          };
-          // Basic PDF loading fallback
-          const vscode = acquireVsCodeApi();
-          console.log('Fallback template loaded');
-        </script>
-      </body>
-      </html>
-    `;
   }
 
   static validatePdfPath(pdfPath: string): boolean {

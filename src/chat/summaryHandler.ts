@@ -1,13 +1,12 @@
-import * as fs from 'node:fs';
-import * as path from 'node:path';
 import * as vscode from 'vscode';
 import { FileWatcher } from '../cache/fileWatcher';
 import { SummaryCache } from '../cache/summaryCache';
 import { TextExtractor } from '../pdf/textExtractor';
 import type { ChatCommandResult } from '../types/interfaces';
 import { ChatErrorHandler } from '../utils/errorHandler';
-import { InvalidFilePathError, PdfLoadError } from '../utils/errors';
+import { PdfLoadError } from '../utils/errors';
 import { Logger } from '../utils/logger';
+import { PathResolver } from '../utils/pathResolver';
 import { WebviewProvider } from '../webview/webviewProvider';
 import { TextProcessor } from './textProcessor';
 
@@ -29,7 +28,7 @@ export class SummaryHandler {
     token: vscode.CancellationToken
   ): Promise<ChatCommandResult> {
     try {
-      const pdfPath = await this.resolvePdfPath(request.prompt, stream);
+      const pdfPath = await PathResolver.resolve(request.prompt, stream);
 
       // Always create PDF viewer first
       const panel = await this.createPdfViewer(pdfPath, stream);
@@ -81,62 +80,6 @@ export class SummaryHandler {
       SummaryHandler.logger.error('Summary handler error', error);
       return ChatErrorHandler.handle(error, stream, 'PDF summarization');
     }
-  }
-
-  private async resolvePdfPath(prompt: string, stream: vscode.ChatResponseStream): Promise<string> {
-    const trimmedPrompt = prompt.trim();
-
-    if (!trimmedPrompt) {
-      // Show file picker if no file specified
-      stream.markdown('📁 Opening file picker...\n\n');
-
-      const result = await vscode.window.showOpenDialog({
-        canSelectFiles: true,
-        canSelectFolders: false,
-        canSelectMany: false,
-        filters: { 'PDF Files': ['pdf'] },
-        title: 'Select PDF file to summarise',
-      });
-
-      if (!result || result.length === 0) {
-        throw new InvalidFilePathError('No file selected');
-      }
-
-      return result[0].fsPath;
-    }
-
-    if (trimmedPrompt.startsWith('http')) {
-      // Handle URL
-      if (!WebviewProvider.validatePdfPath(trimmedPrompt)) {
-        throw new InvalidFilePathError(`Invalid PDF URL: ${trimmedPrompt}`);
-      }
-      return trimmedPrompt;
-    }
-
-    // Handle file path - resolve relative to workspace
-    let resolvedPath: string;
-    if (path.isAbsolute(trimmedPrompt)) {
-      resolvedPath = trimmedPrompt;
-    } else {
-      const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-      if (!workspaceFolder) {
-        throw new InvalidFilePathError(
-          'No workspace folder found. Please provide an absolute path.'
-        );
-      }
-      resolvedPath = path.join(workspaceFolder.uri.fsPath, trimmedPrompt);
-    }
-
-    // Check if file exists for local files
-    if (!resolvedPath.startsWith('http') && !fs.existsSync(resolvedPath)) {
-      throw new InvalidFilePathError(`File not found: ${resolvedPath}`);
-    }
-
-    if (!WebviewProvider.validatePdfPath(resolvedPath)) {
-      throw new InvalidFilePathError(`Not a valid PDF file: ${resolvedPath}`);
-    }
-
-    return resolvedPath;
   }
 
   private async createPdfViewer(
@@ -252,3 +195,4 @@ export class SummaryHandler {
     await this.summaryCache.clearCache();
   }
 }
+
