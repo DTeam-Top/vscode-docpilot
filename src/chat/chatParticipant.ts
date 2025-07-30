@@ -155,24 +155,10 @@ export class ChatParticipant {
 
     // Check if the last result was a successful summary
     if (result.metadata?.command === CHAT_COMMANDS.SUMMARISE && !result.metadata.error) {
-      followups.push(
-        {
-          prompt: 'Summarize another PDF',
-          label: '📄 Summarize Another PDF',
-          command: CHAT_COMMANDS.SUMMARISE,
-        },
-        {
-          prompt: 'How does semantic chunking work?',
-          label: '🧠 About Semantic Chunking',
-        }
-      );
-    }
-
-    // Always provide help option
-    if (result.metadata?.command !== 'help') {
       followups.push({
-        prompt: 'What can DocPilot do?',
-        label: '❓ Help & Commands',
+        prompt: '',
+        label: '📄 Summarize Another PDF',
+        command: CHAT_COMMANDS.SUMMARISE,
       });
     }
 

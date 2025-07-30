@@ -178,91 +178,60 @@ export class SummaryHandler {
     return text;
   }
 
+  private _isTestEnvironment(): boolean {
+    return (
+      process.env.NODE_ENV === 'test' ||
+      process.env.VSCODE_PID === undefined ||
+      (typeof global !== 'undefined' && 'suite' in global)
+    );
+  }
+
+  private _createMockLanguageModel(id = 'test-model-id'): vscode.LanguageModelChat {
+    SummaryHandler.logger.info(`Using mock language model for testing (id: ${id})`);
+    return {
+      id,
+      name: 'test-model',
+      vendor: 'copilot',
+      family: 'gpt-4',
+      version: '1.0.0',
+      maxInputTokens: 8192,
+      countTokens: async (text: string) => text.length / 4,
+      sendRequest: async () => ({
+        text: 'This is a test summary generated for integration testing purposes.',
+        stream: async function* () {
+          yield {
+            index: 0,
+            part: 'This is a test summary generated for integration testing purposes.',
+          };
+        },
+      }),
+    } as unknown as vscode.LanguageModelChat;
+  }
+
   private async getLanguageModel(): Promise<vscode.LanguageModelChat> {
     try {
-      const models = await vscode.lm.selectChatModels({
-        vendor: 'copilot',
-      });
+      const models = await vscode.lm.selectChatModels({ vendor: 'copilot' });
 
-      if (models.length === 0) {
-        // Check if we're in a test environment
-        const isTestEnvironment =
-          process.env.NODE_ENV === 'test' ||
-          process.env.VSCODE_PID === undefined ||
-          (typeof global !== 'undefined' && 'suite' in global);
-
-        if (isTestEnvironment) {
-          // Return a mock model for testing
-          SummaryHandler.logger.info('Using mock language model for testing');
-          return {
-            id: 'test-model-id',
-            name: 'test-model',
-            vendor: 'copilot',
-            family: 'gpt-4',
-            version: '1.0.0',
-            maxInputTokens: 8192,
-            countTokens: async (text: string) => text.length / 4, // Rough estimation
-            sendRequest: async () => {
-              // Mock response for testing
-              return {
-                text: 'This is a test summary generated for integration testing purposes.',
-                stream: async function* () {
-                  yield {
-                    index: 0,
-                    part: 'This is a test summary generated for integration testing purposes.',
-                  };
-                },
-              };
-            },
-          } as unknown as vscode.LanguageModelChat;
-        }
-
-        throw new Error(
-          'No compatible language models available. Please ensure GitHub Copilot is enabled.'
-        );
+      if (models.length > 0) {
+        const selectedModel = models[0];
+        SummaryHandler.logger.info(`Using language model: ${selectedModel.name}`, {
+          modelName: selectedModel.name,
+          maxInputTokens: selectedModel.maxInputTokens,
+          vendor: selectedModel.vendor,
+          family: selectedModel.family,
+        });
+        return selectedModel;
       }
 
-      const selectedModel = models[0];
-      SummaryHandler.logger.info(`Using language model: ${selectedModel.name}`, {
-        modelName: selectedModel.name,
-        maxInputTokens: selectedModel.maxInputTokens,
-        vendor: selectedModel.vendor,
-        family: selectedModel.family,
-      });
-      return selectedModel;
+      if (this._isTestEnvironment()) {
+        return this._createMockLanguageModel();
+      }
+
+      throw new Error('No compatible language models available. Please ensure GitHub Copilot is enabled.');
     } catch (error) {
-      // Check if we're in a test environment and provide fallback
-      const isTestEnvironment =
-        process.env.NODE_ENV === 'test' ||
-        process.env.VSCODE_PID === undefined ||
-        (typeof global !== 'undefined' && 'suite' in global);
-
-      if (isTestEnvironment) {
-        SummaryHandler.logger.info(
-          'Language model selection failed in test environment, using mock model'
-        );
-        return {
-          id: 'test-model-fallback-id',
-          name: 'test-model-fallback',
-          vendor: 'copilot',
-          family: 'gpt-4',
-          version: '1.0.0',
-          maxInputTokens: 8192,
-          countTokens: async (text: string) => text.length / 4, // Rough estimation
-          sendRequest: async () => {
-            return {
-              text: 'This is a test summary generated for integration testing purposes.',
-              stream: async function* () {
-                yield {
-                  index: 0,
-                  part: 'This is a test summary generated for integration testing purposes.',
-                };
-              },
-            };
-          },
-        } as unknown as vscode.LanguageModelChat;
+      if (this._isTestEnvironment()) {
+        return this._createMockLanguageModel('test-model-fallback-id');
       }
-
       throw error;
     }
   }
