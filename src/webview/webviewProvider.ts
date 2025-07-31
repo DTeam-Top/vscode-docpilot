@@ -10,6 +10,7 @@ import type {
 } from '../types/interfaces';
 import { WEBVIEW_MESSAGES } from '../utils/constants';
 import { Logger } from '../utils/logger';
+import { TemplateEngine } from '../utils/templateEngine';
 
 interface LocalWebviewMessage {
   type: string;
@@ -138,6 +139,13 @@ export class WebviewProvider {
           WebviewProvider.logger.error('Webview summarization error:', message.error);
           vscode.window.showErrorMessage(`Summarization failed: ${message.error}`);
           break;
+        case WEBVIEW_MESSAGES.MINDMAP_REQUEST:
+          await WebviewProvider.handleMindmapRequest(panel, pdfSource, message, extensionContext);
+          break;
+        case WEBVIEW_MESSAGES.MINDMAP_ERROR:
+          WebviewProvider.logger.error('Webview mindmap error:', message.error);
+          vscode.window.showErrorMessage(`Mindmap generation failed: ${message.error}`);
+          break;
         case WEBVIEW_MESSAGES.EXTRACT_ALL_TEXT:
         case WEBVIEW_MESSAGES.TEXT_EXTRACTED:
         case WEBVIEW_MESSAGES.TEXT_EXTRACTION_ERROR:
@@ -219,6 +227,54 @@ export class WebviewProvider {
     }
   }
 
+  private static async handleMindmapRequest(
+    panel: vscode.WebviewPanel,
+    pdfSource: string,
+    _message: LocalWebviewMessage,
+    _extensionContext: vscode.ExtensionContext
+  ): Promise<void> {
+    try {
+      WebviewProvider.logger.info('Handling mindmap request from webview', { pdfSource });
+
+      // Notify webview that mindmap generation has started
+      panel.webview.postMessage({
+        type: WEBVIEW_MESSAGES.MINDMAP_STARTED,
+      });
+
+      // Open chat view first
+      await vscode.commands.executeCommand('workbench.panel.chat.view.copilot.focus');
+
+      // Create and send a chat request
+      const chatInput = pdfSource.startsWith('http')
+        ? `@docpilot /mindmap ${pdfSource}`
+        : `@docpilot /mindmap ${pdfSource}`;
+
+      // Insert the chat command into the chat input
+      await vscode.commands.executeCommand('workbench.action.chat.open', {
+        query: chatInput,
+      });
+
+      // Notify webview that mindmap generation completed
+      panel.webview.postMessage({
+        type: WEBVIEW_MESSAGES.MINDMAP_COMPLETED,
+      });
+
+      WebviewProvider.logger.info('Mindmap request processed successfully');
+    } catch (error) {
+      WebviewProvider.logger.error('Failed to handle mindmap request', error);
+
+      // Notify webview of error
+      panel.webview.postMessage({
+        type: WEBVIEW_MESSAGES.MINDMAP_ERROR,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      vscode.window.showErrorMessage(
+        `Failed to generate mindmap: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
   static getWebviewContent(
     webview: vscode.Webview,
     pdfSource: string,
@@ -232,7 +288,7 @@ export class WebviewProvider {
       assetUri: WebviewProvider.getAssetUri(webview, extensionContext),
     };
 
-    return WebviewProvider.renderTemplate(templateData, extensionContext);
+    return TemplateEngine.render(extensionContext, 'pdfViewer', templateData);
   }
 
   private static resolvePdfUri(webview: vscode.Webview, pdfSource: string): string {
@@ -276,46 +332,6 @@ export class WebviewProvider {
       'assets'
     );
     return webview.asWebviewUri(assetPath).toString();
-  }
-
-  private static renderTemplate(
-    data: TemplateData,
-    extensionContext: vscode.ExtensionContext
-  ): string {
-    const templatePath = path.join(
-      extensionContext.extensionPath,
-      'out',
-      'webview',
-      'templates',
-      'pdfViewer.html'
-    );
-
-    try {
-      let template = fs.readFileSync(templatePath, 'utf8');
-
-      // Simple template replacement
-      template = template.replace(/{{pdfUri}}/g, data.pdfUri);
-      template = template.replace(/{{isUrl}}/g, data.isUrl.toString());
-      template = template.replace(/{{fileName}}/g, WebviewProvider.escapeHtml(data.fileName));
-      template = template.replace(/{{scriptUri}}/g, data.scriptUri);
-      template = template.replace(/{{assetUri}}/g, data.assetUri);
-
-      return template;
-    } catch (error) {
-      WebviewProvider.logger.error('Failed to load webview template', error);
-      return WebviewProvider.getFallbackTemplate(data);
-    }
-  }
-
-  private static escapeHtml(text: string): string {
-    const map: Record<string, string> = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#039;',
-    };
-    return text.replace(/[&<>"']/g, (m) => map[m]);
   }
 
   // Enhanced object extraction handlers
@@ -454,37 +470,6 @@ export class WebviewProvider {
         data: emptyCounts,
       });
     }
-  }
-
-  private static getFallbackTemplate(data: TemplateData): string {
-    // Minimal fallback template if file loading fails
-    return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>PDF Viewer</title>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-      </head>
-      <body>
-        <div style="padding: 20px; text-align: center;">
-          <h3>PDF Viewer</h3>
-          <p>Loading ${WebviewProvider.escapeHtml(data.fileName)}...</p>
-          <div id="pdfContainer"></div>
-        </div>
-        <script>
-          const PDF_CONFIG = {
-            pdfUri: '${data.pdfUri}',
-            isUrl: ${data.isUrl},
-            fileName: '${WebviewProvider.escapeHtml(data.fileName)}'
-          };
-          // Basic PDF loading fallback
-          const vscode = acquireVsCodeApi();
-          console.log('Fallback template loaded');
-        </script>
-      </body>
-      </html>
-    `;
   }
 
   static validatePdfPath(pdfPath: string): boolean {

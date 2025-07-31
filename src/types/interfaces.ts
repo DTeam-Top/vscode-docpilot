@@ -75,6 +75,7 @@ export interface ProcessingResult {
   fallbackRequired: boolean;
   error?: string;
   summaryText?: string;
+  mindmapText?: string;
 }
 
 // Summary interfaces
@@ -143,6 +144,7 @@ export interface TimeoutConfig {
 export interface ChatCommandResult {
   readonly metadata: Record<string, unknown>;
   readonly summaryText?: string;
+  readonly mindmapText?: string;
 }
 
 export interface RetryOptions {

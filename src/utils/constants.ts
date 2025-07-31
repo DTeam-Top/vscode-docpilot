@@ -44,6 +44,10 @@ export const WEBVIEW_MESSAGES = {
   SUMMARIZE_STARTED: 'summarizeStarted',
   SUMMARIZE_COMPLETED: 'summarizeCompleted',
   SUMMARIZE_ERROR: 'summarizeError',
+  MINDMAP_REQUEST: 'mindmapRequest',
+  MINDMAP_STARTED: 'mindmapStarted',
+  MINDMAP_COMPLETED: 'mindmapCompleted',
+  MINDMAP_ERROR: 'mindmapError',
   SEARCH_TEXT: 'searchText',
   SEARCH_NEXT: 'searchNext',
   SEARCH_PREVIOUS: 'searchPrevious',
@@ -62,6 +66,7 @@ export const WEBVIEW_MESSAGES = {
 
 export const CHAT_COMMANDS = {
   SUMMARISE: 'summarise',
+  MINDMAP: 'mindmap',
   CACHE_STATS: 'cache-stats',
   CLEAR_CACHE: 'clear-cache',
 } as const;

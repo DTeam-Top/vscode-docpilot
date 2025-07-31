@@ -2,7 +2,7 @@
   "name": "vscode-docpilot",
   "displayName": "DocPilot",
   "description": "View PDF files in VSCode from local files or remote URLs",
-  "version": "0.2.5",
+  "version": "0.3.0",
   "publisher": "DTeam",
   "icon": "resources/docpilot-icon.png",
   "repository": {
@@ -51,7 +51,11 @@
         "commands": [
           {
             "name": "summarise",
-            "description": "Summarise a PDF file and display it in the viewer"
+            "description": "Summarise a PDF file and display it in the chat."
+          },
+          {
+            "name": "mindmap",
+            "description": "Create a mindmap for a PDF file and display it in a new file ediitor."
           },
           {
             "name": "cache-stats",

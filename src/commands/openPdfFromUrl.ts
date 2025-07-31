@@ -1,30 +1,21 @@
 import * as vscode from 'vscode';
+import { createCommandHandler } from '../utils/commandUtils';
 import { InvalidFilePathError } from '../utils/errors';
 import { Logger } from '../utils/logger';
 import { PdfProxy } from '../utils/pdfProxy';
 import { WebviewUtils } from '../utils/webviewUtils';
 import { WebviewProvider } from '../webview/webviewProvider';
 
-// biome-ignore lint/complexity/noStaticOnlyClass: This follows existing extension patterns
 export class OpenPdfFromUrlCommand {
   private static readonly logger = Logger.getInstance();
 
   static register(context: vscode.ExtensionContext): vscode.Disposable {
-    return vscode.commands.registerCommand('docpilot.openPdfFromUrl', async (url?: string) => {
-      try {
-        return await OpenPdfFromUrlCommand.execute(context, url);
-      } catch (error) {
-        OpenPdfFromUrlCommand.logger.error('Failed to open PDF from URL', error);
-
-        // Show user-friendly error message
-        vscode.window.showErrorMessage(
-          `Failed to open PDF: ${error instanceof Error ? error.message : 'Unknown error'}`
-        );
-
-        // Re-throw for test catching
-        throw error;
-      }
-    });
+    return createCommandHandler(
+      'docpilot.openPdfFromUrl',
+      (url?: string) => OpenPdfFromUrlCommand.execute(context, url),
+      OpenPdfFromUrlCommand.logger,
+      'open PDF from URL'
+    );
   }
 
   private static async execute(

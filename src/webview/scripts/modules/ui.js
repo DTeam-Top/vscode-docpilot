@@ -1,4 +1,4 @@
-import { requestSummary } from './communication.js';
+import { requestSummary, requestMindmap } from './communication.js';
 import {
   browseSaveFolder,
   cancelExtraction,
@@ -157,17 +157,26 @@ export async function summarizeDocument() {
   requestSummary();
 }
 
+export async function generateMindmap() {
+  const mindmapBtn = document.getElementById('mindmapBtn');
+  if (!state.pdfDoc) return;
+  mindmapBtn.disabled = true;
+  mindmapBtn.style.opacity = '0.6';
+  mindmapBtn.title = 'Generating mindmap...';
+  requestMindmap();
+}
+
 export function showExtractionModal() {
   const overlay = document.getElementById('extractionOverlay');
   if (overlay) {
     overlay.style.display = 'flex';
-    
+
     // Reset only process state (progress, completion status)
     resetProcessState();
-    
+
     // Initialize selection state (preserves previous selections)
     initializeSelectionState();
-    
+
     // Update extract button state
     updateExtractButton();
   }
@@ -201,6 +210,7 @@ export function initializeEventListeners() {
   document.getElementById('inspectorBtn').addEventListener('click', toggleInspector);
   document.getElementById('debugBtn').addEventListener('click', toggleDebug);
   document.getElementById('summarizeBtn').addEventListener('click', summarizeDocument);
+  document.getElementById('mindmapBtn').addEventListener('click', generateMindmap);
   document.getElementById('exportBtn').addEventListener('click', showExtractionModal);
   document.getElementById('searchBtn').addEventListener('click', toggleSearch);
 
@@ -277,11 +287,20 @@ export function initializeEventListeners() {
   });
 
   // Mouse wheel zoom
-  document.addEventListener('wheel', (e) => {
-    if (e.ctrlKey) {
-      e.preventDefault();
-      if (e.deltaY < 0) zoomIn();
-      else zoomOut();
-    }
+  document.addEventListener(
+    'wheel',
+    (e) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+        if (e.deltaY < 0) zoomIn();
+        else zoomOut();
+      }
+    },
+    { passive: false }
+  );
+
+  // Disable default context menu
+  document.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
   });
 }

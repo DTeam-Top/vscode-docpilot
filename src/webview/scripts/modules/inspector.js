@@ -448,7 +448,7 @@ function renderPageObjectsList(pageNum, pageObjects) {
 
   let html = '';
   let unknownObjectsCount = 0;
-  
+
   pageObjects.forEach((objId) => {
     // Skip invalid or empty object IDs
     if (!objId || typeof objId !== 'string' || objId.trim() === '') {
@@ -1160,9 +1160,9 @@ function viewJavaScript(index) {
  */
 function renderImageObject(image, context = 'object-view') {
   if (!image) return '';
-  
+
   const title = context === 'object-view' ? `Page ${image.pageNum} 🖼️` : '🖼️ Image';
-  
+
   return `
     <div class="tree-object-preview" data-object-id="${image.id}" data-object-type="images" data-page-num="${image.pageNum}">
       <div class="tree-object-thumbnail">
@@ -1187,10 +1187,10 @@ function renderImageObject(image, context = 'object-view') {
  */
 function renderTableObject(table, context = 'object-view') {
   if (!table) return '';
-  
+
   const maxCols = Math.max(...table.rows.map((row) => row.length));
   const title = context === 'object-view' ? `Page ${table.pageNum}` : '📊 Table';
-  
+
   return `
     <div class="tree-object-preview" data-object-id="${table.id}" data-object-type="tables" data-page-num="${table.pageNum}">
       <div class="tree-object-thumbnail">📊</div>
@@ -1213,11 +1213,11 @@ function renderTableObject(table, context = 'object-view') {
  */
 function renderFontObject(font, context = 'object-view') {
   if (!font) return '';
-  
+
   const displayName = font.name || font.id || 'Unknown Font';
   const displayType = font.type || 'Unknown type';
   const title = context === 'object-view' ? displayName : `🔤 Font: ${displayName}`;
-  
+
   return `
     <div class="tree-object-preview" data-object-id="${font.id}" data-object-type="fonts" data-page-num="${font.pageNum}">
       <div class="tree-object-thumbnail">🔤</div>
@@ -1240,12 +1240,13 @@ function renderFontObject(font, context = 'object-view') {
  */
 function renderAnnotationObject(annotation, context = 'object-view') {
   if (!annotation) return '';
-  
+
   let displayContent = 'No content';
   if (annotation.content && annotation.content !== 'No content available') {
-    displayContent = annotation.content.length > 30
-      ? annotation.content.substring(0, 30) + '...'
-      : annotation.content;
+    displayContent =
+      annotation.content.length > 30
+        ? annotation.content.substring(0, 30) + '...'
+        : annotation.content;
   }
 
   let icon = '📝';
@@ -1267,12 +1268,15 @@ function renderAnnotationObject(annotation, context = 'object-view') {
       icon = '📎';
       break;
   }
-  
+
   // Consistent tree-object-preview format for both contexts
-  const title = context === 'object-view' 
-    ? (annotation.title || annotation.contents || `${annotation.type || 'Annotation'} on Page ${annotation.pageNum}`)
-    : `${icon} ${annotation.type || 'Annotation'}`;
-    
+  const title =
+    context === 'object-view'
+      ? annotation.title ||
+        annotation.contents ||
+        `${annotation.type || 'Annotation'} on Page ${annotation.pageNum}`
+      : `${icon} ${annotation.type || 'Annotation'}`;
+
   return `
     <div class="tree-object-preview" data-object-id="${annotation.id}" data-object-type="annotations" data-page-num="${annotation.pageNum}">
       <div class="tree-object-thumbnail">${icon}</div>

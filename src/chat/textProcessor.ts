@@ -419,4 +419,435 @@ Create a unified summary that:
 
 The final summary should be comprehensive yet concise, giving readers a complete understanding of the document's content and significance.`;
   }
+
+  async processMindmapDocument(options: ProcessDocumentOptions): Promise<ChatCommandResult> {
+    const { text, fileName, model, stream, cancellationToken } = options;
+
+    try {
+      const result = await this.processWithMindmapChunking(
+        text,
+        fileName,
+        model,
+        stream,
+        cancellationToken
+      );
+
+      if (!result.success && result.fallbackRequired) {
+        return await this.handleMindmapFallback(
+          text,
+          fileName,
+          model,
+          stream,
+          cancellationToken,
+          result.error
+        );
+      }
+
+      stream.markdown(
+        `\n\n---\n*PDF opened in DocPilot viewer. Mindmap generated from ${text.length} characters*`
+      );
+
+      return {
+        metadata: {
+          command: 'mindmap',
+          file: fileName,
+          textLength: text.length,
+          processingStrategy: result.success ? 'enhanced' : 'fallback',
+          timestamp: Date.now(),
+        },
+        mindmapText: result.mindmapText,
+      };
+    } catch (error) {
+      TextProcessor.logger.error('Mindmap document processing failed', error);
+      return ChatErrorHandler.handle(error, stream, 'Mindmap generation');
+    }
+  }
+
+  private async processWithMindmapChunking(
+    pdfText: string,
+    fileName: string,
+    model: vscode.LanguageModelChat,
+    stream: vscode.ChatResponseStream,
+    token: vscode.CancellationToken
+  ): Promise<ProcessingResult> {
+    try {
+      const estimatedTokens = TokenEstimator.estimate(pdfText);
+      const maxTokensForModel = model.maxInputTokens || 4000;
+      const config = ChunkingStrategy.getDefaultConfig(maxTokensForModel);
+
+      stream.markdown(
+        `🗺️ Generating mindmap from ${pdfText.length} characters (~${estimatedTokens} tokens)\n\n`
+      );
+
+      // Check if document fits in single chunk
+      if (estimatedTokens <= config.maxTokensPerChunk) {
+        return await this.processSingleMindmapChunk(pdfText, fileName, model, stream, token);
+      }
+
+      // Document is large, use chunking strategy
+      return await this.processMultipleMindmapChunks(
+        pdfText,
+        fileName,
+        model,
+        stream,
+        token,
+        config
+      );
+    } catch (error) {
+      TextProcessor.logger.error('Error in mindmap chunking process', error);
+      return {
+        success: false,
+        fallbackRequired: true,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  private async processSingleMindmapChunk(
+    pdfText: string,
+    fileName: string,
+    model: vscode.LanguageModelChat,
+    stream: vscode.ChatResponseStream,
+    token: vscode.CancellationToken
+  ): Promise<ProcessingResult> {
+    stream.markdown('🚀 Document fits in single chunk, generating mindmap directly...\n\n');
+
+    const prompt = this.createSingleChunkMindmapPrompt(fileName, pdfText);
+
+    const response = await RetryPolicy.withRetry(
+      () =>
+        Promise.resolve(
+          model.sendRequest([vscode.LanguageModelChatMessage.User(prompt)], {}, token)
+        ),
+      {
+        maxAttempts: 2,
+        shouldRetry: RetryPolicy.shouldRetryModelError,
+      }
+    );
+
+    stream.markdown('## 🗺️ PDF Mindmap\n\n```mermaid\n');
+
+    let mindmapText = '';
+    for await (const chunk of response.text) {
+      mindmapText += chunk;
+      stream.markdown(chunk);
+      if (token.isCancellationRequested) {
+        break;
+      }
+    }
+
+    stream.markdown('\n```\n\n');
+
+    return { success: true, fallbackRequired: false, mindmapText: mindmapText.trim() };
+  }
+
+  private async processMultipleMindmapChunks(
+    pdfText: string,
+    fileName: string,
+    model: vscode.LanguageModelChat,
+    stream: vscode.ChatResponseStream,
+    token: vscode.CancellationToken,
+    config: ChunkingConfig
+  ): Promise<ProcessingResult> {
+    const estimatedTokens = TokenEstimator.estimate(pdfText);
+
+    stream.markdown(
+      `📚 Document is large (~${estimatedTokens} tokens), using intelligent chunking for mindmap...\n\n`
+    );
+
+    const chunks = ChunkingStrategy.createSemanticChunks(pdfText, config);
+
+    if (!ChunkingStrategy.validateChunks(chunks, config)) {
+      throw new Error('Chunk validation failed - chunks too large');
+    }
+
+    stream.markdown(`🔄 Created ${chunks.length} semantic chunks\n\n`);
+
+    // Process chunks in batches for mindmap sections
+    const chunkMindmaps = await this.processMindmapChunksInBatches(
+      chunks,
+      fileName,
+      model,
+      stream,
+      token
+    );
+
+    // Consolidate mindmaps
+    const finalMindmap = await this.consolidateMindmaps(
+      chunkMindmaps,
+      fileName,
+      chunks,
+      model,
+      token
+    );
+
+    stream.markdown('## 🗺️ Comprehensive PDF Mindmap\n\n```mermaid\n');
+    stream.markdown(finalMindmap);
+    stream.markdown('\n```\n\n');
+
+    const totalPages = chunks.length > 0 ? chunks[chunks.length - 1].endPage : 0;
+    stream.markdown(
+      `\n\n📊 **Processing Stats:** ${chunks.length} chunks processed, ${totalPages} pages analyzed\n`
+    );
+    stream.markdown(
+      '✨ *Mindmap generated using semantic chunking and hierarchical consolidation*\n'
+    );
+
+    return { success: true, fallbackRequired: false, mindmapText: finalMindmap };
+  }
+
+  private async processMindmapChunksInBatches(
+    chunks: DocumentChunk[],
+    fileName: string,
+    model: vscode.LanguageModelChat,
+    stream: vscode.ChatResponseStream,
+    token: vscode.CancellationToken
+  ): Promise<string[]> {
+    const chunkMindmaps: string[] = [];
+    const batchSize = CONFIG.TEXT_PROCESSING.DEFAULT_BATCH_SIZE;
+
+    for (let i = 0; i < chunks.length; i += batchSize) {
+      const batch = chunks.slice(i, i + batchSize);
+
+      const batchPromises = batch.map((chunk) => {
+        stream.markdown(`📄 Processing pages ${chunk.startPage}-${chunk.endPage} for mindmap...\n`);
+        return this.generateChunkMindmap(chunk, fileName, model, token);
+      });
+
+      const batchResults = await Promise.all(batchPromises);
+      chunkMindmaps.push(...batchResults);
+
+      stream.markdown(
+        `✅ Completed ${Math.min(i + batchSize, chunks.length)}/${chunks.length} chunks\n\n`
+      );
+
+      if (token.isCancellationRequested) {
+        throw new Error('Processing cancelled by user');
+      }
+    }
+
+    return chunkMindmaps;
+  }
+
+  private async generateChunkMindmap(
+    chunk: DocumentChunk,
+    fileName: string,
+    model: vscode.LanguageModelChat,
+    token: vscode.CancellationToken
+  ): Promise<string> {
+    const prompt = this.createChunkMindmapPrompt(chunk, fileName);
+
+    try {
+      const response = await RetryPolicy.withRetry(
+        () =>
+          Promise.resolve(
+            model.sendRequest([vscode.LanguageModelChatMessage.User(prompt)], {}, token)
+          ),
+        {
+          maxAttempts: 2,
+          shouldRetry: RetryPolicy.shouldRetryModelError,
+        }
+      );
+
+      let mindmap = '';
+      for await (const textChunk of response.text) {
+        mindmap += textChunk;
+        if (token.isCancellationRequested) {
+          break;
+        }
+      }
+
+      return mindmap.trim();
+    } catch (error) {
+      TextProcessor.logger.error(`Error generating mindmap for chunk ${chunk.index}`, error);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      return `    ErrorSection${chunk.index}[Error: ${errorMsg}]`;
+    }
+  }
+
+  private async consolidateMindmaps(
+    chunkMindmaps: string[],
+    fileName: string,
+    chunks: DocumentChunk[],
+    model: vscode.LanguageModelChat,
+    token: vscode.CancellationToken
+  ): Promise<string> {
+    const totalPages = chunks.length > 0 ? chunks[chunks.length - 1].endPage : 0;
+    const prompt = this.createMindmapConsolidationPrompt(chunkMindmaps, fileName, totalPages);
+
+    try {
+      const response = await RetryPolicy.withRetry(
+        () =>
+          Promise.resolve(
+            model.sendRequest([vscode.LanguageModelChatMessage.User(prompt)], {}, token)
+          ),
+        {
+          maxAttempts: 2,
+          shouldRetry: RetryPolicy.shouldRetryModelError,
+        }
+      );
+
+      let finalMindmap = '';
+      for await (const textChunk of response.text) {
+        finalMindmap += textChunk;
+        if (token.isCancellationRequested) {
+          break;
+        }
+      }
+
+      return finalMindmap.trim();
+    } catch (error) {
+      TextProcessor.logger.error('Error consolidating mindmaps', error);
+      // Fallback: create simple combined mindmap
+      const baseName = fileName.replace(/\.pdf$/i, '');
+      const combinedBranches = chunkMindmaps
+        .map((mindmap, index) => `    Section${index + 1}[${mindmap.substring(0, 50)}...]`)
+        .join('\n');
+
+      return `mindmap\n  root((${baseName}))\n${combinedBranches}\n\n*Note: Automatic consolidation failed, showing section breakdown.*`;
+    }
+  }
+
+  private async handleMindmapFallback(
+    text: string,
+    fileName: string,
+    model: vscode.LanguageModelChat,
+    stream: vscode.ChatResponseStream,
+    token: vscode.CancellationToken,
+    originalError?: string
+  ): Promise<ChatCommandResult> {
+    stream.markdown('⚠️ Enhanced mindmap generation failed, using fallback approach...\n\n');
+
+    const shortExcerpt = `${text.substring(0, 1000)}...\n\n[Showing excerpt only]`;
+    const fallbackPrompt = `Create a simple Mermaid mindmap from this PDF excerpt:\n\n${shortExcerpt}`;
+
+    try {
+      const fallbackResponse = await model.sendRequest(
+        [vscode.LanguageModelChatMessage.User(fallbackPrompt)],
+        {},
+        token
+      );
+
+      stream.markdown('## 🗺️ PDF Mindmap (Excerpt)\n\n```mermaid\n');
+
+      let fallbackMindmapText = '';
+      for await (const chunk of fallbackResponse.text) {
+        fallbackMindmapText += chunk;
+        stream.markdown(chunk);
+        if (token.isCancellationRequested) {
+          break;
+        }
+      }
+
+      stream.markdown('\n```\n\n');
+      stream.markdown(
+        '\n\n⚠️ *Note: Mindmap based on document excerpt only due to size constraints.*'
+      );
+
+      return {
+        metadata: {
+          command: 'mindmap',
+          file: fileName,
+          processingStrategy: 'fallback',
+          originalError,
+          timestamp: Date.now(),
+        },
+        mindmapText: fallbackMindmapText.trim(),
+      };
+    } catch (_fallbackError) {
+      stream.markdown(
+        `❌ Both enhanced and fallback mindmap generation failed: ${originalError}\n\n`
+      );
+      throw new ModelRequestError(`Mindmap generation failed: ${originalError}`);
+    }
+  }
+
+  private createSingleChunkMindmapPrompt(fileName: string, text: string): string {
+    return `Create a Mermaid mindmap from this PDF document:
+
+**File:** ${fileName}
+**Strategy:** Full content analysis
+
+**Content:**
+${text}
+
+Generate a comprehensive Mermaid mindmap using proper syntax:
+1. Start with "mindmap" declaration
+2. Use root node with document title: root((Document Title))
+3. Create main branches for key topics
+4. Add sub-branches for important details
+5. Use clear, concise node labels
+6. Structure hierarchically to show relationships
+
+Example format:
+\`\`\`
+mindmap
+  root((Document Title))
+    Topic1
+      SubTopic1
+      SubTopic2
+    Topic2
+      SubTopic3
+        Detail1
+        Detail2
+    Topic3
+      SubTopic4
+\`\`\`
+
+Focus on the document's main themes, key findings, and logical structure.`;
+  }
+
+  private createChunkMindmapPrompt(chunk: DocumentChunk, fileName: string): string {
+    return `Create a Mermaid mindmap section from this part of the PDF document:
+
+**File:** ${fileName}
+**Section:** Pages ${chunk.startPage}-${chunk.endPage} (Chunk ${chunk.index + 1})
+**Content:**
+${chunk.content}
+
+Generate mindmap branches for this section that can be integrated into a larger mindmap:
+1. Identify the main topics in this section
+2. Create branches with clear, concise labels
+3. Include important sub-topics and details
+4. Use proper Mermaid mindmap syntax
+5. Focus on content that will be meaningful in the overall document structure
+
+Return only the branch structure (no "mindmap" declaration or root node), like:
+\`\`\`
+    MainConcept1
+      SubConcept1
+      SubConcept2
+    MainConcept2
+      SubConcept3
+        Detail1
+\`\`\``;
+  }
+
+  private createMindmapConsolidationPrompt(
+    mindmaps: string[],
+    fileName: string,
+    totalPages: number
+  ): string {
+    const combinedMindmaps = mindmaps
+      .map((mindmap, index) => `## Section ${index + 1}\n${mindmap}`)
+      .join('\n\n');
+
+    return `Create a unified Mermaid mindmap from these section mindmaps of a PDF document:
+
+**File:** ${fileName}
+**Total Pages:** ${totalPages}
+**Section Mindmaps:**
+${combinedMindmaps}
+
+Create a comprehensive mindmap that:
+1. Starts with "mindmap" declaration
+2. Uses a root node with the document title: root((Document Title))
+3. Organizes all section content into logical main branches
+4. Maintains hierarchical structure showing relationships
+5. Eliminates redundancy while preserving important details
+6. Uses clear, concise node labels
+7. Creates a coherent flow that represents the entire document
+
+The final mindmap should give readers a complete visual understanding of the document's structure and key concepts using proper Mermaid syntax.`;
+  }
 }

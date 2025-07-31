@@ -1,30 +1,21 @@
 import * as fs from 'node:fs';
 import * as vscode from 'vscode';
+import { createCommandHandler } from '../utils/commandUtils';
 import { PdfLoadError } from '../utils/errors';
 import { Logger } from '../utils/logger';
 import { WebviewUtils } from '../utils/webviewUtils';
 import { WebviewProvider } from '../webview/webviewProvider';
 
-// biome-ignore lint/complexity/noStaticOnlyClass: This follows existing extension patterns
 export class OpenLocalPdfCommand {
   private static readonly logger = Logger.getInstance();
 
   static register(context: vscode.ExtensionContext): vscode.Disposable {
-    return vscode.commands.registerCommand('docpilot.openLocalPdf', async (filePath?: string) => {
-      try {
-        return await OpenLocalPdfCommand.execute(context, filePath);
-      } catch (error) {
-        OpenLocalPdfCommand.logger.error('Failed to open local PDF', error);
-
-        // Show user-friendly error message
-        vscode.window.showErrorMessage(
-          `Failed to open PDF: ${error instanceof Error ? error.message : 'Unknown error'}`
-        );
-
-        // Re-throw for test catching
-        throw error;
-      }
-    });
+    return createCommandHandler(
+      'docpilot.openLocalPdf',
+      (filePath?: string) => OpenLocalPdfCommand.execute(context, filePath),
+      OpenLocalPdfCommand.logger,
+      'open local PDF'
+    );
   }
 
   private static async execute(
