@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import { DocumentCache, type CacheEntryMetadata, type CacheStats } from '../cache/documentCache';
+import { FileWatcher } from '../cache/fileWatcher';
 import { TextExtractor } from '../pdf/textExtractor';
 import { PdfLoadError } from '../utils/errors';
 import { Logger } from '../utils/logger';
@@ -6,8 +8,16 @@ import { WebviewProvider } from '../webview/webviewProvider';
 
 export abstract class PdfProcessorBase {
   protected static readonly logger = Logger.getInstance();
+  protected readonly cache: DocumentCache<string>;
+  protected readonly fileWatcher: FileWatcher;
 
-  constructor(protected readonly extensionContext: vscode.ExtensionContext) {}
+  constructor(
+    protected readonly extensionContext: vscode.ExtensionContext,
+    cacheType: 'summary' | 'mindmap'
+  ) {
+    this.cache = new DocumentCache<string>(extensionContext, cacheType);
+    this.fileWatcher = new FileWatcher(this.cache);
+  }
 
   protected async createPdfViewer(
     pdfPath: string,
@@ -110,5 +120,32 @@ export abstract class PdfProcessorBase {
 
   protected getFileName(pdfPath: string): string {
     return WebviewProvider.getFileName(pdfPath);
+  }
+
+  // Cache management methods
+  protected async getCachedResult(filePath: string): Promise<string | null> {
+    return await this.cache.getCached(filePath);
+  }
+
+  protected async setCachedResult(
+    filePath: string,
+    content: string,
+    metadata: CacheEntryMetadata
+  ): Promise<void> {
+    await this.cache.setCached(filePath, content, metadata);
+    // Start watching the file for changes to invalidate cache
+    this.fileWatcher.watchFile(filePath);
+  }
+
+  protected getCacheStats(): CacheStats {
+    return this.cache.getCacheStats();
+  }
+
+  protected async clearCache(): Promise<void> {
+    await this.cache.clearCache();
+  }
+
+  dispose(): void {
+    this.fileWatcher.dispose();
   }
 }

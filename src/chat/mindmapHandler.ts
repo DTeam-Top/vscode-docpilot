@@ -9,7 +9,7 @@ export class MindmapHandler extends PdfProcessorBase {
   private readonly textProcessor: TextProcessor;
 
   constructor(extensionContext: vscode.ExtensionContext) {
-    super(extensionContext);
+    super(extensionContext, 'mindmap');
     this.textProcessor = new TextProcessor();
   }
 
@@ -24,12 +24,46 @@ export class MindmapHandler extends PdfProcessorBase {
       // Always create PDF viewer first
       const panel = await this.createPdfViewer(pdfPath, stream);
 
+      // Check cache first
+      const cachedMindmap = await this.getCachedResult(pdfPath);
+      if (cachedMindmap) {
+        stream.markdown('⚡ Found cached mindmap!\n\n');
+        stream.markdown('## 🗺️ PDF Mindmap (Cached)\n\n');
+        stream.markdown('```mermaid\n');
+        stream.markdown(cachedMindmap);
+        stream.markdown('\n```\n\n');
+        
+        // Create and open mindmap file
+        const fileName = this.getFileName(pdfPath);
+        await this.createMindmapFile(cachedMindmap, fileName, stream);
+        
+        stream.markdown('\n\n---\n*This mindmap was retrieved from cache for faster response.*');
+
+        return {
+          metadata: {
+            command: 'mindmap',
+            file: fileName,
+            processingStrategy: 'cached',
+            timestamp: Date.now(),
+          },
+          mindmapText: cachedMindmap,
+        };
+      }
+
       // Extract text from PDF
       const text = await this.extractText(panel, pdfPath, stream);
       const fileName = this.getFileName(pdfPath);
 
       // Generate mindmap
       const mindmapResult = await this.generateMindmap(text, fileName, stream, token);
+
+      // Cache the result if processing was successful
+      if (mindmapResult.metadata && !mindmapResult.metadata.error && mindmapResult.mindmapText) {
+        await this.setCachedResult(pdfPath, mindmapResult.mindmapText, {
+          processingStrategy: String(mindmapResult.metadata.processingStrategy) || 'unknown',
+          textLength: Number(mindmapResult.metadata.textLength) || text.length,
+        });
+      }
 
       // Create and open mindmap file
       if (mindmapResult.mindmapText) {
@@ -92,5 +126,14 @@ export class MindmapHandler extends PdfProcessorBase {
         '\n\n⚠️ *Mindmap generated but could not create file. Content shown above.*\n'
       );
     }
+  }
+
+  // Public methods for ChatParticipant cache management
+  getMindmapCacheStats() {
+    return super.getCacheStats();
+  }
+
+  async clearMindmapCache(): Promise<void> {
+    await super.clearCache();
   }
 }

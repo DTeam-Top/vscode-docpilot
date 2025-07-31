@@ -1,6 +1,4 @@
 import type * as vscode from 'vscode';
-import { FileWatcher } from '../cache/fileWatcher';
-import { SummaryCache } from '../cache/summaryCache';
 import type { ChatCommandResult } from '../types/interfaces';
 import { ChatErrorHandler } from '../utils/errorHandler';
 import { PathResolver } from '../utils/pathResolver';
@@ -9,14 +7,10 @@ import { TextProcessor } from './textProcessor';
 
 export class SummaryHandler extends PdfProcessorBase {
   private readonly textProcessor: TextProcessor;
-  private readonly summaryCache: SummaryCache;
-  private readonly fileWatcher: FileWatcher;
 
   constructor(extensionContext: vscode.ExtensionContext) {
-    super(extensionContext);
+    super(extensionContext, 'summary');
     this.textProcessor = new TextProcessor();
-    this.summaryCache = new SummaryCache(extensionContext);
-    this.fileWatcher = new FileWatcher(this.summaryCache);
   }
 
   async handle(
@@ -31,7 +25,7 @@ export class SummaryHandler extends PdfProcessorBase {
       const panel = await this.createPdfViewer(pdfPath, stream);
 
       // Check cache first
-      const cachedSummary = await this.summaryCache.getCachedSummary(pdfPath);
+      const cachedSummary = await this.getCachedResult(pdfPath);
       if (cachedSummary) {
         stream.markdown('⚡ Found cached summary!\n\n');
         stream.markdown('## 📋 PDF Summary (Cached)\n\n');
@@ -61,15 +55,10 @@ export class SummaryHandler extends PdfProcessorBase {
 
       // Cache the result if processing was successful
       if (result.metadata && !result.metadata.error && result.summaryText) {
-        await this.summaryCache.setCachedSummary(
-          pdfPath,
-          result.summaryText,
-          String(result.metadata.processingStrategy) || 'unknown',
-          Number(result.metadata.textLength) || text.length
-        );
-
-        // Start watching the file for changes to invalidate cache
-        this.fileWatcher.watchFile(pdfPath);
+        await this.setCachedResult(pdfPath, result.summaryText, {
+          processingStrategy: String(result.metadata.processingStrategy) || 'unknown',
+          textLength: Number(result.metadata.textLength) || text.length,
+        });
       }
 
       return result;
@@ -79,15 +68,12 @@ export class SummaryHandler extends PdfProcessorBase {
     }
   }
 
-  dispose(): void {
-    this.fileWatcher.dispose();
+  // Legacy methods for backward compatibility with ChatParticipant
+  getSummaryCacheStats() {
+    return super.getCacheStats();
   }
 
-  getCacheStats() {
-    return this.summaryCache.getCacheStats();
-  }
-
-  async clearCache(): Promise<void> {
-    await this.summaryCache.clearCache();
+  async clearSummaryCache(): Promise<void> {
+    await super.clearCache();
   }
 }

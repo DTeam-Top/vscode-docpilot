@@ -1,14 +1,18 @@
 import * as vscode from 'vscode';
 import { Logger } from '../utils/logger';
-import type { SummaryCache } from './summaryCache';
+import type { DocumentCache } from './documentCache';
+
+interface CacheInvalidator {
+  invalidateFile(filePath: string): Promise<void>;
+}
 
 export class FileWatcher {
   private static readonly logger = Logger.getInstance();
   private readonly watchers: Map<string, vscode.FileSystemWatcher> = new Map();
-  private readonly summaryCache: SummaryCache;
+  private readonly cache: CacheInvalidator;
 
-  constructor(summaryCache: SummaryCache) {
-    this.summaryCache = summaryCache;
+  constructor(cache: CacheInvalidator) {
+    this.cache = cache;
   }
 
   watchFile(filePath: string): void {
@@ -48,18 +52,18 @@ export class FileWatcher {
 
   private async handleFileChange(filePath: string): Promise<void> {
     FileWatcher.logger.info(`File changed, invalidating cache: ${filePath}`);
-    await this.summaryCache.invalidateFile(filePath);
+    await this.cache.invalidateFile(filePath);
 
     // Show a notification to the user about cache invalidation
     vscode.window.showInformationMessage(
-      `PDF file was modified. Cached summary will be regenerated on next request.`,
+      `PDF file was modified. Cached content will be regenerated on next request.`,
       { title: 'Cache Updated' }
     );
   }
 
   private async handleFileDelete(filePath: string): Promise<void> {
     FileWatcher.logger.info(`File deleted, invalidating cache: ${filePath}`);
-    await this.summaryCache.invalidateFile(filePath);
+    await this.cache.invalidateFile(filePath);
     this.unwatchFile(filePath);
   }
 
