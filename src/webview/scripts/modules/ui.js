@@ -15,6 +15,7 @@ import { toggleInspector } from './inspector.js';
 import { renderVisibleTextLayers, rerenderAllPages, toggleTextSelection } from './renderer.js';
 import { closeSearch, searchNext, searchPrevious, toggleSearch } from './search.js';
 import { state } from './state.js';
+import { goToPage } from './utils.js';
 
 // This module handles UI interactions, event listeners, and DOM updates.
 
@@ -84,13 +85,6 @@ export function updateNavigationButtons() {
 }
 
 // --- Event Handlers ---
-export function goToPage(pageNum) {
-  const pageElement = document.getElementById(`page-${pageNum}`);
-  if (pageElement) {
-    pageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-}
-
 export function zoomIn() {
   setZoom(Math.min(state.scale + 0.25, 3), true);
 }

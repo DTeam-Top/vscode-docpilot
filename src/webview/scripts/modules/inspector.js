@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { goToPage } from './ui.js';
+import { goToPage } from './utils.js';
 import {
   extractAnnotationsFromPage,
   extractAttachments,
