@@ -1,4 +1,4 @@
-import { requestSummary } from './communication.js';
+import { requestSummary, requestMindmap } from './communication.js';
 import {
   browseSaveFolder,
   cancelExtraction,
@@ -157,6 +157,15 @@ export async function summarizeDocument() {
   requestSummary();
 }
 
+export async function generateMindmap() {
+  const mindmapBtn = document.getElementById('mindmapBtn');
+  if (!state.pdfDoc) return;
+  mindmapBtn.disabled = true;
+  mindmapBtn.style.opacity = '0.6';
+  mindmapBtn.title = 'Generating mindmap...';
+  requestMindmap();
+}
+
 export function showExtractionModal() {
   const overlay = document.getElementById('extractionOverlay');
   if (overlay) {
@@ -201,6 +210,7 @@ export function initializeEventListeners() {
   document.getElementById('inspectorBtn').addEventListener('click', toggleInspector);
   document.getElementById('debugBtn').addEventListener('click', toggleDebug);
   document.getElementById('summarizeBtn').addEventListener('click', summarizeDocument);
+  document.getElementById('mindmapBtn').addEventListener('click', generateMindmap);
   document.getElementById('exportBtn').addEventListener('click', showExtractionModal);
   document.getElementById('searchBtn').addEventListener('click', toggleSearch);
 

@@ -263,18 +263,31 @@ test('should perform end-to-end object extraction and verify the summary', async
   expect(summary.results.text.count).toBeGreaterThan(0);
   expect(summary.results.text.files).toHaveLength(1);
   expect(summary.results.text.files[0]).toMatch(/\.txt$/);
-  console.log('Text extraction - Count:', summary.results.text.count, 'Files:', summary.results.text.files.length);
+  console.log(
+    'Text extraction - Count:',
+    summary.results.text.count,
+    'Files:',
+    summary.results.text.files.length
+  );
 
   // Verify images extraction results (should be empty for this PDF)
   expect(summary.results.images.count).toBe(0);
   expect(summary.results.images.files).toHaveLength(0);
-  console.log('Images extraction - Count:', summary.results.images.count, 'Files:', summary.results.images.files.length);
+  console.log(
+    'Images extraction - Count:',
+    summary.results.images.count,
+    'Files:',
+    summary.results.images.files.length
+  );
 
   // Verify the images directory exists but is empty
   const imagesDirPath = path.join(extractionDirPath, 'images');
-  const imagesDirExists = await fs.access(imagesDirPath).then(() => true).catch(() => false);
+  const imagesDirExists = await fs
+    .access(imagesDirPath)
+    .then(() => true)
+    .catch(() => false);
   expect(imagesDirExists).toBe(true);
-  
+
   if (imagesDirExists) {
     const imagesDirContents = await fs.readdir(imagesDirPath);
     expect(imagesDirContents).toHaveLength(0);
@@ -284,13 +297,13 @@ test('should perform end-to-end object extraction and verify the summary', async
   // 8. Verify text content
   // Check if the path in summary is absolute or relative
   const textFileFromSummary = summary.results.text.files[0];
-  const textFilePath = path.isAbsolute(textFileFromSummary) 
-    ? textFileFromSummary 
+  const textFilePath = path.isAbsolute(textFileFromSummary)
+    ? textFileFromSummary
     : path.join(extractionDirPath, textFileFromSummary);
-  
+
   console.log('Text file path from summary:', textFileFromSummary);
   console.log('Final text file path:', textFilePath);
-  
+
   const extractedText = await fs.readFile(textFilePath, 'utf-8');
   const lowerCaseText = extractedText.toLowerCase();
 

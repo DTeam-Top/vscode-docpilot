@@ -34,9 +34,7 @@ export class PdfCustomEditorProvider implements vscode.CustomReadonlyEditorProvi
     webviewPanel: vscode.WebviewPanel,
     _token: vscode.CancellationToken
   ): Promise<void> {
-    PdfCustomEditorProvider.logger.info(
-      `Resolving custom editor for: ${document.uri.fsPath}`
-    );
+    PdfCustomEditorProvider.logger.info(`Resolving custom editor for: ${document.uri.fsPath}`);
 
     // Delegate the entire panel creation and management to WebviewProvider
     const managedPanel = WebviewProvider.createPdfViewer(document.uri.fsPath, this.context);

@@ -12,7 +12,7 @@ export const state = {
   scale: 1.0,
   currentPage: 1,
   zoomTimeout: null,
-  
+
   // UI Elements
   pagesContainer: document.getElementById('pdfContainer'),
   progressFill: document.getElementById('progressFill'),
@@ -22,7 +22,7 @@ export const state = {
   debugMode: false,
   textLayerStates: new Map(), // pageNum -> { textLayer, container, rendered, page }
   textLayerCache: new Map(), // LRU cache for text layers
-  
+
   // Performance
   renderTimes: [],
 
@@ -30,7 +30,7 @@ export const state = {
   inspectorEnabled: false,
   globalInspector: null,
   // These are legacy and should be removed after full refactor
-  extractedImages: [], 
+  extractedImages: [],
   extractedTables: [],
 };
 

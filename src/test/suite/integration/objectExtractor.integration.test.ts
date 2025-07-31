@@ -10,7 +10,7 @@ describe('ObjectExtractor Integration Test', () => {
   let tempDir: string;
   let panel: vscode.WebviewPanel | undefined;
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     this.timeout(10000);
     // Create a temporary directory for extracted files
     const testDir = path.join(__dirname, 'temp_extraction');
@@ -19,20 +19,20 @@ describe('ObjectExtractor Integration Test', () => {
 
     panel = await openRealLocalPdf();
     if (!panel) {
-        this.skip(); // Skip test if PDF could not be opened
+      this.skip(); // Skip test if PDF could not be opened
     }
     // Give webview time to load
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
   });
 
   afterEach(async () => {
     await cleanupPdfViewers();
     if (tempDir) {
-        try {
-            await fs.rm(tempDir, { recursive: true, force: true });
-        } catch (error) {
-            console.error(`Failed to clean up temp directory: ${tempDir}`, error);
-        }
+      try {
+        await fs.rm(tempDir, { recursive: true, force: true });
+      } catch (error) {
+        console.error(`Failed to clean up temp directory: ${tempDir}`, error);
+      }
     }
   });
 
@@ -41,7 +41,7 @@ describe('ObjectExtractor Integration Test', () => {
 
     expect(panel).to.exist;
     if (!panel) {
-        this.skip();
+      this.skip();
     }
 
     const fileName = WebviewProvider.getFileName(TEST_PDF_PATH);
@@ -55,13 +55,13 @@ describe('ObjectExtractor Integration Test', () => {
     expect(result.success).to.be.true;
     expect(result.filesCreated.length).to.be.at.least(1);
 
-    const txtFile = result.filesCreated.find(f => f.endsWith('.txt'));
+    const txtFile = result.filesCreated.find((f) => f.endsWith('.txt'));
     expect(txtFile).to.exist;
 
     const content = await fs.readFile(txtFile!, 'utf-8');
     const lowerCaseContent = content.toLowerCase();
 
-    const expectedWords = ["google’s", "hybrid", "approach", "to", "research"];
+    const expectedWords = ['google’s', 'hybrid', 'approach', 'to', 'research'];
     for (const word of expectedWords) {
       expect(lowerCaseContent).to.include(word, `Expected to find "${word}" in extracted text`);
     }

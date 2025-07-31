@@ -27,8 +27,7 @@ export class TemplateEngine {
       let template = fs.readFileSync(templatePath, 'utf8');
       for (const key in data) {
         if (Object.prototype.hasOwnProperty.call(data, key)) {
-          const value =
-            typeof data[key] === 'string' ? this.escapeHtml(data[key]) : data[key];
+          const value = typeof data[key] === 'string' ? this.escapeHtml(data[key]) : data[key];
           template = template.replace(new RegExp(`{{${key}}}`, 'g'), value);
         }
       }

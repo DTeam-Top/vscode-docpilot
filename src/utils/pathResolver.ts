@@ -47,11 +47,12 @@ export class PathResolver {
     let resolvedPath: string;
     if (path.isAbsolute(filePath)) {
       resolvedPath = filePath;
-    }
-    else {
+    } else {
       const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
       if (!workspaceFolder) {
-        throw new InvalidFilePathError('No workspace folder found. Please provide an absolute path.');
+        throw new InvalidFilePathError(
+          'No workspace folder found. Please provide an absolute path.'
+        );
       }
       resolvedPath = path.join(workspaceFolder.uri.fsPath, filePath);
     }

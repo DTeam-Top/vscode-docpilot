@@ -89,17 +89,17 @@ test('should interact with PDF viewer toolbar buttons', async () => {
   // Wait for file input and provide path
   await vscodeWindow.waitForSelector('input[type="text"]', { timeout: 10000 });
   await vscodeWindow.fill('input[type="text"]', TEST_PDF_PATH);
-  
+
   // Debug the input state before pressing Enter
   const inputValue = await vscodeWindow.locator('input[type="text"]').inputValue();
   console.log('Input value before Enter:', inputValue);
-  
+
   await vscodeWindow.keyboard.press('Enter');
 
   // Wait a moment and check what happened after Enter
   await vscodeWindow.waitForTimeout(2000);
   console.log('Enter pressed, checking if command executed...');
-  
+
   // Wait for webview to load
   console.log('Waiting for webview to appear...');
   const webviewFrame = vscodeWindow.locator('iframe[src*="vscode-webview"]');

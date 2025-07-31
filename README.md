@@ -20,6 +20,7 @@ A comprehensive VSCode extension that combines advanced PDF viewing with intelli
 ### 🤖 AI-Powered Analysis
 
 - **Intelligent Summarization** - Comprehensive document analysis via Copilot Chat
+- **Mindmap Generation** - Create Mermaid mindmaps for visual document understanding
 - **Multi-Model Support** - Works with GPT-4, Gemini, and other Copilot models
 - **Smart Caching** - Instant results for previously processed documents
 - **Semantic Chunking** - Advanced processing for documents of any size
@@ -66,8 +67,9 @@ Will be available on VSCode Marketplace
 **Quick Start:**
 
 1. Open Copilot Chat (`Ctrl+Alt+I` / `Cmd+Alt+I`)
-2. Type `@docpilot /summarise [file-path-or-url]`
-3. Get comprehensive AI analysis with document viewer
+2. Type `@docpilot /summarise [file-path-or-url]` for text analysis
+3. Type `@docpilot /mindmap [file-path-or-url]` for visual mindmaps
+4. Get comprehensive AI analysis with document viewer
 
 **Supported Commands:**
 
@@ -75,6 +77,9 @@ Will be available on VSCode Marketplace
 @docpilot /summarise docs/report.pdf        # Local file + open viewer
 @docpilot /summarise https://example.com/doc.pdf  # Remote URL + open viewer
 @docpilot /summarise                        # File picker dialog + open viewer
+@docpilot /mindmap docs/report.pdf          # Generate Mermaid mindmap from local file
+@docpilot /mindmap https://example.com/doc.pdf    # Generate mindmap from remote URL
+@docpilot /mindmap                          # File picker dialog + generate mindmap
 @docpilot /cache-stats                      # View cache statistics
 @docpilot /clear-cache                      # Clear all cached summaries
 ```
@@ -107,17 +112,58 @@ Will be available on VSCode Marketplace
 **Content & Analysis Tools:**
 
 - **📝 AI Summarize**: Intelligent document analysis via Copilot Chat integration
+- **🗺️ AI Mindmap**: Generate Mermaid mindmaps for visual document understanding
 - **📤 Export Text**: Extract PDF content as clean text files with metadata
 - **👁️ Text Selection**: Toggle interactive text selection with dynamic visual feedback
 - **🔍 Text Search**: Vi-style text search across all pages with keyboard navigation
 - **🔍 PDF Object Inspector**: Dual-mode hierarchical viewer for comprehensive PDF structure analysis
 - **🐛 Debug Mode**: Developer tools for troubleshooting text layer rendering
 
-### 🔍 Text Search - NEW!
+### 🗺️ AI Mindmap Generation
+
+DocPilot now includes intelligent mindmap generation that transforms PDF documents into visual Mermaid mindmaps for enhanced understanding:
+
+**Core Features:**
+
+- **🧠 AI-Powered Analysis**: Uses advanced language models to extract key concepts and relationships
+- **🎨 Mermaid Format**: Generates standard Mermaid mindmap syntax for universal compatibility
+- **📄 Automatic File Creation**: Creates `.mmd` files and opens them directly in VSCode
+- **🔄 Semantic Processing**: Analyzes document structure and creates hierarchical concept maps
+- **⚡ Smart Caching**: Cached results for previously processed documents
+- **🎯 Visual Understanding**: Transform complex documents into clear visual representations
+
+**How to Use:**
+
+1. **From Chat**: Open Copilot Chat and type `@docpilot /mindmap [file-path]`
+2. **From Webview**: Click the mindmap button (🗺️) in the PDF viewer toolbar
+3. **File Picker**: Use `@docpilot /mindmap` for file selection dialog
+
+**Generated Output:**
+
+- Creates a `.mmd` file with Mermaid mindmap syntax
+- Automatically opens the file in VSCode for immediate viewing
+- Compatible with Mermaid preview extensions
+- Hierarchical structure showing document concepts and relationships
+
+**Example Output:**
+
+```mermaid
+mindmap
+  root((Document Title))
+    Main Concept
+      Key Point 1
+      Key Point 2
+    Secondary Topic
+      Detail A
+      Detail B
+```
+
+### 🔍 Text Search
 
 DocPilot now includes powerful vi-style text search functionality for quick document navigation:
 
 **Core Features:**
+
 - **📄 Cross-Page Search**: Search across all pages in the PDF document
 - **⌨️ Keyboard Navigation**: Enter for next match, Shift+Enter for previous, ESC to close
 - **🔍 Case-Insensitive**: Finds matches regardless of letter case
@@ -127,12 +173,14 @@ DocPilot now includes powerful vi-style text search functionality for quick docu
 - **📜 Auto-Scrolling**: Automatically scrolls to bring matches into view
 
 **How to Use:**
+
 1. Press `Ctrl+F` (or `Cmd+F` on Mac) or click the search button (🔍) in the toolbar
 2. Type your search term (minimum 2 characters)
 3. Use Enter/Shift+Enter or navigation buttons to move between matches
 4. Press ESC to close search
 
 **Vi-Style Experience:**
+
 - Simple, distraction-free interface with no match counters
 - Immediate search as you type with smart debouncing
 - Seamless integration with existing PDF navigation
@@ -142,6 +190,7 @@ DocPilot now includes powerful vi-style text search functionality for quick docu
 The PDF Object Inspector transforms document analysis with a dual-mode hierarchical viewer that reveals the internal structure of PDF documents:
 
 **Object-Centric Mode:**
+
 - **🖼️ Images**: All images across the document with page references
 - **📊 Tables**: Detected table structures with coordinate information
 - **🔤 Fonts**: Used fonts with page distribution and properties
@@ -153,12 +202,13 @@ The PDF Object Inspector transforms document analysis with a dual-mode hierarchi
 - **📑 Metadata**: Document properties, author, creation date, etc.
 
 **Page-Centric Mode:**
+
 - **📄 Page Analysis**: Objects organized by individual pages
-- **Cross-Page Objects**: Shared resources marked with link indicators
 - **Progressive Loading**: Batch processing for large documents (20 pages at a time)
 - **Object Relationships**: Clear visualization of object distribution
 
 **Advanced Features:**
+
 - **Lazy Loading**: User-controlled scanning with "click to scan" interface
 - **Progressive Display**: Real-time object discovery with batched results
 - **Shared Cache**: Cross-mode efficiency with intelligent caching
@@ -226,52 +276,14 @@ vsce package
 
 ### Testing
 
-The project includes comprehensive testing infrastructure with **103 passing tests** (100% success rate):
+The project includes comprehensive testing infrastructure with 100% success rate:
 
-- **Unit Tests (48 tests)**: Core functionality testing (ChunkingStrategy, RetryPolicy)
-- **Integration Tests (55 tests)**: Real functionality testing with actual VS Code extension host
-- **End-to-End Tests**: Real browser automation testing with VS Code Extension Development Host
+- **Unit Tests**
+- **Integration Tests**
+- **End-to-End Tests**
 - **Enhanced Test Reporting**: Clear unit/integration separation with performance metrics
 - **Test Utilities**: Helper functions for PDF operations and real webview communication
 - **VS Code Integration**: Proper extension host testing environment
-- **CI/CD Ready**: GitHub Actions workflow for automated testing
-
-**Enhanced Test Output:**
-
-```
-==================================================
-              TEST RESULTS SUMMARY
-==================================================
-✅ Passed: 103/103 tests (100.0%)
-⏱️  Duration: 53.5s
-📁 Suites: 12
-
-🧪 UNIT TESTS:
-  ✅ getDefaultConfig(): 3/3 passed
-  ✅ createSemanticChunks(): 17/17 passed
-  ✅ Integration with TokenEstimator: 2/2 passed
-  ✅ withRetry: 9/9 passed
-  ✅ shouldRetryNetworkError: 8/8 passed
-  ✅ shouldRetryModelError: 7/7 passed
-  ✅ delay: 2/2 passed
-
-🔗 INTEGRATION TESTS:
-  ✅ Real Error Scenarios: 14/14 passed
-  ✅ OpenLocalPdf Integration: 7/7 passed
-  ✅ OpenPdfFromUrl Integration: 8/8 passed
-  ✅ Real User Workflows: 14/14 passed
-  ✅ PDF Viewer Integration: 12/12 passed
-
-🐌 SLOW TESTS (>500ms):
-  ⏱️  8507ms - PDF Viewer Integration should handle real PDF.js rendering functionality
-  ⏱️  6736ms - Real Error Scenarios should test real network timeout scenarios
-  ⏱️  5652ms - Real User Workflows Performance workflow should be acceptable
-  ⏱️  5075ms - Real User Workflows Command: Open Local PDF should work end-to-end
-  ⏱️  3101ms - Real User Workflows Multiple PDF workflow should work correctly
-
-🎉 ALL TESTS PASSED!
-==================================================
-```
 
 **End-to-End Testing:**
 
@@ -280,74 +292,13 @@ The project includes comprehensive E2E testing using **Playwright** for real bro
 - **Real VS Code Integration**: Tests run in actual VS Code Extension Development Host
 - **Webview Testing**: Complete toolbar interaction testing within PDF viewer
 - **User Workflow Simulation**: Realistic user interactions through command palette and UI
-- **Cross-Browser Support**: Electron-based testing for authentic VS Code environment
 - **Visual Validation**: Button visibility, accessibility attributes, and user feedback testing
-
-**E2E Test Coverage:**
-
-- ✅ PDF opening via command palette (`F1` → "DocPilot: Open Local PDF")
-- ✅ Webview frame access and PDF viewer initialization
-- ✅ Zoom controls (Zoom In/Out buttons, slider, level display)
-- ✅ Fit controls (Fit Width, Fit Page)
-- ✅ Navigation controls (First/Previous/Next/Last page, page info)
-- ✅ Toggle features (Text Selection, PDF Object Inspector, Debug Mode)
-- ✅ Action buttons (Export Text, AI Summarize)
-- ✅ Accessibility attributes (titles, ARIA labels)
-- ✅ Real PDF rendering and user interaction workflows
-
-**Running E2E Tests:**
-
-```bash
-# Run all tests (unit + integration)
-npm run test
-
-# Run only unit tests
-npm run test:unit
-
-# Run only integration tests
-npm run test:integration
-
-# Compile tests separately
-npm run compile-tests
-```
-
-**Test Structure:**
-
-```text
-src/test/
-├── runTest.ts                    # VS Code test runner configuration
-├── reporters/
-│   └── enhanced-spec.ts         # Custom test reporter with unit/integration separation
-├── e2e/                         # End-to-end tests with Playwright
-│   └── toolbar.e2e.test.ts     # Real PDF viewer toolbar interaction tests
-├── suite/
-│   ├── index.ts                 # Test suite discovery and execution
-│   ├── unit/                    # Unit tests (48 tests)
-│   │   ├── pdf/
-│   │   │   └── chunkingStrategy.test.ts
-│   │   └── utils/
-│   │       └── retry.test.ts
-│   └── integration/             # Integration tests (55 tests)
-│       ├── errorScenarios.test.ts
-│       ├── openLocalPdf.integration.test.ts
-│       ├── openPdfFromUrl.integration.test.ts
-│       ├── userWorkflows.test.ts
-│       └── webviewProvider.integration.test.ts
-├── helpers/
-│   ├── pdfTestUtils.ts          # PDF testing utilities
-│   └── realIntegrationUtils.ts  # Real integration testing utilities
-└── fixtures/
-    └── pdfs/
-        └── normal.pdf           # Test PDF fixture
-```
 
 **Test Configuration:**
 
 - `playwright.config.ts` - E2E test configuration with VS Code electron support
 - `tsconfig.e2e.json` - TypeScript configuration for E2E tests
 - `.env` support for environment variables in E2E tests
-
-**Current Status:** Complete testing infrastructure with enhanced reporting that clearly separates unit, integration, and E2E tests - **103/103 tests passing** with comprehensive coverage of PDF processing, webview communication, Copilot integration, and real user interaction workflows via Playwright automation.
 
 ## 🎯 Architecture
 
@@ -364,7 +315,7 @@ src/test/
 1. **Automatic**: File → Open on PDF files (via custom editor registration)
 2. **Manual Commands**: `docpilot.openLocalPdf`, `docpilot.openPdfFromUrl`
 3. **Context Menu**: Right-click on PDF files in Explorer
-4. **Chat Integration**: `@docpilot /summarise` command
+4. **Chat Integration**: `@docpilot /${slash-command}` command
 
 ### PDF Rendering
 

@@ -3,14 +3,17 @@ import type { ChatCommandResult } from '../types/interfaces';
 import { CHAT_COMMANDS } from '../utils/constants';
 import { ChatErrorHandler } from '../utils/errorHandler';
 import { Logger } from '../utils/logger';
+import { MindmapHandler } from './mindmapHandler';
 import { SummaryHandler } from './summaryHandler';
 
 export class ChatParticipant {
   private static readonly logger = Logger.getInstance();
   private readonly summaryHandler: SummaryHandler;
+  private readonly mindmapHandler: MindmapHandler;
 
   constructor(private readonly extensionContext: vscode.ExtensionContext) {
     this.summaryHandler = new SummaryHandler(extensionContext);
+    this.mindmapHandler = new MindmapHandler(extensionContext);
   }
 
   static register(extensionContext: vscode.ExtensionContext): vscode.ChatParticipant {
@@ -59,6 +62,9 @@ export class ChatParticipant {
         case CHAT_COMMANDS.SUMMARISE:
           return await this.summaryHandler.handle(request, stream, token);
 
+        case CHAT_COMMANDS.MINDMAP:
+          return await this.mindmapHandler.handle(request, stream, token);
+
         case CHAT_COMMANDS.CACHE_STATS:
           return this.handleCacheStats(stream);
 
@@ -84,11 +90,18 @@ export class ChatParticipant {
     stream.markdown(`  - \`/summarise path/to/file.pdf\` - Summarize local file\n`);
     stream.markdown(`  - \`/summarise https://example.com/doc.pdf\` - Summarize remote PDF\n`);
     stream.markdown(`  - \`/summarise\` - Open file picker\n\n`);
+    stream.markdown(`- **\`/mindmap\`** - Generate a Mermaid mindmap from a PDF document\n`);
+    stream.markdown(`  - \`/mindmap path/to/file.pdf\` - Generate mindmap from local file\n`);
+    stream.markdown(
+      `  - \`/mindmap https://example.com/doc.pdf\` - Generate mindmap from remote PDF\n`
+    );
+    stream.markdown(`  - \`/mindmap\` - Open file picker\n\n`);
     stream.markdown(`- **\`/cache-stats\`** - Show summary cache statistics\n`);
     stream.markdown(`- **\`/clear-cache\`** - Clear all cached summaries\n\n`);
     stream.markdown(`### Examples\n\n`);
     stream.markdown(`\`\`\`\n`);
     stream.markdown(`@docpilot /summarise docs/report.pdf\n`);
+    stream.markdown(`@docpilot /mindmap docs/report.pdf\n`);
     stream.markdown(`@docpilot /summarise https://example.com/whitepaper.pdf\n`);
     stream.markdown(`@docpilot /cache-stats\n`);
     stream.markdown(`@docpilot /clear-cache\n`);
@@ -153,11 +166,29 @@ export class ChatParticipant {
   ): vscode.ChatFollowup[] {
     const followups: vscode.ChatFollowup[] = [];
 
-    // Check if the last result was a successful summary
+    // Check if the last result was a successful summary or mindmap
     if (result.metadata?.command === CHAT_COMMANDS.SUMMARISE && !result.metadata.error) {
       followups.push({
         prompt: '',
         label: '📄 Summarize Another PDF',
+        command: CHAT_COMMANDS.SUMMARISE,
+      });
+      followups.push({
+        prompt: '',
+        label: '🗺️ Generate Mindmap',
+        command: CHAT_COMMANDS.MINDMAP,
+      });
+    }
+
+    if (result.metadata?.command === CHAT_COMMANDS.MINDMAP && !result.metadata.error) {
+      followups.push({
+        prompt: '',
+        label: '🗺️ Generate Another Mindmap',
+        command: CHAT_COMMANDS.MINDMAP,
+      });
+      followups.push({
+        prompt: '',
+        label: '📄 Summarize PDF',
         command: CHAT_COMMANDS.SUMMARISE,
       });
     }

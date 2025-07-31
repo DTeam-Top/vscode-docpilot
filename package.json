@@ -51,7 +51,11 @@
         "commands": [
           {
             "name": "summarise",
-            "description": "Summarise a PDF file and display it in the viewer"
+            "description": "Summarise a PDF file and display it in the chat."
+          },
+          {
+            "name": "mindmap",
+            "description": "Create a mindmap for a PDF file and display it in a new file ediitor."
           },
           {
             "name": "cache-stats",

@@ -12,7 +12,6 @@ import { WEBVIEW_MESSAGES } from '../utils/constants';
 import { Logger } from '../utils/logger';
 import { TemplateEngine } from '../utils/templateEngine';
 
-
 interface LocalWebviewMessage {
   type: string;
   error?: string;
@@ -140,6 +139,13 @@ export class WebviewProvider {
           WebviewProvider.logger.error('Webview summarization error:', message.error);
           vscode.window.showErrorMessage(`Summarization failed: ${message.error}`);
           break;
+        case WEBVIEW_MESSAGES.MINDMAP_REQUEST:
+          await WebviewProvider.handleMindmapRequest(panel, pdfSource, message, extensionContext);
+          break;
+        case WEBVIEW_MESSAGES.MINDMAP_ERROR:
+          WebviewProvider.logger.error('Webview mindmap error:', message.error);
+          vscode.window.showErrorMessage(`Mindmap generation failed: ${message.error}`);
+          break;
         case WEBVIEW_MESSAGES.EXTRACT_ALL_TEXT:
         case WEBVIEW_MESSAGES.TEXT_EXTRACTED:
         case WEBVIEW_MESSAGES.TEXT_EXTRACTION_ERROR:
@@ -217,6 +223,54 @@ export class WebviewProvider {
 
       vscode.window.showErrorMessage(
         `Failed to summarize PDF: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  private static async handleMindmapRequest(
+    panel: vscode.WebviewPanel,
+    pdfSource: string,
+    _message: LocalWebviewMessage,
+    _extensionContext: vscode.ExtensionContext
+  ): Promise<void> {
+    try {
+      WebviewProvider.logger.info('Handling mindmap request from webview', { pdfSource });
+
+      // Notify webview that mindmap generation has started
+      panel.webview.postMessage({
+        type: WEBVIEW_MESSAGES.MINDMAP_STARTED,
+      });
+
+      // Open chat view first
+      await vscode.commands.executeCommand('workbench.panel.chat.view.copilot.focus');
+
+      // Create and send a chat request
+      const chatInput = pdfSource.startsWith('http')
+        ? `@docpilot /mindmap ${pdfSource}`
+        : `@docpilot /mindmap ${pdfSource}`;
+
+      // Insert the chat command into the chat input
+      await vscode.commands.executeCommand('workbench.action.chat.open', {
+        query: chatInput,
+      });
+
+      // Notify webview that mindmap generation completed
+      panel.webview.postMessage({
+        type: WEBVIEW_MESSAGES.MINDMAP_COMPLETED,
+      });
+
+      WebviewProvider.logger.info('Mindmap request processed successfully');
+    } catch (error) {
+      WebviewProvider.logger.error('Failed to handle mindmap request', error);
+
+      // Notify webview of error
+      panel.webview.postMessage({
+        type: WEBVIEW_MESSAGES.MINDMAP_ERROR,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      vscode.window.showErrorMessage(
+        `Failed to generate mindmap: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
   }
