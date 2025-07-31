@@ -3,6 +3,7 @@
   "displayName": "DocPilot",
   "description": "View PDF files in VSCode from local files or remote URLs",
   "version": "0.3.0",
+  "license": "MIT",
   "publisher": "DTeam",
   "icon": "resources/docpilot-icon.png",
   "repository": {
@@ -46,7 +47,7 @@
         "id": "docpilot.chat-participant",
         "name": "docpilot",
         "fullName": "DocPilot",
-        "description": "PDF document assistant for viewing and summarizing PDFs",
+        "description": "AI-Powered PDF Assistant for VSCode",
         "isSticky": false,
         "commands": [
           {
@@ -59,11 +60,11 @@
           },
           {
             "name": "cache-stats",
-            "description": "Show summary cache statistics"
+            "description": "Show cache statistics"
           },
           {
             "name": "clear-cache",
-            "description": "Clear all cached summaries"
+            "description": "Clear all cached values"
           }
         ]
       }
