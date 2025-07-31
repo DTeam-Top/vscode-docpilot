@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import { DocumentCache, type CacheEntryMetadata, type CacheStats } from '../cache/documentCache';
-import { FileWatcher } from '../cache/fileWatcher';
 import { TextExtractor } from '../pdf/textExtractor';
 import { PdfLoadError } from '../utils/errors';
 import { Logger } from '../utils/logger';
@@ -9,14 +8,12 @@ import { WebviewProvider } from '../webview/webviewProvider';
 export abstract class PdfProcessorBase {
   protected static readonly logger = Logger.getInstance();
   protected readonly cache: DocumentCache<string>;
-  protected readonly fileWatcher: FileWatcher;
 
   constructor(
     protected readonly extensionContext: vscode.ExtensionContext,
     cacheType: 'summary' | 'mindmap'
   ) {
     this.cache = new DocumentCache<string>(extensionContext, cacheType);
-    this.fileWatcher = new FileWatcher(this.cache);
   }
 
   protected async createPdfViewer(
@@ -133,8 +130,6 @@ export abstract class PdfProcessorBase {
     metadata: CacheEntryMetadata
   ): Promise<void> {
     await this.cache.setCached(filePath, content, metadata);
-    // Start watching the file for changes to invalidate cache
-    this.fileWatcher.watchFile(filePath);
   }
 
   protected getCacheStats(): CacheStats {
@@ -145,7 +140,4 @@ export abstract class PdfProcessorBase {
     await this.cache.clearCache();
   }
 
-  dispose(): void {
-    this.fileWatcher.dispose();
-  }
 }
