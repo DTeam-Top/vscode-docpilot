@@ -14,10 +14,16 @@
     "vscode": "^1.74.0"
   },
   "categories": [
-    "AI","Chat"
+    "AI",
+    "Chat"
   ],
   "activationEvents": [
     "onChatParticipant:docpilot"
+  ],
+  "files": [
+    "out",
+    "resources",
+    "LICENSE"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -84,7 +90,7 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./ && npm run copy-assets && npm run bundle-webview",
+    "compile": "tsc -p ./tsconfig.prod.json && npm run copy-assets && npm run bundle-webview",
     "compile-e2e": "tsc -p ./tsconfig.e2e.json --outDir out",
     "copy-assets": "mkdir -p out/webview && cp -r src/webview/assets out/webview/ && cp -r src/webview/templates out/webview/ && cp -r src/webview/scripts out/webview/",
     "bundle-webview": "rollup -c",
