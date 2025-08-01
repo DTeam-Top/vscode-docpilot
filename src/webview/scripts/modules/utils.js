@@ -1,6 +1,17 @@
 /* global pdfjsLib */
 
 /**
+ * Scrolls to a specific page in the PDF viewer.
+ * @param {number} pageNum - The page number to navigate to.
+ */
+export function goToPage(pageNum) {
+  const pageElement = document.getElementById(`page-${pageNum}`);
+  if (pageElement) {
+    pageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+/**
  * Helper function to show status messages in the UI.
  * @param {string} message The message to display.
  */

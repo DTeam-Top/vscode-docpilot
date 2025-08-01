@@ -231,15 +231,21 @@ The PDF Object Inspector transforms document analysis with a dual-mode hierarchi
 vscode-docpilot/
 ├── src/
 │   ├── extension.ts          # Main extension activation
-│   ├── cache/                # Summary caching system
-│   ├── chat/                 # AI chat participant
-│   ├── commands/             # PDF opening commands
-│   ├── editors/              # Custom PDF editor provider
-│   ├── webview/              # PDF viewer implementation
-│   └── utils/                # Shared utilities
+│   ├── cache/                # Caching for summaries and documents
+│   ├── chat/                 # Handles @docpilot chat interactions
+│   ├── commands/             # VS Code command definitions
+│   ├── editors/              # Custom editor for PDF files
+│   ├── pdf/                  # Core PDF processing (text/object extraction)
+│   ├── test/                 # Unit, integration, and e2e tests
+│   ├── types/                # TypeScript interfaces and type definitions
+│   ├── utils/                # Shared utilities (logger, errors, etc.)
+│   └── webview/              # Frontend code for the PDF viewer
+│       ├── assets/           # Icons and other static assets
+│       ├── scripts/          # Client-side JavaScript for the webview
+│       └── templates/        # HTML templates for the webview
 ├── package.json              # Extension manifest
-├── tsconfig.json            # TypeScript configuration
-└── README.md                # This file
+├── tsconfig.json             # TypeScript configuration
+└── README.md                 # This file
 ```
 
 ### Key Technologies
@@ -376,19 +382,3 @@ The project includes comprehensive E2E testing using **Playwright** for real bro
 ## 📄 License
 
 MIT License - see LICENSE file for details
-
-## 🙏 Acknowledgments
-
-- **PDF.js** - Mozilla's excellent PDF rendering library
-- **VSCode Team** - For the comprehensive extension API
-- **TypeScript** - For type safety and developer experience
-
-## 📚 Related
-
-- [VSCode Extension API](https://code.visualstudio.com/api)
-- [PDF.js Documentation](https://mozilla.github.io/pdf.js/)
-- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
-
----
-
-Built with ❤️ for the VSCode community
