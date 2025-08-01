@@ -41,7 +41,8 @@ A comprehensive VSCode extension that combines advanced PDF viewing with intelli
 
 ### From VSIX
 
-[VSCode Marketplace](https://marketplace.visualstudio.com/items?itemName=dteam-top.vscode-docpilot)
+- [VSCode Marketplace](https://marketplace.visualstudio.com/items?itemName=dteam-top.vscode-docpilot)
+- [Open VSX](https://open-vsx.org/extension/dteam-top/vscode-docpilot)
 
 ## 📖 Usage
 
