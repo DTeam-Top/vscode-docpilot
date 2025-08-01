@@ -39,9 +39,9 @@ A comprehensive VSCode extension that combines advanced PDF viewing with intelli
 5. Press `F5` to launch Extension Development Host
 6. Test the extension in the new window
 
-### From VSIX (Coming Soon)
+### From VSIX
 
-Will be available on VSCode Marketplace
+[VSCode Marketplace](https://marketplace.visualstudio.com/items?itemName=dteam-top.vscode-docpilot)
 
 ## 📖 Usage
 
