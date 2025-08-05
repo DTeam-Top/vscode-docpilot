@@ -215,10 +215,12 @@ test('should interact with PDF viewer toolbar buttons', async () => {
   // Test action buttons
   const exportBtn = frame.locator('#exportBtn');
   const summarizeBtn = frame.locator('#summarizeBtn');
+  const screenshotBtn = frame.locator('#screenshotBtn');
 
   // Verify action buttons are visible
   await expect(exportBtn).toBeVisible();
   await expect(summarizeBtn).toBeVisible();
+  await expect(screenshotBtn).toBeVisible();
 
   await exportBtn.click();
 
@@ -231,6 +233,16 @@ test('should interact with PDF viewer toolbar buttons', async () => {
   await expect(frame.locator('#extractionOverlay')).toBeHidden();
 
   await summarizeBtn.click();
+
+  // Test screenshot button
+  await screenshotBtn.click();
+  const screenshotOverlay = frame.locator('#screenshotOverlay');
+  await expect(screenshotOverlay).toBeVisible();
+
+  // Press Escape to cancel screenshot mode
+  await vscodeWindow.keyboard.press('Escape');
+  await expect(screenshotOverlay).toBeHidden();
+
   console.log('Action buttons test passed');
 
   // Test button accessibility attributes
@@ -252,6 +264,7 @@ test('should interact with PDF viewer toolbar buttons', async () => {
   expect(['Extract Objects', 'Exporting...']).toContain(exportTitle);
 
   await expect(summarizeBtn).toHaveAttribute('title', 'Summarize this PDF using AI');
+  await expect(screenshotBtn).toHaveAttribute('title', 'Take Screenshot');
   console.log('Button accessibility attributes test passed');
 
   console.log('All toolbar tests completed successfully!');
