@@ -1,6 +1,6 @@
 import type * as vscode from 'vscode';
 import type { ChatCommandResult } from '../types/interfaces';
-import { ChatErrorHandler } from '../utils/errorHandler';
+import { handleChatError } from '../utils/errorHandler';
 import { PathResolver } from '../utils/pathResolver';
 import { PdfProcessorBase } from './pdfProcessorBase';
 import { TextProcessor } from './textProcessor';
@@ -64,7 +64,7 @@ export class SummaryHandler extends PdfProcessorBase {
       return result;
     } catch (error) {
       PdfProcessorBase.logger.error('Summary handler error', error);
-      return ChatErrorHandler.handle(error, stream, 'PDF summarization');
+      return handleChatError(error, stream, 'PDF summarization');
     }
   }
 

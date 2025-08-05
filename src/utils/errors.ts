@@ -1,5 +1,4 @@
 import type { ErrorContext } from '../types/interfaces';
-import { CONFIG } from './constants';
 
 export abstract class DocPilotError extends Error {
   abstract readonly code: string;
@@ -16,7 +15,7 @@ export abstract class DocPilotError extends Error {
 }
 
 export class PdfLoadError extends DocPilotError {
-  readonly code = CONFIG.ERROR_CODES.PDF_LOAD_FAILED;
+  readonly code = 'PDF_LOAD_FAILED';
   readonly category = 'user' as const;
 
   constructor(path: string, cause?: Error) {
@@ -33,7 +32,7 @@ export class PdfLoadError extends DocPilotError {
 }
 
 export class TextExtractionTimeoutError extends DocPilotError {
-  readonly code = CONFIG.ERROR_CODES.TEXT_EXTRACTION_TIMEOUT;
+  readonly code = 'TEXT_EXTRACTION_TIMEOUT';
   readonly category = 'system' as const;
 
   constructor(timeout: number) {
@@ -42,7 +41,7 @@ export class TextExtractionTimeoutError extends DocPilotError {
 }
 
 export class TextExtractionError extends DocPilotError {
-  readonly code = CONFIG.ERROR_CODES.TEXT_EXTRACTION_FAILED;
+  readonly code = 'TEXT_EXTRACTION_FAILED';
   readonly category = 'system' as const;
 
   constructor(reason: string, cause?: Error) {
@@ -55,7 +54,7 @@ export class TextExtractionError extends DocPilotError {
 }
 
 export class ModelRequestError extends DocPilotError {
-  readonly code = CONFIG.ERROR_CODES.MODEL_REQUEST_FAILED;
+  readonly code = 'MODEL_REQUEST_FAILED';
   readonly category = 'network' as const;
 
   constructor(message: string, cause?: Error) {
@@ -68,7 +67,7 @@ export class ModelRequestError extends DocPilotError {
 }
 
 export class ChunkProcessingError extends DocPilotError {
-  readonly code = CONFIG.ERROR_CODES.CHUNK_PROCESSING_FAILED;
+  readonly code = 'CHUNK_PROCESSING_FAILED';
   readonly category = 'system' as const;
 
   constructor(chunkIndex: number, cause?: Error) {
@@ -81,7 +80,7 @@ export class ChunkProcessingError extends DocPilotError {
 }
 
 export class InvalidFilePathError extends DocPilotError {
-  readonly code = CONFIG.ERROR_CODES.INVALID_FILE_PATH;
+  readonly code = 'INVALID_FILE_PATH';
   readonly category = 'user' as const;
 
   constructor(path: string) {

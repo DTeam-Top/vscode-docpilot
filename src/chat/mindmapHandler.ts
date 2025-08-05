@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import type { ChatCommandResult } from '../types/interfaces';
-import { ChatErrorHandler } from '../utils/errorHandler';
+import { handleChatError } from '../utils/errorHandler';
 import { PathResolver } from '../utils/pathResolver';
 import { PdfProcessorBase } from './pdfProcessorBase';
 import { TextProcessor } from './textProcessor';
@@ -73,7 +73,7 @@ export class MindmapHandler extends PdfProcessorBase {
       return mindmapResult;
     } catch (error) {
       PdfProcessorBase.logger.error('Mindmap handler error', error);
-      return ChatErrorHandler.handle(error, stream, 'PDF mindmap generation');
+      return handleChatError(error, stream, 'PDF mindmap generation');
     }
   }
 

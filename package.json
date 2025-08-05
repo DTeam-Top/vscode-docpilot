@@ -86,7 +86,102 @@
         ],
         "priority": "default"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "DocPilot",
+      "properties": {
+        "docpilot.textProcessing.promptOverheadTokens": {
+          "type": "number",
+          "default": 500,
+          "description": "The number of tokens to reserve for the prompt and other metadata when processing text."
+        },
+        "docpilot.textProcessing.chunkSizeRatio": {
+          "type": "number",
+          "default": 0.8,
+          "description": "The ratio of the model's max tokens to use for a single chunk."
+        },
+        "docpilot.textProcessing.overlapRatio": {
+          "type": "number",
+          "default": 0.1,
+          "description": "The ratio of overlap between chunks."
+        },
+        "docpilot.textProcessing.defaultBatchSize": {
+          "type": "number",
+          "default": 3,
+          "description": "The default number of chunks to process in a single batch."
+        },
+        "docpilot.textProcessing.maxBatchSize": {
+          "type": "number",
+          "default": 10,
+          "description": "The maximum number of chunks to process in a single batch."
+        },
+        "docpilot.textProcessing.charsPerToken": {
+          "type": "number",
+          "default": 3.5,
+          "description": "The estimated number of characters per token."
+        },
+        "docpilot.textProcessing.tokenOverheadRatio": {
+          "type": "number",
+          "default": 0.1,
+          "description": "The ratio of overhead to add to the token estimation."
+        },
+        "docpilot.pdfViewer.maxCachedTextLayers": {
+          "type": "number",
+          "default": 10,
+          "description": "The maximum number of text layers to cache in the PDF viewer."
+        },
+        "docpilot.pdfViewer.visiblePageBuffer": {
+          "type": "number",
+          "default": 2,
+          "description": "The number of pages to render before and after the visible pages."
+        },
+        "docpilot.pdfViewer.maxTextDivsPerPage": {
+          "type": "number",
+          "default": 50000,
+          "description": "The maximum number of text divs to render per page."
+        },
+        "docpilot.pdfViewer.performanceThresholdMs": {
+          "type": "number",
+          "default": 500,
+          "description": "The performance threshold in milliseconds for the PDF viewer."
+        },
+        "docpilot.pdfViewer.minZoom": {
+          "type": "number",
+          "default": 0.25,
+          "description": "The minimum zoom level for the PDF viewer."
+        },
+        "docpilot.pdfViewer.maxZoom": {
+          "type": "number",
+          "default": 3,
+          "description": "The maximum zoom level for the PDF viewer."
+        },
+        "docpilot.pdfViewer.defaultZoom": {
+          "type": "number",
+          "default": 1,
+          "description": "The default zoom level for the PDF viewer."
+        },
+        "docpilot.timeouts.textExtractionMs": {
+          "type": "number",
+          "default": 30000,
+          "description": "The timeout in milliseconds for text extraction."
+        },
+        "docpilot.timeouts.modelRequestMs": {
+          "type": "number",
+          "default": 120000,
+          "description": "The timeout in milliseconds for a model request."
+        },
+        "docpilot.timeouts.pdfLoadMs": {
+          "type": "number",
+          "default": 15000,
+          "description": "The timeout in milliseconds for loading a PDF."
+        },
+        "docpilot.timeouts.heartbeatIntervalMs": {
+          "type": "number",
+          "default": 2000,
+          "description": "The heartbeat interval in milliseconds."
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "rm -rf out && npm run compile:prod",

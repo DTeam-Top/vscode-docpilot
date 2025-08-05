@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ChunkingStrategy } from '../pdf/chunkingStrategy';
+import * as ChunkingStrategy from '../pdf/chunkingStrategy';
 import type {
   ChatCommandResult,
   ChunkingConfig,
@@ -7,12 +7,12 @@ import type {
   ProcessDocumentOptions,
   ProcessingResult,
 } from '../types/interfaces';
-import { CONFIG } from '../utils/constants';
-import { ChatErrorHandler } from '../utils/errorHandler';
+import { configuration } from '../utils/configuration';
+import { handleChatError } from '../utils/errorHandler';
 import { ModelRequestError } from '../utils/errors';
 import { Logger } from '../utils/logger';
-import { RetryPolicy } from '../utils/retry';
-import { TokenEstimator } from '../utils/tokenEstimator';
+import * as Retry from '../utils/retry';
+import * as TokenEstimator from '../utils/tokenEstimator';
 
 export class TextProcessor {
   private static readonly logger = Logger.getInstance();
@@ -56,7 +56,7 @@ export class TextProcessor {
       };
     } catch (error) {
       TextProcessor.logger.error('Document processing failed', error);
-      return ChatErrorHandler.handle(error, stream, 'Document processing');
+      return handleChatError(error, stream, 'Document processing');
     }
   }
 
@@ -104,14 +104,14 @@ export class TextProcessor {
 
     const prompt = this.createSingleChunkPrompt(fileName, pdfText);
 
-    const response = await RetryPolicy.withRetry(
+    const response = await Retry.withRetry(
       () =>
         Promise.resolve(
           model.sendRequest([vscode.LanguageModelChatMessage.User(prompt)], {}, token)
         ),
       {
         maxAttempts: 2,
-        shouldRetry: RetryPolicy.shouldRetryModelError,
+        shouldRetry: Retry.shouldRetryModelError,
       }
     );
 
@@ -191,7 +191,7 @@ export class TextProcessor {
     token: vscode.CancellationToken
   ): Promise<string[]> {
     const chunkSummaries: string[] = [];
-    const batchSize = CONFIG.TEXT_PROCESSING.DEFAULT_BATCH_SIZE;
+    const batchSize = configuration.textProcessingDefaultBatchSize;
 
     for (let i = 0; i < chunks.length; i += batchSize) {
       const batch = chunks.slice(i, i + batchSize);
@@ -225,14 +225,14 @@ export class TextProcessor {
     const prompt = this.createChunkSummaryPrompt(chunk, fileName);
 
     try {
-      const response = await RetryPolicy.withRetry(
+      const response = await Retry.withRetry(
         () =>
           Promise.resolve(
             model.sendRequest([vscode.LanguageModelChatMessage.User(prompt)], {}, token)
           ),
         {
           maxAttempts: 2,
-          shouldRetry: RetryPolicy.shouldRetryModelError,
+          shouldRetry: Retry.shouldRetryModelError,
         }
       );
 
@@ -279,14 +279,14 @@ export class TextProcessor {
     const prompt = this.createConsolidationPrompt(chunkSummaries, fileName, totalPages);
 
     try {
-      const response = await RetryPolicy.withRetry(
+      const response = await Retry.withRetry(
         () =>
           Promise.resolve(
             model.sendRequest([vscode.LanguageModelChatMessage.User(prompt)], {}, token)
           ),
         {
           maxAttempts: 2,
-          shouldRetry: RetryPolicy.shouldRetryModelError,
+          shouldRetry: Retry.shouldRetryModelError,
         }
       );
 
@@ -459,7 +459,7 @@ The final summary should be comprehensive yet concise, giving readers a complete
       };
     } catch (error) {
       TextProcessor.logger.error('Mindmap document processing failed', error);
-      return ChatErrorHandler.handle(error, stream, 'Mindmap generation');
+      return handleChatError(error, stream, 'Mindmap generation');
     }
   }
 
@@ -514,14 +514,14 @@ The final summary should be comprehensive yet concise, giving readers a complete
 
     const prompt = this.createSingleChunkMindmapPrompt(fileName, pdfText);
 
-    const response = await RetryPolicy.withRetry(
+    const response = await Retry.withRetry(
       () =>
         Promise.resolve(
           model.sendRequest([vscode.LanguageModelChatMessage.User(prompt)], {}, token)
         ),
       {
         maxAttempts: 2,
-        shouldRetry: RetryPolicy.shouldRetryModelError,
+        shouldRetry: Retry.shouldRetryModelError,
       }
     );
 
@@ -604,7 +604,7 @@ The final summary should be comprehensive yet concise, giving readers a complete
     token: vscode.CancellationToken
   ): Promise<string[]> {
     const chunkMindmaps: string[] = [];
-    const batchSize = CONFIG.TEXT_PROCESSING.DEFAULT_BATCH_SIZE;
+    const batchSize = configuration.textProcessingDefaultBatchSize;
 
     for (let i = 0; i < chunks.length; i += batchSize) {
       const batch = chunks.slice(i, i + batchSize);
@@ -638,14 +638,14 @@ The final summary should be comprehensive yet concise, giving readers a complete
     const prompt = this.createChunkMindmapPrompt(chunk, fileName);
 
     try {
-      const response = await RetryPolicy.withRetry(
+      const response = await Retry.withRetry(
         () =>
           Promise.resolve(
             model.sendRequest([vscode.LanguageModelChatMessage.User(prompt)], {}, token)
           ),
         {
           maxAttempts: 2,
-          shouldRetry: RetryPolicy.shouldRetryModelError,
+          shouldRetry: Retry.shouldRetryModelError,
         }
       );
 
@@ -676,14 +676,14 @@ The final summary should be comprehensive yet concise, giving readers a complete
     const prompt = this.createMindmapConsolidationPrompt(chunkMindmaps, fileName, totalPages);
 
     try {
-      const response = await RetryPolicy.withRetry(
+      const response = await Retry.withRetry(
         () =>
           Promise.resolve(
             model.sendRequest([vscode.LanguageModelChatMessage.User(prompt)], {}, token)
           ),
         {
           maxAttempts: 2,
-          shouldRetry: RetryPolicy.shouldRetryModelError,
+          shouldRetry: Retry.shouldRetryModelError,
         }
       );
 
