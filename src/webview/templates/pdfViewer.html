@@ -629,6 +629,164 @@
             outline: 1px solid orange;
         }
         
+        /* Screenshot overlay styles */
+        .screenshot-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1500;
+            cursor: crosshair;
+            background: rgba(0, 0, 0, 0.1);
+            display: none;
+            user-select: none;
+        }
+        .screenshot-overlay.active {
+            display: block;
+        }
+        .selection-rectangle {
+            position: absolute;
+            border: 2px dashed var(--vscode-focusBorder, #007acc);
+            background: rgba(0, 123, 255, 0.1);
+            pointer-events: none;
+            display: none;
+        }
+        .selection-rectangle.visible {
+            display: block;
+        }
+        
+        /* Screenshot modal styles */
+        .screenshot-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 2500;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .screenshot-modal {
+            background-color: var(--vscode-editor-background);
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 6px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            width: 400px;
+            max-width: 95vw;
+            display: flex;
+            flex-direction: column;
+        }
+        .screenshot-modal-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .screenshot-modal-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--vscode-foreground);
+            margin: 0;
+        }
+        .screenshot-modal-close {
+            background: none;
+            border: none;
+            color: var(--vscode-foreground);
+            font-size: 18px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 3px;
+        }
+        .screenshot-modal-close:hover {
+            background-color: var(--vscode-toolbar-hoverBackground);
+        }
+        .screenshot-modal-content {
+            padding: 20px;
+            text-align: center;
+        }
+        .screenshot-modal-content p {
+            margin: 0 0 20px 0;
+            color: var(--vscode-foreground);
+            font-size: 14px;
+        }
+        .screenshot-modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        .screenshot-action-btn {
+            padding: 10px 20px;
+            border: 1px solid var(--vscode-button-border, transparent);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .screenshot-action-btn.primary {
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+        }
+        .screenshot-action-btn.primary:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+        .screenshot-action-btn.secondary {
+            background-color: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+        }
+        .screenshot-action-btn.secondary:hover {
+            background-color: var(--vscode-button-secondaryHoverBackground);
+        }
+        
+        /* Folder selection styles for screenshot modal */
+        .folder-selection-section {
+            margin: 16px 0;
+            padding: 16px;
+            background-color: var(--vscode-editor-inactiveSelectionBackground, rgba(128, 128, 128, 0.1));
+            border-radius: 4px;
+            border: 1px solid var(--vscode-panel-border);
+        }
+        .folder-input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--vscode-foreground);
+        }
+        .folder-input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .folder-input-wrapper input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 3px;
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            font-size: 13px;
+        }
+        .folder-input-wrapper input:focus {
+            outline: none;
+            border-color: var(--vscode-focusBorder);
+        }
+        .folder-input-wrapper .browse-btn {
+            padding: 8px 12px;
+            background-color: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+            border: 1px solid var(--vscode-button-border, transparent);
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .folder-input-wrapper .browse-btn:hover {
+            background-color: var(--vscode-button-secondaryHoverBackground);
+        }
+        
         /* Enhanced extraction modal styles */
         .extraction-overlay {
             position: fixed;
@@ -999,6 +1157,9 @@
             <button id="searchBtn" class="icon-button" title="Search Text">
                 <img id="searchIcon" src="{{assetUri}}/text-search.svg" alt="Search Text" width="16" height="16">
             </button>
+            <button id="screenshotBtn" class="icon-button" title="Take Screenshot">
+                <img id="screenshotIcon" src="{{assetUri}}/camera.svg" alt="Take Screenshot" width="16" height="16">
+            </button>
             <button id="inspectorBtn" class="icon-button" title="PDF Inspector">
                 <img id="inspectorIcon" src="{{assetUri}}/wand.svg" alt="PDF Inspector" width="16" height="16">
             </button>
@@ -1026,6 +1187,44 @@
             <button id="searchPrevBtn" title="Previous match">↑</button>
             <button id="searchNextBtn" title="Next match">↓</button>
             <button id="searchCloseBtn" title="Close search">×</button>
+        </div>
+    </div>
+    
+    <!-- Screenshot overlay -->
+    <div class="screenshot-overlay" id="screenshotOverlay">
+        <div class="selection-rectangle" id="selectionRectangle"></div>
+    </div>
+    
+    <!-- Screenshot modal -->
+    <div class="screenshot-modal-overlay" id="screenshotModalOverlay">
+        <div class="screenshot-modal">
+            <div class="screenshot-modal-header">
+                <h2 class="screenshot-modal-title">📸 Save Screenshot</h2>
+                <button class="screenshot-modal-close" id="screenshotModalClose" title="Close">×</button>
+            </div>
+            <div class="screenshot-modal-content">
+                <p>Choose how you'd like to save your screenshot:</p>
+                
+                <!-- Folder selection section (initially hidden) -->
+                <div class="folder-selection-section" id="folderSection" style="display: none;">
+                    <div class="folder-input-group">
+                        <label for="screenshotFolderPath">Save to folder:</label>
+                        <div class="folder-input-wrapper">
+                            <input type="text" id="screenshotFolderPath" readonly placeholder="Select a folder..." />
+                            <button class="browse-btn" id="screenshotBrowseBtn" title="Browse for folder">📁</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="screenshot-modal-actions">
+                    <button class="screenshot-action-btn primary" id="saveToFileBtn">
+                        📁 Save to File
+                    </button>
+                    <button class="screenshot-action-btn secondary" id="copyToClipboardBtn">
+                        📋 Copy to Clipboard
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
     <div class="main-content">

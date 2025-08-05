@@ -89,8 +89,9 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./tsconfig.prod.json && npm run copy-assets && npm run bundle-webview",
+    "vscode:prepublish": "rm -rf out && npm run compile:prod",
+    "compile:prod": "tsc -p ./tsconfig.prod.json && npm run copy-assets && npm run bundle-webview",
+    "compile": "tsc -p ./ && npm run copy-assets && npm run bundle-webview",
     "compile-e2e": "tsc -p ./tsconfig.e2e.json --outDir out",
     "copy-assets": "mkdir -p out/webview && cp -r src/webview/assets out/webview/ && cp -r src/webview/templates out/webview/ && cp -r src/webview/scripts out/webview/",
     "bundle-webview": "rollup -c",

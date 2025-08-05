@@ -52,7 +52,6 @@ export const WEBVIEW_MESSAGES = {
   SEARCH_NEXT: 'searchNext',
   SEARCH_PREVIOUS: 'searchPrevious',
   SEARCH_CLOSE: 'searchClose',
-  // Enhanced object extraction messages
   EXTRACT_OBJECTS: 'extractObjects',
   EXTRACTION_PROGRESS: 'extractionProgress',
   EXTRACTION_COMPLETED: 'extractionCompleted',
@@ -62,6 +61,11 @@ export const WEBVIEW_MESSAGES = {
   FOLDER_SELECTED: 'folderSelected',
   GET_OBJECT_COUNTS: 'getObjectCounts',
   OBJECT_COUNTS_UPDATED: 'objectCountsUpdated',
+  SCREENSHOT_SAVE_FILE: 'screenshotSaveFile',
+  SCREENSHOT_COPY_SUCCESS: 'screenshotCopySuccess',
+  SCREENSHOT_COPY_ERROR: 'screenshotCopyError',
+  SCREENSHOT_FILE_SAVED: 'screenshotFileSaved',
+  SCREENSHOT_SAVE_ERROR: 'screenshotSaveError',
 } as const;
 
 export const CHAT_COMMANDS = {

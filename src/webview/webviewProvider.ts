@@ -25,6 +25,8 @@ interface LocalWebviewMessage {
     extractionId: string;
     objectData: ObjectData;
     webviewStartTime: number;
+    imageData?: string;
+    currentPage?: number;
   };
 }
 
@@ -165,6 +167,17 @@ export class WebviewProvider {
           break;
         case WEBVIEW_MESSAGES.GET_OBJECT_COUNTS:
           await WebviewProvider.handleGetObjectCounts(panel);
+          break;
+        case WEBVIEW_MESSAGES.SCREENSHOT_SAVE_FILE:
+          await WebviewProvider.handleScreenshotSaveFile(panel, message);
+          break;
+        case WEBVIEW_MESSAGES.SCREENSHOT_COPY_SUCCESS:
+          vscode.window.showInformationMessage('Screenshot copied to clipboard!');
+          break;
+        case WEBVIEW_MESSAGES.SCREENSHOT_COPY_ERROR:
+          vscode.window.showErrorMessage(
+            message.data?.error || 'Failed to copy screenshot to clipboard'
+          );
           break;
         case 'showMessage':
           await WebviewProvider.handleShowMessage(panel, message);
@@ -468,6 +481,79 @@ export class WebviewProvider {
       panel.webview.postMessage({
         type: WEBVIEW_MESSAGES.OBJECT_COUNTS_UPDATED,
         data: emptyCounts,
+      });
+    }
+  }
+
+  public static async handleScreenshotSaveFile(
+    panel: vscode.WebviewPanel,
+    message: LocalWebviewMessage
+  ): Promise<void> {
+    try {
+      WebviewProvider.logger.info('Handling screenshot save file request');
+
+      if (!message.data?.fileName || !message.data?.imageData) {
+        throw new Error('Missing screenshot data');
+      }
+
+      const { fileName, imageData, currentPage, saveFolder } = message.data;
+
+      let finalPath: string;
+
+      if (saveFolder) {
+        // Use provided save folder (direct save without dialog)
+        finalPath = path.join(saveFolder, fileName);
+      } else {
+        // Fallback to save dialog
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        const defaultPath = workspaceFolder 
+          ? path.join(workspaceFolder.uri.fsPath, fileName)
+          : path.join(require('os').homedir(), 'Desktop', fileName);
+
+        const saveUri = await vscode.window.showSaveDialog({
+          defaultUri: vscode.Uri.file(defaultPath),
+          filters: {
+            'PNG Images': ['png'],
+            'All Files': ['*'],
+          },
+          title: `Save Screenshot - Page ${currentPage || 1}`,
+        });
+
+        if (!saveUri) {
+          WebviewProvider.logger.debug('Screenshot save cancelled by user');
+          return;
+        }
+
+        finalPath = saveUri.fsPath;
+      }
+
+      // Convert data URL to buffer
+      const base64Data = imageData.split(',')[1];
+      const buffer = Buffer.from(base64Data, 'base64');
+
+      // Write file
+      await vscode.workspace.fs.writeFile(vscode.Uri.file(finalPath), buffer);
+
+      // Show success message
+      vscode.window.showInformationMessage(`Screenshot saved: ${finalPath}`);
+
+      // Send success message to webview
+      panel.webview.postMessage({
+        type: WEBVIEW_MESSAGES.SCREENSHOT_FILE_SAVED,
+        data: { filePath: finalPath },
+      });
+
+      WebviewProvider.logger.info('Screenshot saved successfully', { filePath: finalPath });
+    } catch (error) {
+      WebviewProvider.logger.error('Failed to save screenshot', error);
+
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      vscode.window.showErrorMessage(`Failed to save screenshot: ${errorMessage}`);
+
+      // Send error message to webview
+      panel.webview.postMessage({
+        type: WEBVIEW_MESSAGES.SCREENSHOT_SAVE_ERROR,
+        data: { error: errorMessage },
       });
     }
   }
