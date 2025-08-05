@@ -11,24 +11,7 @@ import type {
 import { WEBVIEW_MESSAGES } from '../utils/constants';
 import { Logger } from '../utils/logger';
 import { TemplateEngine } from '../utils/templateEngine';
-
-interface LocalWebviewMessage {
-  type: string;
-  error?: string;
-  fileName?: string;
-  isUrl?: boolean;
-  pdfUri?: string;
-  data?: {
-    selectedTypes: string[];
-    saveFolder: string;
-    fileName: string;
-    extractionId: string;
-    objectData: ObjectData;
-    webviewStartTime: number;
-    imageData?: string;
-    currentPage?: number;
-  };
-}
+import { WebviewMessenger } from './webviewMessenger';
 
 // biome-ignore lint/complexity/noStaticOnlyClass: This follows existing extension patterns
 export class WebviewProvider {
@@ -130,72 +113,94 @@ export class WebviewProvider {
     pdfSource: string,
     extensionContext: vscode.ExtensionContext
   ): void {
-    panel.webview.onDidReceiveMessage(async (message) => {
-      WebviewProvider.logger.debug('Received webview message:', message.type);
-      WebviewProvider.logger.debug('Message details:', JSON.stringify(message, null, 2));
-      switch (message.type) {
-        case WEBVIEW_MESSAGES.SUMMARIZE_REQUEST:
-          await WebviewProvider.handleSummarizeRequest(panel, pdfSource, message, extensionContext);
-          break;
-        case WEBVIEW_MESSAGES.SUMMARIZE_ERROR:
-          WebviewProvider.logger.error('Webview summarization error:', message.error);
-          vscode.window.showErrorMessage(`Summarization failed: ${message.error}`);
-          break;
-        case WEBVIEW_MESSAGES.MINDMAP_REQUEST:
-          await WebviewProvider.handleMindmapRequest(panel, pdfSource, message, extensionContext);
-          break;
-        case WEBVIEW_MESSAGES.MINDMAP_ERROR:
-          WebviewProvider.logger.error('Webview mindmap error:', message.error);
-          vscode.window.showErrorMessage(`Mindmap generation failed: ${message.error}`);
-          break;
-        case WEBVIEW_MESSAGES.EXTRACT_ALL_TEXT:
-        case WEBVIEW_MESSAGES.TEXT_EXTRACTED:
-        case WEBVIEW_MESSAGES.TEXT_EXTRACTION_ERROR:
-          // These are handled by TextExtractor, just log for now
-          WebviewProvider.logger.debug('Text extraction message received:', message.type);
-          break;
-        // Enhanced object extraction messages
-        case WEBVIEW_MESSAGES.EXTRACT_OBJECTS:
-          await WebviewProvider.handleExtractObjectsRequest(panel, pdfSource, message);
-          break;
-        case WEBVIEW_MESSAGES.EXTRACTION_CANCELLED:
-          await WebviewProvider.handleExtractionCancellation(message);
-          break;
-        case WEBVIEW_MESSAGES.BROWSE_SAVE_FOLDER:
-          WebviewProvider.logger.info('Received BROWSE_SAVE_FOLDER message from webview');
-          await WebviewProvider.handleBrowseSaveFolder(panel);
-          break;
-        case WEBVIEW_MESSAGES.GET_OBJECT_COUNTS:
-          await WebviewProvider.handleGetObjectCounts(panel);
-          break;
-        case WEBVIEW_MESSAGES.SCREENSHOT_SAVE_FILE:
-          await WebviewProvider.handleScreenshotSaveFile(panel, message);
-          break;
-        case WEBVIEW_MESSAGES.SCREENSHOT_COPY_SUCCESS:
-          vscode.window.showInformationMessage('Screenshot copied to clipboard!');
-          break;
-        case WEBVIEW_MESSAGES.SCREENSHOT_COPY_ERROR:
-          vscode.window.showErrorMessage(
-            message.data?.error || 'Failed to copy screenshot to clipboard'
-          );
-          break;
-        case 'showMessage':
-          await WebviewProvider.handleShowMessage(panel, message);
-          break;
-        case 'openFolder':
-          await WebviewProvider.handleOpenFolder(message);
-          break;
-        default:
-          WebviewProvider.logger.debug('Unhandled webview message:', message.type);
-          break;
-      }
+    const messenger = new WebviewMessenger(panel);
+
+    // Register message handlers
+    messenger.on(WEBVIEW_MESSAGES.SUMMARIZE_REQUEST, async () => {
+      await WebviewProvider.handleSummarizeRequest(panel, pdfSource, extensionContext);
     });
+
+    messenger.on(WEBVIEW_MESSAGES.SUMMARIZE_ERROR, (data) => {
+      WebviewProvider.logger.error('Webview summarization error:', data?.error);
+      vscode.window.showErrorMessage(`Summarization failed: ${data?.error || 'Unknown error'}`);
+    });
+
+    messenger.on(WEBVIEW_MESSAGES.MINDMAP_REQUEST, async () => {
+      await WebviewProvider.handleMindmapRequest(panel, pdfSource, extensionContext);
+    });
+
+    messenger.on(WEBVIEW_MESSAGES.MINDMAP_ERROR, (data) => {
+      WebviewProvider.logger.error('Webview mindmap error:', data?.error);
+      vscode.window.showErrorMessage(
+        `Mindmap generation failed: ${data?.error || 'Unknown error'}`
+      );
+    });
+
+    messenger.on(WEBVIEW_MESSAGES.EXTRACT_ALL_TEXT, (data) => {
+      WebviewProvider.logger.debug(
+        'Text extraction message received:',
+        WEBVIEW_MESSAGES.EXTRACT_ALL_TEXT
+      );
+    });
+
+    messenger.on(WEBVIEW_MESSAGES.TEXT_EXTRACTED, (data) => {
+      WebviewProvider.logger.debug(
+        'Text extraction message received:',
+        WEBVIEW_MESSAGES.TEXT_EXTRACTED
+      );
+    });
+
+    messenger.on(WEBVIEW_MESSAGES.TEXT_EXTRACTION_ERROR, (data) => {
+      WebviewProvider.logger.debug(
+        'Text extraction message received:',
+        WEBVIEW_MESSAGES.TEXT_EXTRACTION_ERROR
+      );
+    });
+
+    messenger.on(WEBVIEW_MESSAGES.EXTRACT_OBJECTS, async (data) => {
+      await WebviewProvider.handleExtractObjectsRequest(panel, pdfSource, data);
+    });
+
+    messenger.on(WEBVIEW_MESSAGES.EXTRACTION_CANCELLED, async (data) => {
+      await WebviewProvider.handleExtractionCancellation(data);
+    });
+
+    messenger.on(WEBVIEW_MESSAGES.BROWSE_SAVE_FOLDER, async () => {
+      WebviewProvider.logger.info('Received BROWSE_SAVE_FOLDER message from webview');
+      await WebviewProvider.handleBrowseSaveFolder(panel);
+    });
+
+    messenger.on(WEBVIEW_MESSAGES.GET_OBJECT_COUNTS, async () => {
+      await WebviewProvider.handleGetObjectCounts(panel);
+    });
+
+    messenger.on(WEBVIEW_MESSAGES.SCREENSHOT_SAVE_FILE, async (data) => {
+      await WebviewProvider.handleScreenshotSaveFile(panel, data);
+    });
+
+    messenger.on(WEBVIEW_MESSAGES.SCREENSHOT_COPY_SUCCESS, () => {
+      vscode.window.showInformationMessage('Screenshot copied to clipboard!');
+    });
+
+    messenger.on(WEBVIEW_MESSAGES.SCREENSHOT_COPY_ERROR, (data) => {
+      vscode.window.showErrorMessage(data?.error || 'Failed to copy screenshot to clipboard');
+    });
+
+    messenger.on('showMessage', async (data) => {
+      await WebviewProvider.handleShowMessage(panel, { data });
+    });
+
+    messenger.on('openFolder', async (data) => {
+      await WebviewProvider.handleOpenFolder({ data });
+    });
+
+    // Store messenger on panel for potential cleanup
+    (panel as any)._messenger = messenger;
   }
 
   private static async handleSummarizeRequest(
     panel: vscode.WebviewPanel,
     pdfSource: string,
-    _message: LocalWebviewMessage,
     _extensionContext: vscode.ExtensionContext
   ): Promise<void> {
     try {
@@ -243,7 +248,6 @@ export class WebviewProvider {
   private static async handleMindmapRequest(
     panel: vscode.WebviewPanel,
     pdfSource: string,
-    _message: LocalWebviewMessage,
     _extensionContext: vscode.ExtensionContext
   ): Promise<void> {
     try {
@@ -299,6 +303,7 @@ export class WebviewProvider {
       fileName: WebviewProvider.getFileName(pdfSource),
       scriptUri: WebviewProvider.getScriptUri(webview, extensionContext),
       assetUri: WebviewProvider.getAssetUri(webview, extensionContext),
+      cssUri: WebviewProvider.getCssUri(webview, extensionContext),
     };
 
     return TemplateEngine.render(extensionContext, 'pdfViewer', templateData);
@@ -347,19 +352,33 @@ export class WebviewProvider {
     return webview.asWebviewUri(assetPath).toString();
   }
 
+  private static getCssUri(
+    webview: vscode.Webview,
+    extensionContext: vscode.ExtensionContext
+  ): string {
+    const cssPath = vscode.Uri.joinPath(
+      extensionContext.extensionUri,
+      'out',
+      'webview',
+      'styles',
+      'pdfViewer.min.css'
+    );
+    return webview.asWebviewUri(cssPath).toString();
+  }
+
   // Enhanced object extraction handlers
   public static async handleExtractObjectsRequest(
     panel: vscode.WebviewPanel,
     pdfSource: string,
-    message: LocalWebviewMessage
+    data: any
   ): Promise<void> {
     try {
       WebviewProvider.logger.info('Handling extract objects request', {
         pdfSource,
-        data: message.data,
+        data,
       });
 
-      if (!message.data) {
+      if (!data) {
         throw new Error('Missing extraction request data');
       }
 
@@ -367,11 +386,11 @@ export class WebviewProvider {
         objectData?: ObjectData;
         webviewStartTime?: number;
       } = {
-        selectedTypes: message.data.selectedTypes as ObjectType[],
-        saveFolder: message.data.saveFolder,
-        fileName: message.data.fileName || WebviewProvider.getFileName(pdfSource),
-        objectData: message.data.objectData, // Pass through object data from webview
-        webviewStartTime: message.data.webviewStartTime, // Pass through webview start time
+        selectedTypes: data.selectedTypes as ObjectType[],
+        saveFolder: data.saveFolder,
+        fileName: data.fileName || WebviewProvider.getFileName(pdfSource),
+        objectData: data.objectData, // Pass through object data from webview
+        webviewStartTime: data.webviewStartTime, // Pass through webview start time
       };
 
       // Start extraction in background
@@ -487,16 +506,16 @@ export class WebviewProvider {
 
   public static async handleScreenshotSaveFile(
     panel: vscode.WebviewPanel,
-    message: LocalWebviewMessage
+    data: any
   ): Promise<void> {
     try {
       WebviewProvider.logger.info('Handling screenshot save file request');
 
-      if (!message.data?.fileName || !message.data?.imageData) {
+      if (!data?.fileName || !data?.imageData) {
         throw new Error('Missing screenshot data');
       }
 
-      const { fileName, imageData, currentPage, saveFolder } = message.data;
+      const { fileName, imageData, currentPage, saveFolder } = data;
 
       let finalPath: string;
 
