@@ -506,7 +506,7 @@ export class WebviewProvider {
       } else {
         // Fallback to save dialog
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-        const defaultPath = workspaceFolder 
+        const defaultPath = workspaceFolder
           ? path.join(workspaceFolder.uri.fsPath, fileName)
           : path.join(require('os').homedir(), 'Desktop', fileName);
 
@@ -617,12 +617,4 @@ export class WebviewProvider {
       WebviewProvider.logger.error('Failed to open folder', error);
     }
   }
-}
-
-interface TemplateData {
-  pdfUri: string;
-  isUrl: boolean;
-  fileName: string;
-  scriptUri: string;
-  assetUri: string;
 }

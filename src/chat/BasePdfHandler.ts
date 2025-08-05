@@ -4,17 +4,27 @@ import { TextExtractor } from '../pdf/textExtractor';
 import { PdfLoadError } from '../utils/errors';
 import { Logger } from '../utils/logger';
 import { WebviewProvider } from '../webview/webviewProvider';
+import { AiTextProcessor } from './AiTextProcessor';
+import type { ChatCommandResult, ProcessDocumentOptions } from '../types/interfaces';
 
-export abstract class PdfProcessorBase {
+export abstract class BasePdfHandler {
   protected static readonly logger = Logger.getInstance();
   protected readonly cache: DocumentCache<string>;
+  protected readonly aiTextProcessor: AiTextProcessor;
 
   constructor(
     protected readonly extensionContext: vscode.ExtensionContext,
     cacheType: 'summary' | 'mindmap'
   ) {
     this.cache = new DocumentCache<string>(extensionContext, cacheType);
+    this.aiTextProcessor = new AiTextProcessor();
   }
+
+  public abstract processPdf(
+    options: ProcessDocumentOptions,
+    stream: vscode.ChatResponseStream,
+    cancellationToken: vscode.CancellationToken
+  ): Promise<ChatCommandResult>;
 
   protected async createPdfViewer(
     pdfPath: string,
@@ -28,7 +38,7 @@ export abstract class PdfProcessorBase {
       const action = panel.visible ? 'Reusing existing' : 'Opening';
       stream.markdown(`📄 ${action} PDF viewer...\n\n`);
 
-      PdfProcessorBase.logger.info(`PDF viewer ready for: ${pdfPath}`);
+      BasePdfHandler.logger.info(`PDF viewer ready for: ${pdfPath}`);
       return panel;
     } catch (error) {
       throw new PdfLoadError(pdfPath, error as Error);
@@ -47,7 +57,7 @@ export abstract class PdfProcessorBase {
       retryAttempts: 2,
       progressCallback: (progress) => {
         // Could update progress here if needed
-        PdfProcessorBase.logger.debug(`Text extraction progress: ${Math.round(progress * 100)}%`);
+        BasePdfHandler.logger.debug(`Text extraction progress: ${Math.round(progress * 100)}%`);
       },
     });
 
@@ -64,7 +74,7 @@ export abstract class PdfProcessorBase {
   }
 
   protected _createMockLanguageModel(id = 'test-model-id'): vscode.LanguageModelChat {
-    PdfProcessorBase.logger.info(`Using mock language model for testing (id: ${id})`);
+    BasePdfHandler.logger.info(`Using mock language model for testing (id: ${id})`);
     return {
       id,
       name: 'test-model',
@@ -91,7 +101,7 @@ export abstract class PdfProcessorBase {
 
       if (models.length > 0) {
         const selectedModel = models[0];
-        PdfProcessorBase.logger.info(`Using language model: ${selectedModel.name}`, {
+        BasePdfHandler.logger.info(`Using language model: ${selectedModel.name}`, {
           modelName: selectedModel.name,
           maxInputTokens: selectedModel.maxInputTokens,
           vendor: selectedModel.vendor,
@@ -139,5 +149,4 @@ export abstract class PdfProcessorBase {
   protected async clearCache(): Promise<void> {
     await this.cache.clearCache();
   }
-
 }
