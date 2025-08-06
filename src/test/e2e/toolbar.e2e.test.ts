@@ -1,79 +1,16 @@
-import {
-  _electron as electron,
-  type ElectronApplication,
-  expect,
-  type Page,
-  test,
-} from '@playwright/test';
-import { downloadAndUnzipVSCode } from '@vscode/test-electron';
+import { type ElectronApplication, expect, type Page, test } from '@playwright/test';
 import * as path from 'node:path';
-import { loadEnvFile } from '../helpers/envLoader';
+import { openPdf, setupTest } from './e2eSetup';
 
 let electronApp: ElectronApplication;
 let vscodeWindow: Page;
 
-const EXTENSION_PATH = path.resolve(__dirname, '../../../');
-
-console.log('Extension path:', EXTENSION_PATH);
-
 const TEST_PDF_PATH = path.resolve(__dirname, '../fixtures/pdfs/normal.pdf');
 
 test.beforeAll(async () => {
-  // Load environment variables from .env file (needed for Copilot auth)
-  loadEnvFile(path.resolve(__dirname, '../../../.env'));
-  console.log('Environment variables loaded from .env file');
-
-  const executablePath = await downloadAndUnzipVSCode();
-  console.log('VSCode executable path:', executablePath);
-
-  try {
-    // Launch with proper extension loading and workspace
-    electronApp = await electron.launch({
-      executablePath,
-      args: [
-        `--extensionDevelopmentPath=${EXTENSION_PATH}`,
-        `--user-data-dir=${path.resolve(__dirname, '../../../.vscode-test')}`,
-        '--disable-workspace-trust',
-        '--skip-welcome',
-        '--disable-telemetry',
-        '--no-sandbox',
-        '--disable-dev-shm-usage',
-      ],
-      env: {
-        ...process.env,
-        NODE_ENV: 'test',
-        // Pass the auth token to the extension environment for Copilot integration
-        ...(process.env.COPILOT_CHAT_AUTH_TOKEN && {
-          COPILOT_CHAT_AUTH_TOKEN: process.env.COPILOT_CHAT_AUTH_TOKEN,
-        }),
-      },
-      timeout: 60000,
-    });
-
-    console.log('Electron app launched successfully');
-
-    // Check if any windows exist
-    const windows = electronApp.windows();
-    console.log('Number of windows:', windows.length);
-
-    if (windows.length === 0) {
-      console.log('Waiting for window...');
-      await electronApp.waitForEvent('window', { timeout: 30000 });
-    }
-
-    vscodeWindow = await electronApp.firstWindow();
-    console.log('Got first window');
-
-    await vscodeWindow.waitForLoadState('domcontentloaded');
-    console.log('Window loaded');
-
-    // Wait for VSCode workbench to be ready
-    await vscodeWindow.waitForSelector('.monaco-workbench', { timeout: 30000 });
-    console.log('VSCode workbench ready');
-  } catch (error) {
-    console.error('Failed in beforeAll:', error);
-    throw error;
-  }
+  const { electronApp: app, vscodeWindow: window } = await setupTest();
+  electronApp = app;
+  vscodeWindow = window;
 });
 
 test.afterAll(async () => {
@@ -81,49 +18,8 @@ test.afterAll(async () => {
 });
 
 test('should interact with PDF viewer toolbar buttons', async () => {
-  // Open PDF via command palette
-  await vscodeWindow.keyboard.press('F1');
-  await vscodeWindow.fill('input[placeholder*="Type the name"]', 'DocPilot: Open Local PDF');
-  await vscodeWindow.keyboard.press('Enter');
-
-  // Wait for file input and provide path
-  await vscodeWindow.waitForSelector('input[type="text"]', { timeout: 10000 });
-  await vscodeWindow.fill('input[type="text"]', TEST_PDF_PATH);
-
-  // Debug the input state before pressing Enter
-  const inputValue = await vscodeWindow.locator('input[type="text"]').inputValue();
-  console.log('Input value before Enter:', inputValue);
-
-  await vscodeWindow.keyboard.press('Enter');
-
-  // Wait a moment and check what happened after Enter
-  await vscodeWindow.waitForTimeout(2000);
-  console.log('Enter pressed, checking if command executed...');
-
-  // Wait for webview to load
-  console.log('Waiting for webview to appear...');
-  const webviewFrame = vscodeWindow.locator('iframe[src*="vscode-webview"]');
-
-  // Wait for PDF viewer to load
-  await expect(webviewFrame).toBeVisible({ timeout: 10000 });
-  console.log('PDF viewer loaded, getting frame content...');
-
-  // Get the outer webview frame
-  const outerFrame = webviewFrame.contentFrame();
-  if (!outerFrame) {
-    throw new Error('Could not access webview frame content');
-  }
-
-  // Access the inner iframe that contains the actual PDF viewer
-  const innerIframe = outerFrame.locator('#active-frame');
-  await expect(innerIframe).toBeVisible({ timeout: 10000 });
-
-  const frame = innerIframe.contentFrame();
-  if (!frame) {
-    throw new Error('Could not access inner PDF viewer frame content');
-  }
-
-  console.log('Successfully accessed PDF viewer frame');
+  // Open the PDF and get the viewer frame
+  const { pdfFrame: frame } = await openPdf(vscodeWindow, TEST_PDF_PATH);
 
   // Test zoom controls
   const zoomInBtn = frame.locator('#zoomInBtn');
@@ -210,25 +106,25 @@ test('should interact with PDF viewer toolbar buttons', async () => {
   // Test AI dropdown
   await aiDropdown.locator('.dropdown-btn').click();
   await expect(aiDropdown.locator('.dropdown-content')).toBeVisible();
-  
+
   const summarizeBtn = frame.locator('#summarizeBtn');
   const mindmapBtn = frame.locator('#mindmapBtn');
   await expect(summarizeBtn).toBeVisible();
   await expect(mindmapBtn).toBeVisible();
-  
+
   await summarizeBtn.click();
   await expect(aiDropdown.locator('.dropdown-content')).toBeHidden();
 
   // Test Tools dropdown
   await toolsDropdown.locator('.dropdown-btn').click();
   await expect(toolsDropdown.locator('.dropdown-content')).toBeVisible();
-  
+
   const exportBtn = frame.locator('#exportBtn');
   const textSelectionBtn = frame.locator('#textSelectionBtn');
   const inspectorBtn = frame.locator('#inspectorBtn');
   const searchBtn = frame.locator('#searchBtn');
   const screenshotBtn = frame.locator('#screenshotBtn');
-  
+
   await expect(exportBtn).toBeVisible();
   await expect(textSelectionBtn).toBeVisible();
   await expect(inspectorBtn).toBeVisible();
@@ -248,10 +144,10 @@ test('should interact with PDF viewer toolbar buttons', async () => {
   // Test other tools - open dropdown again since it closed after export click
   await toolsDropdown.locator('.dropdown-btn').click();
   await textSelectionBtn.click();
-  
+
   await toolsDropdown.locator('.dropdown-btn').click();
   await inspectorBtn.click();
-  
+
   await toolsDropdown.locator('.dropdown-btn').click();
   await screenshotBtn.click();
   const screenshotOverlay = frame.locator('#screenshotOverlay');
@@ -260,7 +156,7 @@ test('should interact with PDF viewer toolbar buttons', async () => {
   // Press Escape to cancel screenshot mode
   await vscodeWindow.keyboard.press('Escape');
   await expect(screenshotOverlay).toBeHidden();
-  
+
   // Test debug button (not in dropdown)
   await debugBtn.click();
 
@@ -276,18 +172,18 @@ test('should interact with PDF viewer toolbar buttons', async () => {
   await expect(nextPageBtn).toHaveAttribute('title', 'Next Page');
   await expect(lastPageBtn).toHaveAttribute('title', 'Last Page');
   await expect(debugBtn).toHaveAttribute('title', 'Debug Mode');
-  
+
   // Test dropdown button titles (now icon-only buttons)
   await expect(aiDropdown.locator('.dropdown-btn')).toHaveAttribute('title', 'AI Tools');
   await expect(toolsDropdown.locator('.dropdown-btn')).toHaveAttribute('title', 'Content Tools');
-  
+
   // Test dropdown item titles (need to open dropdown to access items)
   await aiDropdown.locator('.dropdown-btn').click();
   await expect(summarizeBtn).toHaveAttribute('title', 'Summarize this PDF using AI');
   await expect(mindmapBtn).toHaveAttribute('title', 'Generate Mermaid mindmap from this PDF');
   // Close AI dropdown by clicking outside
   await frame.locator('body').click();
-  
+
   await toolsDropdown.locator('.dropdown-btn').click();
   await expect(textSelectionBtn).toHaveAttribute('title', 'Selection Mode');
   await expect(inspectorBtn).toHaveAttribute('title', 'PDF Inspector');
@@ -298,10 +194,10 @@ test('should interact with PDF viewer toolbar buttons', async () => {
   const exportTitle = await exportBtn.getAttribute('title');
   console.log('Export button title:', exportTitle);
   expect(['Extract Objects', 'Exporting...']).toContain(exportTitle);
-  
+
   // Close tools dropdown
   await frame.locator('body').click();
-  
+
   console.log('Button accessibility attributes test passed');
 
   console.log('All toolbar tests completed successfully!');
