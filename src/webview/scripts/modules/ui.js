@@ -201,9 +201,14 @@ export function initializeEventListeners() {
   document.getElementById('prevPageBtn').addEventListener('click', goToPreviousPage);
   document.getElementById('nextPageBtn').addEventListener('click', goToNextPage);
   document.getElementById('lastPageBtn').addEventListener('click', goToLastPage);
+  document.getElementById('debugBtn').addEventListener('click', toggleDebug);
+  
+  // Dropdown functionality
+  initializeDropdowns();
+  
+  // Dropdown items (now inside dropdowns)
   document.getElementById('textSelectionBtn').addEventListener('click', toggleTextSelection);
   document.getElementById('inspectorBtn').addEventListener('click', toggleInspector);
-  document.getElementById('debugBtn').addEventListener('click', toggleDebug);
   document.getElementById('summarizeBtn').addEventListener('click', summarizeDocument);
   document.getElementById('mindmapBtn').addEventListener('click', generateMindmap);
   document.getElementById('exportBtn').addEventListener('click', showExtractionModal);
@@ -298,5 +303,40 @@ export function initializeEventListeners() {
   // Disable default context menu
   document.addEventListener('contextmenu', (e) => {
     e.preventDefault();
+  });
+}
+
+function initializeDropdowns() {
+  // Handle dropdown button clicks (now using .dropdown-btn.icon-button)
+  document.querySelectorAll('.dropdown .dropdown-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const dropdown = btn.parentElement;
+      const isActive = dropdown.classList.contains('active');
+      
+      // Close all other dropdowns
+      document.querySelectorAll('.dropdown.active').forEach(d => {
+        if (d !== dropdown) d.classList.remove('active');
+      });
+      
+      // Toggle current dropdown
+      dropdown.classList.toggle('active', !isActive);
+    });
+  });
+  
+  // Handle dropdown item clicks
+  document.querySelectorAll('.dropdown-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      // Close the dropdown after clicking an item
+      item.closest('.dropdown').classList.remove('active');
+    });
+  });
+  
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.dropdown.active').forEach(dropdown => {
+      dropdown.classList.remove('active');
+    });
   });
 }
