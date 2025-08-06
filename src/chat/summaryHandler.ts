@@ -1,16 +1,20 @@
 import type * as vscode from 'vscode';
-import type { ChatCommandResult } from '../types/interfaces';
-import { ChatErrorHandler } from '../utils/errorHandler';
+import type { ChatCommandResult, ProcessDocumentOptions } from '../types/interfaces';
+import { handleChatError } from '../utils/errorHandler';
 import { PathResolver } from '../utils/pathResolver';
-import { PdfProcessorBase } from './pdfProcessorBase';
-import { TextProcessor } from './textProcessor';
+import { BasePdfHandler } from './BasePdfHandler';
 
-export class SummaryHandler extends PdfProcessorBase {
-  private readonly textProcessor: TextProcessor;
-
+export class SummaryHandler extends BasePdfHandler {
   constructor(extensionContext: vscode.ExtensionContext) {
     super(extensionContext, 'summary');
-    this.textProcessor = new TextProcessor();
+  }
+
+  async processPdf(
+    options: ProcessDocumentOptions,
+    stream: vscode.ChatResponseStream,
+    cancellationToken: vscode.CancellationToken
+  ): Promise<ChatCommandResult> {
+    return this.aiTextProcessor.processDocument({ ...options, stream, cancellationToken });
   }
 
   async handle(
@@ -45,13 +49,17 @@ export class SummaryHandler extends PdfProcessorBase {
       const text = await this.extractText(panel, pdfPath, stream);
       const fileName = this.getFileName(pdfPath);
 
-      const result = await this.textProcessor.processDocument({
-        text,
-        fileName,
-        model: await this.getLanguageModel(),
+      const result = await this.processPdf(
+        {
+          text,
+          fileName,
+          model: await this.getLanguageModel(),
+          stream,
+          cancellationToken: token,
+        },
         stream,
-        cancellationToken: token,
-      });
+        token
+      );
 
       // Cache the result if processing was successful
       if (result.metadata && !result.metadata.error && result.summaryText) {
@@ -63,8 +71,8 @@ export class SummaryHandler extends PdfProcessorBase {
 
       return result;
     } catch (error) {
-      PdfProcessorBase.logger.error('Summary handler error', error);
-      return ChatErrorHandler.handle(error, stream, 'PDF summarization');
+      SummaryHandler.logger.error('Summary handler error', error);
+      return handleChatError(error, stream, 'PDF summarization');
     }
   }
 

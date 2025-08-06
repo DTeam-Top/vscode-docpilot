@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import type { ChatCommandResult } from '../types/interfaces';
 import { CHAT_COMMANDS } from '../utils/constants';
-import { ChatErrorHandler } from '../utils/errorHandler';
+import { handleChatError } from '../utils/errorHandler';
 import { Logger } from '../utils/logger';
 import { MindmapHandler } from './mindmapHandler';
 import { SummaryHandler } from './summaryHandler';
@@ -76,7 +76,7 @@ export class ChatParticipant {
       }
     } catch (error) {
       ChatParticipant.logger.error('Error in chat request handler', error);
-      return ChatErrorHandler.handle(error, stream, 'Chat request');
+      return handleChatError(error, stream, 'Chat request');
     }
   }
 

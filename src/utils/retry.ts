@@ -1,66 +1,66 @@
 import type { RetryOptions } from '../types/interfaces';
 import { Logger } from './logger';
 
-// biome-ignore lint/complexity/noStaticOnlyClass: This follows existing extension patterns
-export class RetryPolicy {
-  private static readonly logger = Logger.getInstance();
+const logger = Logger.getInstance();
 
-  static async withRetry<T>(operation: () => Promise<T>, options: RetryOptions = {}): Promise<T> {
-    const { maxAttempts = 3, backoffMs = 1000, shouldRetry = () => true } = options;
+export function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-    let lastError: Error | null = null;
+export async function withRetry<T>(
+  operation: () => Promise<T>,
+  options: RetryOptions = {}
+): Promise<T> {
+  const { maxAttempts = 3, backoffMs = 1000, shouldRetry = () => true } = options;
 
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        RetryPolicy.logger.debug(`Attempt ${attempt}/${maxAttempts}`);
-        return await operation();
-      } catch (error) {
-        lastError = error as Error;
+  let lastError: Error | null = null;
 
-        RetryPolicy.logger.warn(`Attempt ${attempt} failed: ${lastError.message}`);
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      logger.debug(`Attempt ${attempt}/${maxAttempts}`);
+      return await operation();
+    } catch (error) {
+      lastError = error as Error;
 
-        if (attempt === maxAttempts || !shouldRetry(error)) {
-          throw error;
-        }
+      logger.warn(`Attempt ${attempt} failed: ${lastError.message}`);
 
-        const delay = backoffMs * 2 ** (attempt - 1); // Exponential backoff
-        RetryPolicy.logger.debug(`Retrying in ${delay}ms...`);
-        await RetryPolicy.delay(delay);
+      if (attempt === maxAttempts || !shouldRetry(error)) {
+        throw error;
       }
+
+      const backoff = backoffMs * 2 ** (attempt - 1); // Exponential backoff
+      logger.debug(`Retrying in ${backoff}ms...`);
+      await delay(backoff);
     }
-
-    if (lastError) {
-      throw lastError;
-    }
-    throw new Error('Operation failed after all retries');
   }
 
-  private static delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
+  if (lastError) {
+    throw lastError;
   }
+  throw new Error('Operation failed after all retries');
+}
 
-  static shouldRetryNetworkError(error: unknown): boolean {
-    if (!(error instanceof Error)) return false;
+export function shouldRetryNetworkError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
 
-    const message = error.message.toLowerCase();
-    return (
-      message.includes('timeout') ||
-      message.includes('network') ||
-      message.includes('connection') ||
-      message.includes('econnreset') ||
-      message.includes('enotfound')
-    );
-  }
+  const message = error.message.toLowerCase();
+  return (
+    message.includes('timeout') ||
+    message.includes('network') ||
+    message.includes('connection') ||
+    message.includes('econnreset') ||
+    message.includes('enotfound')
+  );
+}
 
-  static shouldRetryModelError(error: unknown): boolean {
-    if (!(error instanceof Error)) return false;
+export function shouldRetryModelError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
 
-    const message = error.message.toLowerCase();
-    return (
-      message.includes('rate limit') ||
-      message.includes('quota exceeded') ||
-      message.includes('service unavailable') ||
-      message.includes('timeout')
-    );
-  }
+  const message = error.message.toLowerCase();
+  return (
+    message.includes('rate limit') ||
+    message.includes('quota exceeded') ||
+    message.includes('service unavailable') ||
+    message.includes('timeout')
+  );
 }

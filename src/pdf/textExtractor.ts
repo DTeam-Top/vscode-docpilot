@@ -1,8 +1,9 @@
 import type * as vscode from 'vscode';
 import type { TextExtractionOptions, WebviewMessage } from '../types/interfaces';
-import { CONFIG, WEBVIEW_MESSAGES } from '../utils/constants';
+import { WEBVIEW_MESSAGES } from '../utils/constants';
 import { TextExtractionError, TextExtractionTimeoutError } from '../utils/errors';
 import { Logger } from '../utils/logger';
+import { configuration } from '../utils/configuration';
 
 // biome-ignore lint/complexity/noStaticOnlyClass: This follows existing extension patterns
 export class TextExtractor {
@@ -12,7 +13,7 @@ export class TextExtractor {
     panel: vscode.WebviewPanel,
     pdfPath: string,
     options: TextExtractionOptions = {
-      timeout: CONFIG.TIMEOUTS.TEXT_EXTRACTION_MS,
+      timeout: configuration.timeoutsTextExtractionMs,
       retryAttempts: 1,
     }
   ): Promise<string> {
@@ -31,7 +32,7 @@ export class TextExtractor {
       if (progressCallback) {
         heartbeatInterval = setInterval(() => {
           progressCallback(0.5); // We don't have real progress, so show 50%
-        }, CONFIG.TIMEOUTS.HEARTBEAT_INTERVAL_MS);
+        }, configuration.timeoutsHeartbeatIntervalMs);
       }
 
       const cleanup = () => {
@@ -85,7 +86,7 @@ export class TextExtractor {
     panel: vscode.WebviewPanel,
     pdfPath: string,
     options: TextExtractionOptions = {
-      timeout: CONFIG.TIMEOUTS.TEXT_EXTRACTION_MS,
+      timeout: configuration.timeoutsTextExtractionMs,
       retryAttempts: 2,
     }
   ): Promise<string> {

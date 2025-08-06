@@ -6,6 +6,11 @@ import {
   handleExtractionError,
   updateExtractionProgress,
 } from './extractor.js';
+import { 
+  handleScreenshotFolderSelected,
+  handleScreenshotSaveCompleted,
+  handleScreenshotSaveError 
+} from './screenshot.js';
 /* global PDF_CONFIG */
 
 // This module handles all communication with the VS Code extension host.
@@ -109,7 +114,16 @@ async function handleExtensionMessage(event) {
 
     case 'folderSelected':
       console.log('Folder selected:', message.data.folderPath);
-      handleFolderSelected(message.data.folderPath);
+      
+      // Check if screenshot modal is open to determine which handler to call
+      const screenshotModal = document.getElementById('screenshotModalOverlay');
+      const isScreenshotModalOpen = screenshotModal && screenshotModal.style.display === 'flex';
+      
+      if (isScreenshotModalOpen) {
+        handleScreenshotFolderSelected(message.data.folderPath);
+      } else {
+        handleFolderSelected(message.data.folderPath);
+      }
       break;
 
     case 'extractionProgress':
@@ -131,6 +145,16 @@ async function handleExtensionMessage(event) {
       if (message.error) {
         handleExtractionError(message.error);
       }
+      break;
+
+    case 'screenshotFileSaved':
+      console.log('Screenshot file saved:', message.data);
+      handleScreenshotSaveCompleted(message.data);
+      break;
+
+    case 'screenshotSaveError':
+      console.error('Screenshot save error:', message.data);
+      handleScreenshotSaveError(message.data);
       break;
 
     // ... other message types like 'objectCountsUpdated', etc.

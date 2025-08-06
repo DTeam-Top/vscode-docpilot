@@ -8,6 +8,7 @@ import {
 } from './modules/communication.js';
 import { initializeLazyInspector, initializePDFInspector } from './modules/inspector.js';
 import { initializeTextSelection, renderAllPages } from './modules/renderer.js';
+import { initializeScreenshot } from './modules/screenshot.js';
 import { state } from './modules/state.js';
 import {
   fitToWidth,
@@ -57,6 +58,7 @@ async function initializePdf() {
     updatePageInfo();
     initializeTextSelection();
     initializePDFInspector();
+    initializeScreenshot();
     initializeEventListeners();
 
     if (state.inspectorEnabled) {

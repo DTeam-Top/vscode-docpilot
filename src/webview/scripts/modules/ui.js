@@ -14,6 +14,7 @@ import {
 import { toggleInspector } from './inspector.js';
 import { renderVisibleTextLayers, rerenderAllPages, toggleTextSelection } from './renderer.js';
 import { closeSearch, searchNext, searchPrevious, toggleSearch } from './search.js';
+import { toggleScreenshot } from './screenshot.js';
 import { state } from './state.js';
 import { goToPage } from './utils.js';
 
@@ -207,6 +208,7 @@ export function initializeEventListeners() {
   document.getElementById('mindmapBtn').addEventListener('click', generateMindmap);
   document.getElementById('exportBtn').addEventListener('click', showExtractionModal);
   document.getElementById('searchBtn').addEventListener('click', toggleSearch);
+  document.getElementById('screenshotBtn').addEventListener('click', toggleScreenshot);
 
   // Search overlay
   document.getElementById('searchPrevBtn').addEventListener('click', searchPrevious);

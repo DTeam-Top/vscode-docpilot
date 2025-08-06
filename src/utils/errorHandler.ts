@@ -3,113 +3,110 @@ import type { ChatCommandResult } from '../types/interfaces';
 import { DocPilotError } from './errors';
 import { Logger } from './logger';
 
-// biome-ignore lint/complexity/noStaticOnlyClass: This follows existing extension patterns
-export class ChatErrorHandler {
-  private static readonly logger = Logger.getInstance();
+const logger = Logger.getInstance();
 
-  static handle(
-    error: unknown,
-    stream: vscode.ChatResponseStream,
-    context: string
-  ): ChatCommandResult {
-    const errorInfo = ChatErrorHandler.analyzeError(error);
+interface ErrorAnalysis {
+    message: string;
+    code: string;
+    category: 'user' | 'system' | 'network';
+    isDocPilotError: boolean;
+    isRecoverable: boolean;
+}
 
-    ChatErrorHandler.logger.error(`Error in ${context}`, error);
-
-    // Send user-friendly message to chat
-    stream.markdown(`❌ ${ChatErrorHandler.getUserMessage(errorInfo, context)}`);
-
-    // Add technical details for debugging
-    if (errorInfo.isDocPilotError) {
-      stream.markdown(`\n*Error Code: ${errorInfo.code}*`);
-    }
-
-    return {
-      metadata: {
-        error: errorInfo.message,
-        code: errorInfo.code,
-        context,
-        timestamp: Date.now(),
-        category: errorInfo.category,
-      },
-    };
-  }
-
-  private static analyzeError(error: unknown): ErrorAnalysis {
+function analyzeError(error: unknown): ErrorAnalysis {
     if (error instanceof DocPilotError) {
-      return {
-        message: error.message,
-        code: error.code,
-        category: error.category,
-        isDocPilotError: true,
-        isRecoverable: error.category !== 'user',
-      };
+        return {
+            message: error.message,
+            code: error.code,
+            category: error.category,
+            isDocPilotError: true,
+            isRecoverable: error.category !== 'user',
+        };
     }
 
     if (error instanceof Error) {
-      return {
-        message: error.message,
+        return {
+            message: error.message,
+            code: 'UNKNOWN_ERROR',
+            category: 'system',
+            isDocPilotError: false,
+            isRecoverable: true,
+        };
+    }
+
+    return {
+        message: 'An unknown error occurred',
         code: 'UNKNOWN_ERROR',
         category: 'system',
         isDocPilotError: false,
         isRecoverable: true,
-      };
-    }
-
-    return {
-      message: 'An unknown error occurred',
-      code: 'UNKNOWN_ERROR',
-      category: 'system',
-      isDocPilotError: false,
-      isRecoverable: true,
     };
-  }
+}
 
-  private static getUserMessage(errorInfo: ErrorAnalysis, context: string): string {
+function getUserMessage(errorInfo: ErrorAnalysis, context: string): string {
     const baseMessage = `${context} failed: ${errorInfo.message}`;
 
     switch (errorInfo.category) {
-      case 'user':
-        return `${baseMessage}\n\nPlease check your input and try again.`;
+        case 'user':
+            return `${baseMessage}\n\nPlease check your input and try again.`;
 
-      case 'network':
-        return `${baseMessage}\n\nThis appears to be a network issue. Please check your connection and try again.`;
+        case 'network':
+            return `${baseMessage}\n\nThis appears to be a network issue. Please check your connection and try again.`;
 
-      case 'system':
-        if (errorInfo.isRecoverable) {
-          return `${baseMessage}\n\nThis is a temporary issue. Please try again in a moment.`;
-        }
-        return `${baseMessage}\n\nPlease check the output panel for more details.`;
+        case 'system':
+            if (errorInfo.isRecoverable) {
+                return `${baseMessage}\n\nThis is a temporary issue. Please try again in a moment.`;
+            }
+            return `${baseMessage}\n\nPlease check the output panel for more details.`;
 
-      default:
-        return baseMessage;
+        default:
+            return baseMessage;
     }
-  }
+}
 
-  static handleWithFallback<T>(
+export function handleChatError(
+    error: unknown,
+    stream: vscode.ChatResponseStream,
+    context: string
+): ChatCommandResult {
+    const errorInfo = analyzeError(error);
+
+    logger.error(`Error in ${context}`, error);
+
+    // Send user-friendly message to chat
+    stream.markdown(`❌ ${getUserMessage(errorInfo, context)}`);
+
+    // Add technical details for debugging
+    if (errorInfo.isDocPilotError) {
+        stream.markdown(`\n*Error Code: ${errorInfo.code}*`);
+    }
+
+    return {
+        metadata: {
+            error: errorInfo.message,
+            code: errorInfo.code,
+            context,
+            timestamp: Date.now(),
+            category: errorInfo.category,
+        },
+    };
+}
+
+export function handleWithFallback<T>(
     operation: () => Promise<T>,
     fallback: () => Promise<T>,
     stream: vscode.ChatResponseStream,
     context: string
-  ): Promise<T> {
+): Promise<T> {
     return operation().catch(async (error) => {
-      ChatErrorHandler.logger.warn(`${context} failed, attempting fallback`, error);
-      stream.markdown(`⚠️ ${context} encountered an issue, trying alternative approach...\n\n`);
+        logger.warn(`${context} failed, attempting fallback`, error);
+        stream.markdown(`⚠️ ${context} encountered an issue, trying alternative approach...\n\n`);
 
-      try {
-        return await fallback();
-      } catch (fallbackError) {
-        ChatErrorHandler.logger.error(`Fallback also failed for ${context}`, fallbackError);
-        throw error; // Throw original error
-      }
+        try {
+            return await fallback();
+        } catch (fallbackError) {
+            logger.error(`Fallback also failed for ${context}`, fallbackError);
+            throw error; // Throw original error
+        }
     });
-  }
-}
-
-interface ErrorAnalysis {
-  message: string;
-  code: string;
-  category: 'user' | 'system' | 'network';
-  isDocPilotError: boolean;
-  isRecoverable: boolean;
 }

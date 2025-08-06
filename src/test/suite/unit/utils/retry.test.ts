@@ -1,8 +1,8 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
-import { RetryPolicy } from '../../../../utils/retry';
+import * as Retry from '../../../../utils/retry';
 
-describe('RetryPolicy', () => {
+describe('Retry', () => {
   let sandbox: sinon.SinonSandbox;
   let clock: sinon.SinonFakeTimers;
 
@@ -19,7 +19,7 @@ describe('RetryPolicy', () => {
     it('should return result on first successful attempt', async () => {
       const operation = sandbox.stub().resolves('success');
 
-      const result = await RetryPolicy.withRetry(operation);
+      const result = await Retry.withRetry(operation);
 
       expect(result).to.equal('success');
       expect(operation).to.have.been.calledOnce;
@@ -36,7 +36,7 @@ describe('RetryPolicy', () => {
         .onSecondCall()
         .resolves('success');
 
-      const result = await RetryPolicy.withRetry(operation, { backoffMs: 10 });
+      const result = await Retry.withRetry(operation, { backoffMs: 10 });
 
       expect(result).to.equal('success');
       expect(operation).to.have.been.calledTwice;
@@ -58,7 +58,7 @@ describe('RetryPolicy', () => {
         .onThirdCall()
         .resolves('success');
 
-      const result = await RetryPolicy.withRetry(operation, { backoffMs: 10 });
+      const result = await Retry.withRetry(operation, { backoffMs: 10 });
 
       expect(result).to.equal('success');
       expect(operation).to.have.been.calledThrice;
@@ -74,7 +74,7 @@ describe('RetryPolicy', () => {
       const operation = sandbox.stub().rejects(new Error('Persistent failure'));
 
       try {
-        await RetryPolicy.withRetry(operation, { maxAttempts: 2, backoffMs: 10 });
+        await Retry.withRetry(operation, { maxAttempts: 2, backoffMs: 10 });
         expect.fail('Should have thrown error');
       } catch (error) {
         expect((error as Error).message).to.equal('Persistent failure');
@@ -90,7 +90,7 @@ describe('RetryPolicy', () => {
       const shouldRetry = sandbox.stub().returns(false);
 
       try {
-        await RetryPolicy.withRetry(operation, { shouldRetry });
+        await Retry.withRetry(operation, { shouldRetry });
         expect.fail('Should have thrown error');
       } catch (error) {
         expect((error as Error).message).to.equal('Custom error');
@@ -110,7 +110,7 @@ describe('RetryPolicy', () => {
         .onSecondCall()
         .resolves('success');
 
-      const result = await RetryPolicy.withRetry(operation, { backoffMs: 10 });
+      const result = await Retry.withRetry(operation, { backoffMs: 10 });
 
       expect(result).to.equal('success');
 
@@ -121,7 +121,7 @@ describe('RetryPolicy', () => {
     it('should use custom max attempts', async () => {
       const operation = sandbox.stub().rejects(new Error('Failure'));
 
-      const retryPromise = RetryPolicy.withRetry(operation, { maxAttempts: 1 });
+      const retryPromise = Retry.withRetry(operation, { maxAttempts: 1 });
 
       try {
         await retryPromise;
@@ -146,7 +146,7 @@ describe('RetryPolicy', () => {
         .rejects(new Error('Third error'));
 
       try {
-        await RetryPolicy.withRetry(operation, { backoffMs: 10 });
+        await Retry.withRetry(operation, { backoffMs: 10 });
         expect.fail('Should have thrown error');
       } catch (error) {
         expect((error as Error).message).to.equal('Third error');
@@ -159,7 +159,7 @@ describe('RetryPolicy', () => {
     it('should handle empty options object', async () => {
       const operation = sandbox.stub().resolves('success');
 
-      const result = await RetryPolicy.withRetry(operation, {});
+      const result = await Retry.withRetry(operation, {});
 
       expect(result).to.equal('success');
       expect(operation).to.have.been.calledOnce;
@@ -169,85 +169,85 @@ describe('RetryPolicy', () => {
   describe('shouldRetryNetworkError', () => {
     it('should return true for timeout errors', () => {
       const error = new Error('Connection timeout');
-      expect(RetryPolicy.shouldRetryNetworkError(error)).to.be.true;
+      expect(Retry.shouldRetryNetworkError(error)).to.be.true;
     });
 
     it('should return true for network errors', () => {
       const error = new Error('Network error occurred');
-      expect(RetryPolicy.shouldRetryNetworkError(error)).to.be.true;
+      expect(Retry.shouldRetryNetworkError(error)).to.be.true;
     });
 
     it('should return true for connection errors', () => {
       const error = new Error('Connection failed');
-      expect(RetryPolicy.shouldRetryNetworkError(error)).to.be.true;
+      expect(Retry.shouldRetryNetworkError(error)).to.be.true;
     });
 
     it('should return true for ECONNRESET errors', () => {
       const error = new Error('Something went wrong ECONNRESET something');
-      expect(RetryPolicy.shouldRetryNetworkError(error)).to.be.true;
+      expect(Retry.shouldRetryNetworkError(error)).to.be.true;
     });
 
     it('should return true for ENOTFOUND errors', () => {
       const error = new Error('DNS lookup failed ENOTFOUND example.com');
-      expect(RetryPolicy.shouldRetryNetworkError(error)).to.be.true;
+      expect(Retry.shouldRetryNetworkError(error)).to.be.true;
     });
 
     it('should return false for non-network errors', () => {
       const error = new Error('Invalid input');
-      expect(RetryPolicy.shouldRetryNetworkError(error)).to.be.false;
+      expect(Retry.shouldRetryNetworkError(error)).to.be.false;
     });
 
     it('should return false for non-Error objects', () => {
       const error = 'String error';
-      expect(RetryPolicy.shouldRetryNetworkError(error)).to.be.false;
+      expect(Retry.shouldRetryNetworkError(error)).to.be.false;
     });
 
     it('should be case insensitive', () => {
       const error = new Error('CONNECTION timeout');
-      expect(RetryPolicy.shouldRetryNetworkError(error)).to.be.true;
+      expect(Retry.shouldRetryNetworkError(error)).to.be.true;
     });
   });
 
   describe('shouldRetryModelError', () => {
     it('should return true for rate limit errors', () => {
       const error = new Error('Rate limit exceeded');
-      expect(RetryPolicy.shouldRetryModelError(error)).to.be.true;
+      expect(Retry.shouldRetryModelError(error)).to.be.true;
     });
 
     it('should return true for quota exceeded errors', () => {
       const error = new Error('Quota exceeded');
-      expect(RetryPolicy.shouldRetryModelError(error)).to.be.true;
+      expect(Retry.shouldRetryModelError(error)).to.be.true;
     });
 
     it('should return true for service unavailable errors', () => {
       const error = new Error('Service unavailable');
-      expect(RetryPolicy.shouldRetryModelError(error)).to.be.true;
+      expect(Retry.shouldRetryModelError(error)).to.be.true;
     });
 
     it('should return true for timeout errors', () => {
       const error = new Error('Request timeout');
-      expect(RetryPolicy.shouldRetryModelError(error)).to.be.true;
+      expect(Retry.shouldRetryModelError(error)).to.be.true;
     });
 
     it('should return false for non-model errors', () => {
       const error = new Error('Invalid API key');
-      expect(RetryPolicy.shouldRetryModelError(error)).to.be.false;
+      expect(Retry.shouldRetryModelError(error)).to.be.false;
     });
 
     it('should return false for non-Error objects', () => {
       const error = 'String error';
-      expect(RetryPolicy.shouldRetryModelError(error)).to.be.false;
+      expect(Retry.shouldRetryModelError(error)).to.be.false;
     });
 
     it('should be case insensitive', () => {
       const error = new Error('RATE LIMIT exceeded');
-      expect(RetryPolicy.shouldRetryModelError(error)).to.be.true;
+      expect(Retry.shouldRetryModelError(error)).to.be.true;
     });
   });
 
   describe('delay', () => {
     it('should delay for specified milliseconds', async () => {
-      const delayPromise = RetryPolicy['delay'](1000);
+      const delayPromise = Retry.delay(1000);
 
       // Advance time
       clock.tick(1000);
@@ -259,7 +259,7 @@ describe('RetryPolicy', () => {
     });
 
     it('should not resolve before delay time', async () => {
-      const delayPromise = RetryPolicy['delay'](1000);
+      const delayPromise = Retry.delay(1000);
       let resolved = false;
 
       delayPromise.then(() => {

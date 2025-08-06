@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { createCommandHandler } from '../utils/commandUtils';
 import { InvalidFilePathError } from '../utils/errors';
 import { Logger } from '../utils/logger';
-import { PdfProxy } from '../utils/pdfProxy';
+import * as PdfProxy from '../utils/pdfProxy';
 import { WebviewUtils } from '../utils/webviewUtils';
 import { WebviewProvider } from '../webview/webviewProvider';
 

@@ -20,3 +20,10 @@ Before you start, please ensure:
 4. consider the impact of the new feature on the existing code base.
 5. think about how to test the new feature.
 6. consider the user experience and usability of the new feature.
+
+## Output
+
+- The implementation plan for the new feature, including:
+  - The design details, including any new components, modules, or changes to existing code.
+  - The testing strategy for the new feature.
+  - The impact analysis on the existing code base.

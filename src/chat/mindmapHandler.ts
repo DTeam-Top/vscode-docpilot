@@ -1,16 +1,20 @@
 import * as vscode from 'vscode';
-import type { ChatCommandResult } from '../types/interfaces';
-import { ChatErrorHandler } from '../utils/errorHandler';
+import type { ChatCommandResult, ProcessDocumentOptions } from '../types/interfaces';
+import { handleChatError } from '../utils/errorHandler';
 import { PathResolver } from '../utils/pathResolver';
-import { PdfProcessorBase } from './pdfProcessorBase';
-import { TextProcessor } from './textProcessor';
+import { BasePdfHandler } from './BasePdfHandler';
 
-export class MindmapHandler extends PdfProcessorBase {
-  private readonly textProcessor: TextProcessor;
-
+export class MindmapHandler extends BasePdfHandler {
   constructor(extensionContext: vscode.ExtensionContext) {
     super(extensionContext, 'mindmap');
-    this.textProcessor = new TextProcessor();
+  }
+
+  async processPdf(
+    options: ProcessDocumentOptions,
+    stream: vscode.ChatResponseStream,
+    cancellationToken: vscode.CancellationToken
+  ): Promise<ChatCommandResult> {
+    return this.aiTextProcessor.processMindmapDocument({ ...options, stream, cancellationToken });
   }
 
   async handle(
@@ -32,11 +36,11 @@ export class MindmapHandler extends PdfProcessorBase {
         stream.markdown('```mermaid\n');
         stream.markdown(cachedMindmap);
         stream.markdown('\n```\n\n');
-        
+
         // Create and open mindmap file
         const fileName = this.getFileName(pdfPath);
         await this.createMindmapFile(cachedMindmap, fileName, stream);
-        
+
         stream.markdown('\n\n---\n*This mindmap was retrieved from cache for faster response.*');
 
         return {
@@ -55,7 +59,17 @@ export class MindmapHandler extends PdfProcessorBase {
       const fileName = this.getFileName(pdfPath);
 
       // Generate mindmap
-      const mindmapResult = await this.generateMindmap(text, fileName, stream, token);
+      const mindmapResult = await this.processPdf(
+        {
+          text,
+          fileName,
+          model: await this.getLanguageModel(),
+          stream,
+          cancellationToken: token,
+        },
+        stream,
+        token
+      );
 
       // Cache the result if processing was successful
       if (mindmapResult.metadata && !mindmapResult.metadata.error && mindmapResult.mindmapText) {
@@ -72,28 +86,9 @@ export class MindmapHandler extends PdfProcessorBase {
 
       return mindmapResult;
     } catch (error) {
-      PdfProcessorBase.logger.error('Mindmap handler error', error);
-      return ChatErrorHandler.handle(error, stream, 'PDF mindmap generation');
+      MindmapHandler.logger.error('Mindmap handler error', error);
+      return handleChatError(error, stream, 'PDF mindmap generation');
     }
-  }
-
-  private async generateMindmap(
-    text: string,
-    fileName: string,
-    stream: vscode.ChatResponseStream,
-    token: vscode.CancellationToken
-  ): Promise<ChatCommandResult> {
-    const model = await this.getLanguageModel();
-
-    const result = await this.textProcessor.processMindmapDocument({
-      text,
-      fileName,
-      model,
-      stream,
-      cancellationToken: token,
-    });
-
-    return result;
   }
 
   private async createMindmapFile(
@@ -119,9 +114,9 @@ export class MindmapHandler extends PdfProcessorBase {
       stream.markdown(`\n\n📁 **Mindmap created:** ${mindmapFileName}\n`);
       stream.markdown('🔍 *The mindmap file has been opened in your editor*\n');
 
-      PdfProcessorBase.logger.info(`Mindmap file created and opened: ${mindmapFileName}`);
+      MindmapHandler.logger.info(`Mindmap file created and opened: ${mindmapFileName}`);
     } catch (error) {
-      PdfProcessorBase.logger.error('Error creating mindmap file', error);
+      MindmapHandler.logger.error('Error creating mindmap file', error);
       stream.markdown(
         '\n\n⚠️ *Mindmap generated but could not create file. Content shown above.*\n'
       );

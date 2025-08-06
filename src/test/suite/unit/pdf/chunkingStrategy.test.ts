@@ -1,9 +1,9 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
-import { ChunkingStrategy } from '../../../../pdf/chunkingStrategy';
+import * as ChunkingStrategy from '../../../../pdf/chunkingStrategy';
 import type { ChunkingConfig } from '../../../../types/interfaces';
-import { CONFIG } from '../../../../utils/constants';
-import { TokenEstimator } from '../../../../utils/tokenEstimator';
+import * as TokenEstimator from '../../../../utils/tokenEstimator';
+import { configuration } from '../../../../utils/configuration';
 
 describe('ChunkingStrategy', () => {
   let sandbox: sinon.SinonSandbox;
@@ -32,7 +32,7 @@ describe('ChunkingStrategy', () => {
       expect(getOptimalChunkSizeStub).to.have.been.calledWith(maxInputTokens);
       expect(config).to.deep.equal({
         maxTokensPerChunk: optimalChunkSize,
-        overlapRatio: CONFIG.TEXT_PROCESSING.OVERLAP_RATIO,
+        overlapRatio: configuration.textProcessingOverlapRatio,
         sentenceBoundary: true,
         paragraphBoundary: true,
       });
@@ -44,7 +44,7 @@ describe('ChunkingStrategy', () => {
 
       const config = ChunkingStrategy.getDefaultConfig(maxInputTokens);
 
-      expect(config.overlapRatio).to.equal(CONFIG.TEXT_PROCESSING.OVERLAP_RATIO);
+      expect(config.overlapRatio).to.equal(configuration.textProcessingOverlapRatio);
     });
 
     it('should enable boundary settings by default', () => {
@@ -160,11 +160,7 @@ First sentence with some content. Second sentence with more content. Third sente
       };
 
       const pdfText = `--- Page 1 ---
-First paragraph with content.
-
-Second paragraph with more content.
-
-Third paragraph with additional content.`;
+First paragraph with content.\n\nSecond paragraph with more content.\n\nThird paragraph with additional content.`;
 
       const chunks = ChunkingStrategy.createSemanticChunks(pdfText, config);
 

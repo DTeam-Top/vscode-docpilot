@@ -14,6 +14,7 @@ A comprehensive VSCode extension that combines advanced PDF viewing with intelli
 - **Text Selection** - Interactive text selection with dynamic visual feedback
 - **Enhanced Object Extraction** - Extract text, images, tables, metadata, and 6 other object types
 - **PDF Object Inspector** - Dual-mode hierarchical viewer for comprehensive document structure analysis
+- **Screenshot Capture** - Drag-to-select screenshot tool with folder selection and save options
 - **Debug Mode** - Developer tools for troubleshooting text layer rendering
 - **VSCode Integration** - Seamless theme matching and responsive UI
 
@@ -117,6 +118,7 @@ A comprehensive VSCode extension that combines advanced PDF viewing with intelli
 - **📤 Export Text**: Extract PDF content as clean text files with metadata
 - **👁️ Text Selection**: Toggle interactive text selection with dynamic visual feedback
 - **🔍 Text Search**: Vi-style text search across all pages with keyboard navigation
+- **📷 Screenshot Tool**: Drag-to-select screenshot capture with folder selection and save options
 - **🔍 PDF Object Inspector**: Dual-mode hierarchical viewer for comprehensive PDF structure analysis
 - **🐛 Debug Mode**: Developer tools for troubleshooting text layer rendering
 
@@ -186,6 +188,36 @@ DocPilot now includes powerful vi-style text search functionality for quick docu
 - Immediate search as you type with smart debouncing
 - Seamless integration with existing PDF navigation
 
+### 📷 Screenshot Capture
+
+DocPilot includes a powerful screenshot tool that allows you to capture specific areas of PDF documents with professional workflows:
+
+**Core Features:**
+
+- **🖱️ Drag-to-Select**: Click and drag to select any rectangular area of the PDF
+- **📁 Folder Selection**: Choose custom save locations with persistent folder memory
+- **📋 Clipboard Support**: Copy screenshots directly to clipboard for immediate use
+- **📄 Smart Naming**: Automatic timestamped filenames with page information
+- **⌨️ Keyboard Controls**: ESC to cancel, intuitive modal interactions
+- **🎯 Visual Feedback**: Live selection rectangle with smooth overlay transitions
+- **📐 Minimum Size Validation**: Prevents accidental tiny selections
+
+**How to Use:**
+
+1. Click the screenshot button (📷) in the toolbar or press the shortcut
+2. Click and drag to select the area you want to capture
+3. Choose between "Save to File" or "Copy to Clipboard" in the modal
+4. For file saving: select a folder using the browse button, then save
+5. For clipboard: screenshot is immediately available for pasting
+
+**Advanced Workflow:**
+
+- **Folder Memory**: Once you select a save folder, it's remembered for the session
+- **Smart File Naming**: Files saved as `screenshot-page-{N}-{YYYYMMDD}-{HHMMSS}.png`
+- **High-DPI Support**: Automatically adjusts for Retina and high-resolution displays
+- **Canvas-Based**: Captures actual PDF canvas content for perfect quality
+- **Multi-Page Aware**: Handles complex layouts and page boundaries intelligently
+
 ### 🔍 PDF Object Inspector
 
 The PDF Object Inspector transforms document analysis with a dual-mode hierarchical viewer that reveals the internal structure of PDF documents:
@@ -242,9 +274,16 @@ vscode-docpilot/
 │   ├── utils/                # Shared utilities (logger, errors, etc.)
 │   └── webview/              # Frontend code for the PDF viewer
 │       ├── assets/           # Icons and other static assets
-│       ├── scripts/          # Client-side JavaScript for the webview
+│       ├── scripts/          # Client-side JavaScript modules
+│       ├── styles/           # CSS stylesheets (minified during build)
 │       └── templates/        # HTML templates for the webview
-├── package.json              # Extension manifest
+├── out/                      # Compiled output directory
+│   └── webview/              # Bundled and minified webview assets
+│       ├── scripts/          # Minified JavaScript bundles
+│       ├── styles/           # Minified CSS files
+│       └── assets/           # Static assets (icons, etc.)
+├── rollup.config.js          # Bundling configuration for webview assets
+├── package.json              # Extension manifest and dependencies
 ├── tsconfig.json             # TypeScript configuration
 └── README.md                 # This file
 ```
@@ -256,6 +295,9 @@ vscode-docpilot/
 - **VSCode Extension API** - Deep IDE integration and Chat participant support
 - **Language Model API** - Copilot integration for AI-powered analysis
 - **HTML5 Canvas** - Hardware-accelerated PDF rendering
+- **Rollup** - Modern bundling with minification for optimized webview assets
+- **PostCSS + cssnano** - CSS optimization and minification (~21% size reduction)
+- **Biome** - Fast linting and formatting for code quality
 
 ### Build Commands
 
@@ -263,19 +305,28 @@ vscode-docpilot/
 # Install dependencies
 npm install
 
-# Compile TypeScript
+# Development build (compiles TypeScript, copies assets, bundles webview)
 npm run compile
 
 # Watch mode for development
 npm run watch
 
+# Asset management
+npm run copy-assets         # Copy webview assets to out/ directory
+npm run bundle-webview      # Bundle and minify JavaScript and CSS
+
 # Run tests
 npm run test                # All tests (unit + integration)
 
 # Run specific test suites
-npm run test:unit           # Unit tests only (48 tests)
-npm run test:integration    # Integration tests only (55 tests)
+npm run test:unit           # Unit tests only
+npm run test:integration    # Integration tests only
 npm run test:e2e            # End-to-end tests with real VS Code
+
+# Code quality
+npm run lint                # Lint with Biome
+npm run format              # Format code with Biome
+npm run check               # Run Biome check (lint + format)
 
 # Package extension (requires vsce)
 vsce package
@@ -300,6 +351,7 @@ The project includes comprehensive E2E testing using **Playwright** for real bro
 - **Webview Testing**: Complete toolbar interaction testing within PDF viewer
 - **User Workflow Simulation**: Realistic user interactions through command palette and UI
 - **Visual Validation**: Button visibility, accessibility attributes, and user feedback testing
+- **Feature-Specific Tests**: Dedicated E2E tests for object extraction, screenshot capture, and toolbar functionality
 
 **Test Configuration:**
 
@@ -350,6 +402,13 @@ The project includes comprehensive E2E testing using **Playwright** for real bro
 - Memory-efficient streaming with real-time progress updates
 - Intelligent caching with file modification detection
 - Persistent cache storage across VS Code sessions
+
+**Asset Optimization:**
+
+- **JavaScript Minification**: Rollup with esbuild for optimized webview bundles
+- **CSS Minification**: PostCSS with cssnano reduces stylesheet size by ~21%
+- **Modular Architecture**: ES modules for efficient code splitting and loading
+- **Build Pipeline**: Automated asset copying and bundling for production-ready distribution
 
 ## 🔧 Technical Highlights
 

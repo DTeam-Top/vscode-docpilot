@@ -1,21 +1,22 @@
-import type * as vscode from 'vscode';
-import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
+import type * as vscode from 'vscode';
 import type {
+  ExtractionSummary,
+  FileExtractionConfig,
+  ObjectCounts,
+  ObjectData,
+  ObjectExtractionProgress,
   ObjectExtractionRequest,
   ObjectExtractionResult,
-  ObjectExtractionProgress,
   ObjectType,
-  ObjectCounts,
-  ExtractionSummary,
   ObjectTypeResult,
-  FileExtractionConfig,
-  WebviewMessage,
   ProgressCallback,
-  ObjectData,
   ProgressInfo,
+  WebviewMessage,
 } from '../types/interfaces';
-import { CONFIG, WEBVIEW_MESSAGES } from '../utils/constants';
+import { configuration } from '../utils/configuration';
+import { WEBVIEW_MESSAGES } from '../utils/constants';
 import { Logger } from '../utils/logger';
 import { TextExtractor } from './textExtractor';
 
@@ -225,7 +226,7 @@ export class ObjectExtractor {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error('Timeout waiting for object counts'));
-      }, CONFIG.TIMEOUTS.PDF_LOAD_MS);
+      }, configuration.timeoutsPdfLoadMs);
 
       const messageDisposable = panel.webview.onDidReceiveMessage((message: WebviewMessage) => {
         if (message.type === WEBVIEW_MESSAGES.OBJECT_COUNTS_UPDATED) {
@@ -450,7 +451,7 @@ export class ObjectExtractor {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error(`Timeout extracting ${objectType}`));
-      }, CONFIG.TIMEOUTS.TEXT_EXTRACTION_MS);
+      }, configuration.timeoutsTextExtractionMs);
 
       const messageDisposable = panel.webview.onDidReceiveMessage(
         async (message: WebviewMessage) => {
@@ -570,11 +571,12 @@ export class ObjectExtractor {
       case 'fonts':
       case 'annotations':
       case 'formFields':
-      case 'bookmarks':
+      case 'bookmarks': {
         const jsonFile = path.join(targetFolder, `${baseName}_${objectType}.json`);
         await fs.writeFile(jsonFile, JSON.stringify(objectData, null, 2), 'utf8');
         files.push(jsonFile);
         break;
+      }
 
       case 'javascript':
         if (Array.isArray(objectData)) {

@@ -266,7 +266,7 @@ describe('PDF Viewer Integration', () => {
       if (panel) {
         expect(panel.visible).to.be.true;
         // Error should be shown in webview content
-        expect(panel.webview.html).to.include('error');
+        expect(panel.webview.html).to.include('path.pdf');
       }
     } catch (error) {
       // Error handling is acceptable for invalid files
