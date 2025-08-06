@@ -150,7 +150,10 @@ test('should perform end-to-end object extraction and verify the summary', async
 
   console.log('Successfully accessed PDF viewer frame');
 
-  // 1. Open the extraction modal
+  // 1. Open the extraction modal (now in Tools dropdown)
+  const toolsDropdown = pdfFrame.locator('#toolsDropdown');
+  await toolsDropdown.locator('.dropdown-btn').click();
+  
   const exportBtn = pdfFrame.locator('#exportBtn');
   await expect(exportBtn).toBeVisible();
   await exportBtn.click();

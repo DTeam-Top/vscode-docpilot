@@ -308,12 +308,78 @@ input[type="range"] {
     width: 32px;
     height: 32px;
 }
+/* Dropdown styles */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 150px;
+    background-color: var(--vscode-dropdown-background);
+    border: 1px solid var(--vscode-dropdown-border);
+    border-radius: 3px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+}
+
+.dropdown.active .dropdown-content {
+    display: block;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 12px;
+    background: none;
+    border: none;
+    text-align: left;
+    color: var(--vscode-dropdown-foreground);
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.1s ease;
+}
+
+.dropdown-item:hover {
+    background-color: var(--vscode-list-hoverBackground);
+}
+
+.dropdown-item:first-child {
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+}
+
+.dropdown-item:last-child {
+    border-bottom-left-radius: 3px;
+    border-bottom-right-radius: 3px;
+}
+
+.dropdown-item img {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
 .icon-button img {
     width: 16px;
     height: 16px;
 }
 body.vscode-dark .icon-button img,
-body.vscode-high-contrast .icon-button img {
+body.vscode-high-contrast .icon-button img,
+body.vscode-dark .dropdown-item img,
+body.vscode-high-contrast .dropdown-item img {
     filter: invert(1);
 }
 .mode-switcher {

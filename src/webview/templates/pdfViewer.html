@@ -43,27 +43,50 @@
             <button class="icon-button" title="Fit Page" id="fitPageBtn">
                 <img src="{{assetUri}}/fit-page.svg" alt="Fit Page" width="16" height="16">
             </button>
-            <button id="summarizeBtn" class="icon-button" title="Summarize this PDF using AI">
-                <img id="summarizeIcon" src="{{assetUri}}/summarize.svg" alt="Summarize PDF" width="16" height="16">
-            </button>
-            <button id="mindmapBtn" class="icon-button" title="Generate Mermaid mindmap from this PDF">
-                <img id="mindmapIcon" src="{{assetUri}}/mindmap.svg" alt="Generate Mindmap" width="16" height="16">
-            </button>
-            <button id="exportBtn" class="icon-button" title="Extract Objects">
-                <img id="exportIcon" src="{{assetUri}}/export.svg" alt="Extract Objects" width="16" height="16">
-            </button>
-            <button id="textSelectionBtn" class="icon-button" title="Selection Mode">
-                <img id="textSelectionIcon" src="{{assetUri}}/view.svg" alt="Selection Mode" width="16" height="16">
-            </button>
-            <button id="searchBtn" class="icon-button" title="Search Text">
-                <img id="searchIcon" src="{{assetUri}}/text-search.svg" alt="Search Text" width="16" height="16">
-            </button>
-            <button id="screenshotBtn" class="icon-button" title="Take Screenshot">
-                <img id="screenshotIcon" src="{{assetUri}}/camera.svg" alt="Take Screenshot" width="16" height="16">
-            </button>
-            <button id="inspectorBtn" class="icon-button" title="PDF Inspector">
-                <img id="inspectorIcon" src="{{assetUri}}/wand.svg" alt="PDF Inspector" width="16" height="16">
-            </button>
+            <div class="dropdown" id="aiDropdown">
+                <button class="dropdown-btn icon-button" title="AI Tools">
+                    <img src="{{assetUri}}/ai.svg" alt="AI Tools" width="16" height="16">
+                    ▼
+                </button>
+                <div class="dropdown-content">
+                    <button id="summarizeBtn" class="dropdown-item" title="Summarize this PDF using AI">
+                        <img src="{{assetUri}}/summarize.svg" alt="Summarize PDF" width="16" height="16">
+                        Summarize
+                    </button>
+                    <button id="mindmapBtn" class="dropdown-item" title="Generate Mermaid mindmap from this PDF">
+                        <img src="{{assetUri}}/mindmap.svg" alt="Generate Mindmap" width="16" height="16">
+                        Mindmap
+                    </button>
+                </div>
+            </div>
+            <div class="dropdown" id="toolsDropdown">
+                <button class="dropdown-btn icon-button" title="Content Tools">
+                    <img src="{{assetUri}}/tools.svg" alt="Content Tools" width="16" height="16">
+                    ▼
+                </button>
+                <div class="dropdown-content">
+                    <button id="exportBtn" class="dropdown-item" title="Extract Objects">
+                        <img src="{{assetUri}}/export.svg" alt="Extract Objects" width="16" height="16">
+                        Extract Objects
+                    </button>
+                    <button id="textSelectionBtn" class="dropdown-item" title="Selection Mode">
+                        <img src="{{assetUri}}/view.svg" alt="Selection Mode" width="16" height="16">
+                        Selection Mode
+                    </button>
+                    <button id="searchBtn" class="dropdown-item" title="Search Text">
+                        <img src="{{assetUri}}/text-search.svg" alt="Search Text" width="16" height="16">
+                        Search Text
+                    </button>
+                    <button id="screenshotBtn" class="dropdown-item" title="Take Screenshot">
+                        <img src="{{assetUri}}/camera.svg" alt="Take Screenshot" width="16" height="16">
+                        Screenshot
+                    </button>
+                    <button id="inspectorBtn" class="dropdown-item" title="PDF Inspector">
+                        <img src="{{assetUri}}/wand.svg" alt="PDF Inspector" width="16" height="16">
+                        PDF Inspector
+                    </button>
+                </div>
+            </div>
             <button id="debugBtn" class="icon-button" title="Debug Mode">
                 <img id="debugIcon" src="{{assetUri}}/bug-off.svg" alt="Debug Mode" width="16" height="16">
             </button>

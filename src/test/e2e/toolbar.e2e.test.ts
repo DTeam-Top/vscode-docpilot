@@ -197,29 +197,42 @@ test('should interact with PDF viewer toolbar buttons', async () => {
   await firstPageBtn.click();
   console.log('Navigation controls test passed');
 
-  // Test toggle buttons
-  const textSelectionBtn = frame.locator('#textSelectionBtn');
-  const inspectorBtn = frame.locator('#inspectorBtn');
+  // Test dropdown buttons
+  const aiDropdown = frame.locator('#aiDropdown');
+  const toolsDropdown = frame.locator('#toolsDropdown');
   const debugBtn = frame.locator('#debugBtn');
 
-  // Verify toggle buttons are visible
-  await expect(textSelectionBtn).toBeVisible();
-  await expect(inspectorBtn).toBeVisible();
+  // Verify dropdown buttons are visible
+  await expect(aiDropdown.locator('.dropdown-btn')).toBeVisible();
+  await expect(toolsDropdown.locator('.dropdown-btn')).toBeVisible();
   await expect(debugBtn).toBeVisible();
 
-  await textSelectionBtn.click();
-  await inspectorBtn.click();
-  await debugBtn.click();
-  console.log('Toggle buttons test passed');
-
-  // Test action buttons
-  const exportBtn = frame.locator('#exportBtn');
+  // Test AI dropdown
+  await aiDropdown.locator('.dropdown-btn').click();
+  await expect(aiDropdown.locator('.dropdown-content')).toBeVisible();
+  
   const summarizeBtn = frame.locator('#summarizeBtn');
-  const screenshotBtn = frame.locator('#screenshotBtn');
-
-  // Verify action buttons are visible
-  await expect(exportBtn).toBeVisible();
+  const mindmapBtn = frame.locator('#mindmapBtn');
   await expect(summarizeBtn).toBeVisible();
+  await expect(mindmapBtn).toBeVisible();
+  
+  await summarizeBtn.click();
+  await expect(aiDropdown.locator('.dropdown-content')).toBeHidden();
+
+  // Test Tools dropdown
+  await toolsDropdown.locator('.dropdown-btn').click();
+  await expect(toolsDropdown.locator('.dropdown-content')).toBeVisible();
+  
+  const exportBtn = frame.locator('#exportBtn');
+  const textSelectionBtn = frame.locator('#textSelectionBtn');
+  const inspectorBtn = frame.locator('#inspectorBtn');
+  const searchBtn = frame.locator('#searchBtn');
+  const screenshotBtn = frame.locator('#screenshotBtn');
+  
+  await expect(exportBtn).toBeVisible();
+  await expect(textSelectionBtn).toBeVisible();
+  await expect(inspectorBtn).toBeVisible();
+  await expect(searchBtn).toBeVisible();
   await expect(screenshotBtn).toBeVisible();
 
   await exportBtn.click();
@@ -232,9 +245,14 @@ test('should interact with PDF viewer toolbar buttons', async () => {
   // Wait for the overlay to be hidden
   await expect(frame.locator('#extractionOverlay')).toBeHidden();
 
-  await summarizeBtn.click();
-
-  // Test screenshot button
+  // Test other tools - open dropdown again since it closed after export click
+  await toolsDropdown.locator('.dropdown-btn').click();
+  await textSelectionBtn.click();
+  
+  await toolsDropdown.locator('.dropdown-btn').click();
+  await inspectorBtn.click();
+  
+  await toolsDropdown.locator('.dropdown-btn').click();
   await screenshotBtn.click();
   const screenshotOverlay = frame.locator('#screenshotOverlay');
   await expect(screenshotOverlay).toBeVisible();
@@ -242,8 +260,11 @@ test('should interact with PDF viewer toolbar buttons', async () => {
   // Press Escape to cancel screenshot mode
   await vscodeWindow.keyboard.press('Escape');
   await expect(screenshotOverlay).toBeHidden();
+  
+  // Test debug button (not in dropdown)
+  await debugBtn.click();
 
-  console.log('Action buttons test passed');
+  console.log('Dropdown and action buttons test passed');
 
   // Test button accessibility attributes
   await expect(zoomInBtn).toHaveAttribute('title', 'Zoom In');
@@ -254,17 +275,33 @@ test('should interact with PDF viewer toolbar buttons', async () => {
   await expect(prevPageBtn).toHaveAttribute('title', 'Previous Page');
   await expect(nextPageBtn).toHaveAttribute('title', 'Next Page');
   await expect(lastPageBtn).toHaveAttribute('title', 'Last Page');
+  await expect(debugBtn).toHaveAttribute('title', 'Debug Mode');
+  
+  // Test dropdown button titles (now icon-only buttons)
+  await expect(aiDropdown.locator('.dropdown-btn')).toHaveAttribute('title', 'AI Tools');
+  await expect(toolsDropdown.locator('.dropdown-btn')).toHaveAttribute('title', 'Content Tools');
+  
+  // Test dropdown item titles (need to open dropdown to access items)
+  await aiDropdown.locator('.dropdown-btn').click();
+  await expect(summarizeBtn).toHaveAttribute('title', 'Summarize this PDF using AI');
+  await expect(mindmapBtn).toHaveAttribute('title', 'Generate Mermaid mindmap from this PDF');
+  // Close AI dropdown by clicking outside
+  await frame.locator('body').click();
+  
+  await toolsDropdown.locator('.dropdown-btn').click();
   await expect(textSelectionBtn).toHaveAttribute('title', 'Selection Mode');
   await expect(inspectorBtn).toHaveAttribute('title', 'PDF Inspector');
-  await expect(debugBtn).toHaveAttribute('title', 'Debug Mode');
+  await expect(searchBtn).toHaveAttribute('title', 'Search Text');
+  await expect(screenshotBtn).toHaveAttribute('title', 'Take Screenshot');
 
   // Export button title can change during export process ('Extract Objects' or 'Exporting...')
   const exportTitle = await exportBtn.getAttribute('title');
   console.log('Export button title:', exportTitle);
   expect(['Extract Objects', 'Exporting...']).toContain(exportTitle);
-
-  await expect(summarizeBtn).toHaveAttribute('title', 'Summarize this PDF using AI');
-  await expect(screenshotBtn).toHaveAttribute('title', 'Take Screenshot');
+  
+  // Close tools dropdown
+  await frame.locator('body').click();
+  
   console.log('Button accessibility attributes test passed');
 
   console.log('All toolbar tests completed successfully!');

@@ -150,7 +150,10 @@ test('should perform end-to-end screenshot capture with folder selection and sav
 
   console.log('Successfully accessed PDF viewer frame');
 
-  // 1. Click screenshot button to start screenshot mode
+  // 1. Click screenshot button to start screenshot mode (now in Tools dropdown)
+  const toolsDropdown = pdfFrame.locator('#toolsDropdown');
+  await toolsDropdown.locator('.dropdown-btn').click();
+  
   const screenshotBtn = pdfFrame.locator('#screenshotBtn');
   await expect(screenshotBtn).toBeVisible();
   await screenshotBtn.click();

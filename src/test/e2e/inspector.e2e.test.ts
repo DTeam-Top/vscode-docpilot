@@ -111,7 +111,10 @@ test('should perform end-to-end inspector testing', async () => {
     throw new Error('Could not access inner PDF viewer frame content');
   }
 
-  // 1. Open the inspector
+  // 1. Open the inspector (now in Tools dropdown)
+  const toolsDropdown = pdfFrame.locator('#toolsDropdown');
+  await toolsDropdown.locator('.dropdown-btn').click();
+  
   const inspectorBtn = pdfFrame.locator('#inspectorBtn');
   await expect(inspectorBtn).toBeVisible();
   await inspectorBtn.click();
