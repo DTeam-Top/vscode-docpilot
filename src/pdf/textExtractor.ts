@@ -11,7 +11,7 @@ export class TextExtractor {
 
   static async extractText(
     panel: vscode.WebviewPanel,
-    pdfPath: string,
+    pdfPath?: string,
     options: TextExtractionOptions = {
       timeout: configuration.timeoutsTextExtractionMs,
       retryAttempts: 1,
@@ -84,7 +84,7 @@ export class TextExtractor {
 
   static async extractTextWithRetry(
     panel: vscode.WebviewPanel,
-    pdfPath: string,
+    pdfPath?: string,
     options: TextExtractionOptions = {
       timeout: configuration.timeoutsTextExtractionMs,
       retryAttempts: 2,

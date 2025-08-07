@@ -5,6 +5,7 @@ description: Refactor the code base
 ## Context
 
 - Current code base: `src/`
+- Dependency management: `package.json`
 - Project background: `README.md`
 - Skills: `llm-skills/refactor.md`
 
