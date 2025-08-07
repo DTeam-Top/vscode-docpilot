@@ -582,7 +582,7 @@ export class ObjectExtractor {
         if (Array.isArray(objectData)) {
           for (let i = 0; i < objectData.length; i++) {
             const jsFile = path.join(targetFolder, `script_${i + 1}.js`);
-            await fs.writeFile(jsFile, objectData[i], 'utf8');
+            await fs.writeFile(jsFile, objectData[i] as string, 'utf8');
             files.push(jsFile);
           }
         }

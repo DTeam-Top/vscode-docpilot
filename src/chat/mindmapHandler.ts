@@ -131,4 +131,8 @@ export class MindmapHandler extends BasePdfHandler {
   async clearMindmapCache(): Promise<void> {
     await super.clearCache();
   }
+
+  getAllMindmapCacheEntries(): Array<{ filePath: string; data: string; timestamp: number }> {
+    return super.getAllCacheEntries();
+  }
 }

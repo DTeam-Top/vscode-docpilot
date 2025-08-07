@@ -184,6 +184,17 @@ export class DocumentCache<T> {
     };
   }
 
+  getAllCacheEntries(): Array<{ filePath: string; data: T; timestamp: number }> {
+    const entries = Array.from(this.cache.values());
+    return entries
+      .filter(entry => entry && typeof entry === 'object' && entry.data !== undefined)
+      .map(entry => ({
+        filePath: entry.filePath,
+        data: entry.data,
+        timestamp: entry.timestamp,
+      }));
+  }
+
   private generateCacheKey(filePath: string): string {
     // Normalize path for consistent caching
     const normalizedPath = filePath.startsWith('http')

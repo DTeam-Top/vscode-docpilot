@@ -37,4 +37,5 @@ export const CHAT_COMMANDS = {
   MINDMAP: 'mindmap',
   CACHE_STATS: 'cache-stats',
   CLEAR_CACHE: 'clear-cache',
+  CACHE_EXPORT: 'cache-export',
 } as const;

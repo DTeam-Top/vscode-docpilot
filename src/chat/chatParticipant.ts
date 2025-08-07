@@ -71,6 +71,9 @@ export class ChatParticipant {
         case CHAT_COMMANDS.CLEAR_CACHE:
           return await this.handleClearCache(stream);
 
+        case CHAT_COMMANDS.CACHE_EXPORT:
+          return await this.handleCacheExport(stream);
+
         default:
           return this.handleUnknownCommand(request, stream);
       }
@@ -97,7 +100,8 @@ export class ChatParticipant {
     );
     stream.markdown(`  - \`/mindmap\` - Open file picker\n\n`);
     stream.markdown(`- **\`/cache-stats\`** - Show cache statistics for summaries and mindmaps\n`);
-    stream.markdown(`- **\`/clear-cache\`** - Clear all cached summaries and mindmaps\n\n`);
+    stream.markdown(`- **\`/clear-cache\`** - Clear all cached summaries and mindmaps\n`);
+    stream.markdown(`- **\`/cache-export\`** - Export all cached summaries and mindmaps to markdown\n\n`);
     stream.markdown(`### Examples\n\n`);
     stream.markdown(`\`\`\`\n`);
     stream.markdown(`@docpilot /summarise docs/report.pdf\n`);
@@ -105,6 +109,7 @@ export class ChatParticipant {
     stream.markdown(`@docpilot /summarise https://example.com/whitepaper.pdf\n`);
     stream.markdown(`@docpilot /cache-stats\n`);
     stream.markdown(`@docpilot /clear-cache\n`);
+    stream.markdown(`@docpilot /cache-export\n`);
     stream.markdown(`\`\`\`\n\n`);
     stream.markdown(`*DocPilot uses advanced semantic chunking to process documents of any size.*`);
 
@@ -210,6 +215,146 @@ export class ChatParticipant {
         },
       };
     }
+  }
+
+  private async handleCacheExport(stream: vscode.ChatResponseStream): Promise<ChatCommandResult> {
+    try {
+      // Get cache entries from both handlers
+      const summaryEntries = this.summaryHandler.getAllSummaryCacheEntries();
+      const mindmapEntries = this.mindmapHandler.getAllMindmapCacheEntries();
+
+      if (summaryEntries.length === 0 && mindmapEntries.length === 0) {
+        stream.markdown(`## 📤 Cache Export\n\n`);
+        stream.markdown(`No cached data found. Process some PDFs first to build cache content.\n`);
+        return {
+          metadata: {
+            command: CHAT_COMMANDS.CACHE_EXPORT,
+            empty: true,
+            timestamp: Date.now(),
+          },
+        };
+      }
+
+      stream.markdown(`## 📤 Cache Export\n\n`);
+      stream.markdown(`Found ${summaryEntries.length} summaries and ${mindmapEntries.length} mindmaps.\n\n`);
+
+      // Show folder picker
+      const folderUri = await vscode.window.showOpenDialog({
+        canSelectFiles: false,
+        canSelectFolders: true,
+        canSelectMany: false,
+        title: 'Select folder to save cache export',
+      });
+
+      if (!folderUri || folderUri.length === 0) {
+        stream.markdown(`Export cancelled - no folder selected.\n`);
+        return {
+          metadata: {
+            command: CHAT_COMMANDS.CACHE_EXPORT,
+            cancelled: true,
+            timestamp: Date.now(),
+          },
+        };
+      }
+
+      // Generate markdown content
+      const markdownContent = this.generateCacheExportMarkdown(summaryEntries, mindmapEntries);
+      
+      // Save file with timestamp
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const fileName = `docpilot-cache-export-${timestamp}.md`;
+      const filePath = vscode.Uri.joinPath(folderUri[0], fileName);
+
+      await vscode.workspace.fs.writeFile(filePath, Buffer.from(markdownContent, 'utf8'));
+
+      // Open the exported file
+      const doc = await vscode.workspace.openTextDocument(filePath);
+      await vscode.window.showTextDocument(doc);
+
+      stream.markdown(`✅ Cache exported successfully!\n\n`);
+      stream.markdown(`**File:** \`${fileName}\`\n`);
+      stream.markdown(`**Location:** \`${folderUri[0].fsPath}\`\n`);
+      stream.markdown(`**Content:** ${summaryEntries.length} summaries, ${mindmapEntries.length} mindmaps\n`);
+
+      return {
+        metadata: {
+          command: CHAT_COMMANDS.CACHE_EXPORT,
+          fileName,
+          summaryCount: summaryEntries.length,
+          mindmapCount: mindmapEntries.length,
+          timestamp: Date.now(),
+        },
+      };
+    } catch (error) {
+      ChatParticipant.logger.error('Error exporting cache', error);
+      stream.markdown(`## ❌ Cache Export Error\n\n`);
+      stream.markdown(`Failed to export cache: ${error instanceof Error ? error.message : 'Unknown error'}\n`);
+      
+      return {
+        metadata: {
+          command: CHAT_COMMANDS.CACHE_EXPORT,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          timestamp: Date.now(),
+        },
+      };
+    }
+  }
+
+  private generateCacheExportMarkdown(
+    summaryEntries: Array<{ filePath: string; data: string; timestamp: number }>,
+    mindmapEntries: Array<{ filePath: string; data: string; timestamp: number }>
+  ): string {
+    const exportTime = new Date().toLocaleString();
+    let markdown = `# DocPilot Cache Export\n\nExported time: ${exportTime}\n\n`;
+
+    // Combine and group by file path
+    const fileMap = new Map<string, { summary?: string; mindmap?: string }>();
+
+    // Add summaries
+    for (const entry of summaryEntries) {
+      const fileName = this.getFileNameFromPath(entry.filePath);
+      if (!fileMap.has(fileName)) {
+        fileMap.set(fileName, {});
+      }
+      const fileData = fileMap.get(fileName);
+      if (fileData) {
+        fileData.summary = entry.data;
+      }
+    }
+
+    // Add mindmaps
+    for (const entry of mindmapEntries) {
+      const fileName = this.getFileNameFromPath(entry.filePath);
+      if (!fileMap.has(fileName)) {
+        fileMap.set(fileName, {});
+      }
+      const fileData = fileMap.get(fileName);
+      if (fileData) {
+        fileData.mindmap = entry.data;
+      }
+    }
+
+    // Generate content for each file
+    for (const [fileName, content] of fileMap.entries()) {
+      markdown += `## ${fileName}\n\n`;
+      
+      if (content.summary) {
+        markdown += `### Summary\n\n${content.summary}\n\n`;
+      }
+      
+      if (content.mindmap) {
+        markdown += `### Mindmap\n\n\`\`\`mermaid\n${content.mindmap}\n\`\`\`\n\n`;
+      }
+    }
+
+    return markdown;
+  }
+
+  private getFileNameFromPath(filePath: string): string {
+    if (filePath.startsWith('http')) {
+      return filePath;
+    }
+    return filePath.split(/[/\\]/).pop() || filePath;
   }
 
   provideFollowups(
