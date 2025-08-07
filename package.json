@@ -2,7 +2,7 @@
   "name": "vscode-docpilot",
   "displayName": "DocPilot",
   "description": "View PDF files in VSCode from local files or remote URLs",
-  "version": "0.4.1",
+  "version": "0.4.5",
   "license": "MIT",
   "publisher": "dteam-top",
   "icon": "resources/docpilot-icon.png",
@@ -224,7 +224,6 @@
     "rollup-plugin-postcss": "^4.0.2",
     "sinon": "^17.0.1",
     "sinon-chai": "^3.7.0",
-    "typescript": "^5.9.2",
-    "zustand": "^5.0.7"
+    "typescript": "^5.9.2"
   }
 }
