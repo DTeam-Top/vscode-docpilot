@@ -5,6 +5,9 @@ description: Design a new feature
 ## Context
 
 - Requirement: $AUGMENTS
+- Current code base: `src/`
+- Dependency management: `package.json`
+- Project background: `README.md`
 
 ## Your task
 

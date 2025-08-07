@@ -84,4 +84,8 @@ export class SummaryHandler extends BasePdfHandler {
   async clearSummaryCache(): Promise<void> {
     await super.clearCache();
   }
+
+  getAllSummaryCacheEntries(): Array<{ filePath: string; data: string; timestamp: number }> {
+    return super.getAllCacheEntries();
+  }
 }

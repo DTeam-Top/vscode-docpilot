@@ -84,6 +84,7 @@ A comprehensive VSCode extension that combines advanced PDF viewing with intelli
 @docpilot /mindmap                          # File picker dialog + generate mindmap
 @docpilot /cache-stats                      # View cache statistics
 @docpilot /clear-cache                      # Clear all cached summaries
+@docpilot /cache-export                     # Export cached content to markdown
 ```
 
 **Advanced Capabilities:**
@@ -94,6 +95,7 @@ A comprehensive VSCode extension that combines advanced PDF viewing with intelli
 - **📊 Processing Analytics** - Detailed stats on chunks processed and pages analyzed
 - **🛡️ Error Resilience** - Multiple fallback strategies ensure reliable operation
 - **🔄 Auto Cache Invalidation** - File modification detection for fresh content
+- **📤 Cache Export** - Export cached summaries and mindmaps to organized markdown files
 
 ### Enhanced Toolbar Controls
 

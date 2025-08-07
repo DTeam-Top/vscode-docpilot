@@ -149,4 +149,8 @@ export abstract class BasePdfHandler {
   protected async clearCache(): Promise<void> {
     await this.cache.clearCache();
   }
+
+  protected getAllCacheEntries(): Array<{ filePath: string; data: string; timestamp: number }> {
+    return this.cache.getAllCacheEntries();
+  }
 }

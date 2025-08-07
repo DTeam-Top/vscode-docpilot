@@ -71,6 +71,10 @@
           {
             "name": "clear-cache",
             "description": "Clear all cached values"
+          },
+          {
+            "name": "cache-export",
+            "description": "Export all cached summaries and mindmaps to markdown"
           }
         ]
       }
