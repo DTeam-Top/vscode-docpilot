@@ -19,10 +19,11 @@ Before you start, please ensure:
 
 1. understand the project, if not, read `README.md`.
 2. understand current code base, if not, read it.
-3. don't over design, keep it simple and practical.
-4. consider the impact of the new feature on the existing code base.
-5. think about how to test the new feature.
-6. consider the user experience and usability of the new feature.
+3. for the tools mentioned by the user, find the documentation in `llms-txt`, then read it to understand how to use them if you are not familiar with them.
+4. don't over design, keep it simple and practical.
+5. consider the impact of the new feature on the existing code base.
+6. think about how to test the new feature.
+7. consider the user experience and usability of the new feature.
 
 ## Output
 
