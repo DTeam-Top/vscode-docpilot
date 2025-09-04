@@ -37,6 +37,11 @@
         "command": "docpilot.openPdfFromUrl",
         "title": "Open PDF from URL",
         "category": "DocPilot"
+      },
+      {
+        "command": "docpilot.quickPrompts",
+        "title": "Quick Prompts...",
+        "category": "DocPilot"
       }
     ],
     "menus": {
@@ -46,8 +51,26 @@
           "when": "resourceExtname == .pdf",
           "group": "navigation"
         }
+      ],
+      "editor/context": [
+        {
+          "submenu": "docpilot.context",
+          "when": "editorHasSelection",
+          "group": "docpilot"
+        }
+      ],
+      "docpilot.context": [
+        {
+          "command": "docpilot.quickPrompts"
+        }
       ]
     },
+    "submenus": [
+      {
+        "id": "docpilot.context",
+        "label": "DocPilot"
+      }
+    ],
     "chatParticipants": [
       {
         "id": "docpilot.chat-participant",
@@ -94,6 +117,35 @@
     "configuration": {
       "title": "DocPilot",
       "properties": {
+        "docpilot.quickPrompts": {
+          "type": "array",
+          "default": [
+            {
+              "name": "Explain Code",
+              "prompt": "Explain what this code does:\n\n{selectedText}"
+            },
+            {
+              "name": "Find Issues",
+              "prompt": "Review this code for potential issues:\n\n{selectedText}"
+            }
+          ],
+          "description": "Custom quick prompts for selected text",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Prompt name"
+              },
+              "prompt": {
+                "type": "string",
+                "description": "Prompt template. Use {selectedText} for selected text."
+              }
+            },
+            "required": ["name", "prompt"],
+            "additionalProperties": false
+          }
+        },
         "docpilot.textProcessing.promptOverheadTokens": {
           "type": "number",
           "default": 500,
