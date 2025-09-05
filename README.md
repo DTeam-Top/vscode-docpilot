@@ -22,6 +22,7 @@ A comprehensive VSCode extension that combines advanced PDF viewing with intelli
 
 - **Intelligent Summarization** - Comprehensive document analysis via Copilot Chat
 - **Mindmap Generation** - Create Mermaid mindmaps for visual document understanding
+- **Quick Prompts** - Customizable text processing with configurable prompt templates
 - **Multi-Model Support** - Works with GPT-4, Gemini, and other Copilot models
 - **Smart Caching** - Instant results for previously processed documents
 - **Semantic Chunking** - Advanced processing for documents of any size
@@ -86,6 +87,54 @@ A comprehensive VSCode extension that combines advanced PDF viewing with intelli
 @docpilot /clear-cache                      # Clear all cached summaries
 @docpilot /cache-export                     # Export cached content to markdown
 ```
+
+### ⚡ Quick Prompts
+
+DocPilot includes a powerful Quick Prompts system for applying customizable AI prompts to selected text:
+
+**Core Features:**
+
+- **🎯 Context Menu Integration** - Right-click selected text to access Quick Prompts submenu
+- **⚙️ Customizable Templates** - Configure prompts in VS Code settings with `{selectedText}` placeholder
+- **🤖 Direct Copilot Integration** - Prompts sent directly to Copilot Chat for immediate processing
+- **📋 Smart Text Selection** - Works with any selected text in any editor
+- **🔧 Built-in Defaults** - Includes "Explain Code" and "Find Issues" prompts out of the box
+
+**How to Use:**
+
+1. **Select Text** - Highlight any text in VS Code editor
+2. **Right-click** - Open context menu and select "DocPilot" submenu
+3. **Choose Prompt** - Select from your configured quick prompts
+4. **Get Results** - Copilot Chat opens with your processed prompt
+
+**Configuration:**
+
+Add custom prompts in VS Code Settings (`Ctrl+,` / `Cmd+,`):
+
+```json
+{
+  "docpilot.quickPrompts": [
+    {
+      "name": "Explain Code",
+      "prompt": "Explain what this code does:\n\n{selectedText}"
+    },
+    {
+      "name": "Find Issues", 
+      "prompt": "Review this code for potential issues:\n\n{selectedText}"
+    },
+    {
+      "name": "Improve Code",
+      "prompt": "Suggest improvements for this code:\n\n{selectedText}"
+    }
+  ]
+}
+```
+
+**Command Access:**
+
+- **Context Menu**: Right-click selected text → DocPilot → Quick Prompts...
+- **Command Palette**: `F1` → "DocPilot: Quick Prompts..."
+- **Keyboard Shortcut**: Assign custom shortcut to `docpilot.quickPrompts` command
 
 **Advanced Capabilities:**
 

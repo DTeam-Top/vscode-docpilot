@@ -90,6 +90,17 @@ class ConfigurationManager {
   public get timeoutsHeartbeatIntervalMs(): number {
     return this.get<number>('timeouts.heartbeatIntervalMs')!;
   }
+
+  public get quickPrompts(): Array<{name: string; prompt: string}> {
+    return this.get<Array<{name: string; prompt: string}>>('quickPrompts') || [];
+  }
+
+  /**
+   * Refresh the configuration cache (e.g., when settings change)
+   */
+  public refresh(): void {
+    (this as any).config = vscode.workspace.getConfiguration('docpilot');
+  }
 }
 
 export const configuration = ConfigurationManager.getInstance();

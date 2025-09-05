@@ -1,11 +1,12 @@
 import * as vscode from 'vscode';
-import { DocumentCache, type CacheEntryMetadata, type CacheStats } from '../cache/documentCache';
+import { type CacheEntryMetadata, type CacheStats, DocumentCache } from '../cache/documentCache';
 import { TextExtractor } from '../pdf/textExtractor';
+import type { ChatCommandResult, ProcessDocumentOptions } from '../types/interfaces';
+import { isTestEnvironment } from '../utils/commandUtils';
 import { PdfLoadError } from '../utils/errors';
 import { Logger } from '../utils/logger';
 import { WebviewProvider } from '../webview/webviewProvider';
 import { AiTextProcessor } from './AiTextProcessor';
-import type { ChatCommandResult, ProcessDocumentOptions } from '../types/interfaces';
 
 export abstract class BasePdfHandler {
   protected static readonly logger = Logger.getInstance();
@@ -65,14 +66,6 @@ export abstract class BasePdfHandler {
     return text;
   }
 
-  protected _isTestEnvironment(): boolean {
-    return (
-      process.env.NODE_ENV === 'test' ||
-      process.env.VSCODE_PID === undefined ||
-      (typeof global !== 'undefined' && 'suite' in global)
-    );
-  }
-
   protected _createMockLanguageModel(id = 'test-model-id'): vscode.LanguageModelChat {
     BasePdfHandler.logger.info(`Using mock language model for testing (id: ${id})`);
     return {
@@ -110,7 +103,7 @@ export abstract class BasePdfHandler {
         return selectedModel;
       }
 
-      if (this._isTestEnvironment()) {
+      if (isTestEnvironment()) {
         return this._createMockLanguageModel();
       }
 
@@ -118,7 +111,7 @@ export abstract class BasePdfHandler {
         'No compatible language models available. Please ensure GitHub Copilot is enabled.'
       );
     } catch (error) {
-      if (this._isTestEnvironment()) {
+      if (isTestEnvironment()) {
         return this._createMockLanguageModel('test-model-fallback-id');
       }
       throw error;
