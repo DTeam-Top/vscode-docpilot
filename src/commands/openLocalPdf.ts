@@ -12,7 +12,7 @@ export class OpenLocalPdfCommand {
   static register(context: vscode.ExtensionContext): vscode.Disposable {
     return createCommandHandler(
       'docpilot.openLocalPdf',
-      (filePath?: string) => OpenLocalPdfCommand.execute(context, filePath),
+      (filePath?: string | vscode.Uri) => OpenLocalPdfCommand.execute(context, filePath),
       OpenLocalPdfCommand.logger,
       'open local PDF'
     );
@@ -20,14 +20,14 @@ export class OpenLocalPdfCommand {
 
   private static async execute(
     context: vscode.ExtensionContext,
-    filePath?: string
+    filePath?: string | vscode.Uri
   ): Promise<vscode.WebviewPanel | undefined> {
     let selectedFilePath: string;
 
     if (filePath) {
-      // Use provided file path (for programmatic calls)
-      selectedFilePath = filePath;
-      OpenLocalPdfCommand.logger.info(`Opening PDF file: ${filePath}`);
+      // Handle URI object from context menu or string from programmatic calls
+      selectedFilePath = filePath instanceof vscode.Uri ? filePath.fsPath : filePath;
+      OpenLocalPdfCommand.logger.info(`Opening PDF file: ${selectedFilePath}`);
     } else {
       // Show file picker for user interaction
       OpenLocalPdfCommand.logger.info('Opening local PDF file picker');
