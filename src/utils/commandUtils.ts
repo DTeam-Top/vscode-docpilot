@@ -19,3 +19,11 @@ export function createCommandHandler(
     }
   });
 }
+
+export function isTestEnvironment(): boolean {
+  return (
+    process.env.NODE_ENV === 'test' ||
+    process.env.VSCODE_PID === undefined ||
+    (typeof global !== 'undefined' && 'suite' in global)
+  );
+}

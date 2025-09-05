@@ -42,6 +42,7 @@ npm run check               # Run Biome check (lint + format)
 - **Text Processing** (`src/pdf/`): Advanced semantic chunking and extraction system
 - **PDF Object Inspector** (`src/webview/`): Dual-mode hierarchical viewer for comprehensive PDF structure analysis
 - **Enhanced Toolbar** (`src/webview/templates/`): Professional navigation, zoom, and content tools
+- **Quick Prompts** (`src/commands/quickPromptsCommand.ts`): Customizable text processing with context menu integration
 
 ### Webview Architecture
 - **Templates**: Enhanced HTML in `src/webview/templates/pdfViewer.html` with PDF Object Inspector sidebar
@@ -61,6 +62,7 @@ npm run check               # Run Biome check (lint + format)
 2. **Manual Commands**: `docpilot.openLocalPdf`, `docpilot.openPdfFromUrl` 
 3. **Context Menu**: Right-click PDF files in Explorer
 4. **Chat Integration**: `@docpilot /summarise [path-or-url]`
+5. **Quick Prompts**: Right-click selected text → DocPilot submenu or command palette
 
 ## Key Technologies & Dependencies
 
@@ -113,7 +115,7 @@ src/
 ├── extension.ts              # Main activation entry point
 ├── cache/                    # Summary caching with file watching (2 files)
 ├── chat/                     # Copilot Chat participant & handlers (3 files)
-├── commands/                 # PDF opening commands (2 files)
+├── commands/                 # PDF opening & quick prompts commands (3 files)
 ├── editors/                  # Custom PDF editor provider (1 file)
 ├── pdf/                      # Text extraction & chunking strategies (2 files)
 ├── types/interfaces.ts       # Shared TypeScript interfaces
@@ -143,6 +145,8 @@ src/
 - Enhanced toolbar with comprehensive navigation, zoom, and content tools
 - Full VSCode theme integration with dark/light mode support
 - E2E testing requires VSCode extension environment and Playwright setup
+- Quick Prompts system integrates with VSCode context menus and settings configuration
+- Quick Prompts use template substitution with `{selectedText}` placeholder for dynamic content
 
 ## PDF Object Inspector Features
 
