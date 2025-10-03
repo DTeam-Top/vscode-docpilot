@@ -43,13 +43,19 @@ npm run check               # Run Biome check (lint + format)
 - **PDF Object Inspector** (`src/webview/`): Dual-mode hierarchical viewer for comprehensive PDF structure analysis
 - **Enhanced Toolbar** (`src/webview/templates/`): Professional navigation, zoom, and content tools
 - **Quick Prompts** (`src/commands/quickPromptsCommand.ts`): Customizable text processing with context menu integration
+- **Markdown Preview Enhancement** (`src/markdown/`): Automatic Mermaid diagram rendering in markdown preview mode
 
 ### Webview Architecture
 - **Templates**: Enhanced HTML in `src/webview/templates/pdfViewer.html` with PDF Object Inspector sidebar
 - **Scripts**: Modern PDF.js v5.3.93 integration in `src/webview/scripts/pdfViewer.js` with ES modules
 - **Assets**: Comprehensive SVG icon set in `src/webview/assets/` (navigation, zoom, content tools)
 - **Styling**: VSCode theme integration with dark/light mode support
-- Assets are copied to `out/webview/` during build
+- Assets are copied to `out/webview/` during build and bundled via Rollup
+
+### Markdown Preview Architecture
+- **Scripts**: Mermaid renderer in `src/markdown/scripts/mermaidRenderer.js` for automatic diagram rendering
+- **Styling**: Theme-aware diagram styles in `src/markdown/styles/mermaid.css`
+- Files are copied to `out/markdown/` during build and bundled via Rollup
 
 ### AI Integration
 - **Semantic Chunking**: Token-aware processing with 10% overlap between chunks
@@ -120,16 +126,24 @@ src/
 ├── pdf/                      # Text extraction & chunking strategies (2 files)
 ├── types/interfaces.ts       # Shared TypeScript interfaces
 ├── utils/                    # Shared utilities & constants (8 files)
+├── markdown/                 # Markdown preview enhancement
+│   ├── scripts/              # Markdown preview JavaScript
+│   │   └── mermaidRenderer.js  # Mermaid diagram rendering
+│   └── styles/               # Markdown preview CSS
+│       └── mermaid.css       # Mermaid diagram theme-aware styles
 ├── webview/                  # PDF viewer implementation
 │   ├── assets/               # SVG icons (navigation, zoom, content tools)
-│   ├── scripts/              # PDF.js v5.3.93 integration with ES modules
+│   ├── scripts/              # PDF viewer JavaScript
+│   │   └── pdfViewer.js      # PDF.js v5.3.93 integration with ES modules
+│   ├── styles/               # PDF viewer CSS
+│   │   └── pdfViewer.css     # PDF viewer styling
 │   ├── templates/            # Enhanced HTML with content extraction sidebar
 │   └── webviewProvider.ts    # Central webview management
 └── test/                     # Multi-tier test suite
     ├── suite/
     │   ├── unit/             # Unit tests (2 files)
     │   └── integration/      # Integration tests (5 files)
-    ├── e2e/                  # Playwright E2E tests (1 file)
+    ├── e2e/                  # Playwright E2E tests (5 files including mermaidPreview)
     └── helpers/              # Test utilities and fixtures
 ```
 
@@ -173,6 +187,66 @@ src/
 - **Cache Integration**: File hash-based caching with automatic invalidation on PDF changes
 - **VSCode Integration**: Full theme support, accessibility compliance, and standard UI patterns
 - **Error Handling**: Graceful degradation and timeout management for large documents
+
+## Markdown Preview Enhancement - Mermaid Rendering
+
+DocPilot extends VSCode's markdown preview to automatically render Mermaid diagrams as visual graphics.
+
+### Architecture
+- **Extension Point**: Uses VSCode's `markdown.previewScripts` and `markdown.previewStyles` contribution points
+- **Renderer**: `src/markdown/scripts/mermaidRenderer.js` - Automatically detects and renders Mermaid code
+- **Styling**: `src/markdown/styles/mermaid.css` - Theme-aware diagram styling
+- **CDN Import**: Loads Mermaid.js v11 from `https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs`
+
+### Supported Formats
+The renderer detects and processes two Mermaid code block formats:
+
+1. **Markdown code blocks**: ````mermaid` (rendered as `<pre><code class="language-mermaid">`)
+2. **HTML pre blocks**: `<pre class="mermaid">`
+
+### Key Features
+- **Automatic Detection**: MutationObserver watches for new content and theme changes
+- **Theme Integration**: Automatically switches between dark/light Mermaid themes based on VSCode theme
+- **Error Handling**: Invalid syntax displays user-friendly error messages instead of breaking preview
+- **Performance**: Debounced rendering prevents excessive re-renders during rapid changes
+- **Lazy Rendering**: Diagrams only render when content is added (not on every DOM mutation)
+
+### Technical Details
+- **Initialization**: Mermaid configured with `startOnLoad: false` for manual control
+- **Rendering**: Uses `mermaid.render()` to generate SVG from code blocks
+- **Theme Detection**: Reads `document.body.className` to detect `vscode-dark` or `vscode-light`
+- **Content Updates**: MutationObserver on `document.body` detects preview refreshes
+- **Rollup Processing**: Bundled as IIFE format without minification to preserve CDN imports
+
+### Implementation Guidelines
+- **No npm installation**: Mermaid loaded from CDN at runtime, not bundled
+- **No minification**: Rollup config excludes minify plugin to preserve dynamic imports
+- **Container classes**: `.mermaid-container` for diagrams, `.mermaid-error-container` for errors
+- **VSCode variables**: Uses `--vscode-*` CSS variables for theme integration
+- **Testing**: E2E tests verify rendering with both correct diagrams and error handling
+- **Frame Navigation**: Markdown preview uses nested iframes - tests must use `childFrames()` to access content
+
+### Build Process
+1. **Copy**: `copy-assets` copies source files to `out/webview/`
+2. **Bundle**: Rollup processes files:
+   - JavaScript: Converts to IIFE, preserves imports
+   - CSS: Minifies with PostCSS + cssnano
+3. **Register**: `package.json` contributions point to bundled files
+
+### File Structure
+```
+src/markdown/
+├── scripts/
+│   └── mermaidRenderer.js    # Main rendering logic
+└── styles/
+    └── mermaid.css            # Theme-aware styling
+
+out/markdown/
+├── scripts/
+│   └── mermaidRenderer.js    # Bundled (IIFE)
+└── styles/
+    └── mermaid.css            # Minified
+```
 
 ## Text Search Implementation Lessons (July 2025)
 

@@ -30,6 +30,16 @@ A comprehensive VSCode extension that combines advanced PDF viewing with intelli
 - **Progress Tracking** - Real-time status updates during analysis
 - **Automatic Cache Invalidation** - Fresh summaries when files are modified
 
+### 📊 Markdown Preview Enhancement
+
+- **Mermaid Diagram Rendering** - Automatic visualization of Mermaid diagrams in markdown preview
+- **Multiple Format Support** - Renders both ````mermaid` code blocks and `<pre class="mermaid">` HTML blocks
+- **VSCode Theme Integration** - Diagrams adapt to dark/light themes automatically
+- **Comprehensive Diagram Types** - Supports flowcharts, sequence diagrams, mindmaps, class diagrams, pie charts, git graphs, and more
+- **Error Handling** - Clear error messages for invalid Mermaid syntax
+- **Real-time Updates** - Diagrams re-render automatically when markdown content changes
+- **Zero Configuration** - Works out of the box with no additional setup required
+
 ## 🚀 Installation
 
 ### Development Mode
@@ -211,6 +221,92 @@ mindmap
       Detail A
       Detail B
 ```
+
+### 📊 Mermaid Diagram Preview
+
+DocPilot automatically renders Mermaid diagrams in markdown preview mode, transforming code into beautiful visualizations:
+
+**Core Features:**
+
+- **🎨 Automatic Rendering**: Mermaid code blocks automatically become diagrams in preview mode
+- **📝 Editor Stays Text**: Source code remains as text in the editor for easy editing
+- **🌓 Theme-Aware**: Diagrams automatically adapt to VSCode's dark/light theme
+- **🔄 Live Updates**: Changes to markdown files trigger automatic diagram re-rendering
+- **❌ Error Handling**: Invalid syntax displays clear, helpful error messages
+- **🎯 Zero Setup**: Works immediately with no configuration or additional extensions needed
+
+**Supported Formats:**
+
+DocPilot recognizes two standard Mermaid code block formats:
+
+1. **Markdown Code Block** (recommended):
+````markdown
+```mermaid
+flowchart TD
+    A[Start] --> B[Process]
+    B --> C[End]
+```
+````
+
+2. **HTML Pre Block**:
+```html
+<pre class="mermaid">
+sequenceDiagram
+    User->>System: Request
+    System-->>User: Response
+</pre>
+```
+
+**How to Use:**
+
+1. **Create or open** any `.md` markdown file in VSCode
+2. **Add Mermaid code blocks** using either format above
+3. **Open preview** with `Ctrl+Shift+V` (Windows/Linux) or `Cmd+Shift+V` (Mac)
+4. **View diagrams** automatically rendered in the preview pane
+
+**Supported Diagram Types:**
+
+- **Flowcharts** - Process flows and decision trees
+- **Sequence Diagrams** - System interactions and message flows
+- **Class Diagrams** - Object-oriented structures
+- **State Diagrams** - State machines and transitions
+- **Entity Relationship** - Database schemas
+- **Gantt Charts** - Project timelines
+- **Pie Charts** - Data proportions
+- **Git Graphs** - Repository history visualization
+- **Mindmaps** - Hierarchical concept maps
+- **And more!** - All Mermaid v11 diagram types supported
+
+**Example Workflow:**
+
+```markdown
+# My Technical Document
+
+## Architecture Overview
+
+```mermaid
+flowchart TB
+    Client[Web Client]
+    API[REST API]
+    DB[(Database)]
+
+    Client -->|HTTPS| API
+    API -->|Query| DB
+    DB -->|Results| API
+    API -->|JSON| Client
+```
+
+The architecture follows a three-tier design...
+```
+
+When you open the preview, the flowchart renders as a visual diagram while the markdown source remains editable.
+
+**Theme Integration:**
+
+Diagrams automatically use VSCode color schemes:
+- **Dark Theme**: High contrast colors optimized for dark backgrounds
+- **Light Theme**: Professional colors for light backgrounds
+- **Automatic Switching**: Changes when you switch VSCode themes
 
 ### 🔍 Text Search
 
