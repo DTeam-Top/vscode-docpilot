@@ -2,7 +2,7 @@
   "name": "vscode-docpilot",
   "displayName": "DocPilot",
   "description": "AI-Powered PDF Assistant & Quick Prompts Manager for VSCode",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "license": "MIT",
   "publisher": "dteam-top",
   "icon": "resources/docpilot-icon.png",
@@ -113,6 +113,12 @@
         ],
         "priority": "default"
       }
+    ],
+    "markdown.previewScripts": [
+      "./out/markdown/scripts/mermaidRenderer.js"
+    ],
+    "markdown.previewStyles": [
+      "./out/markdown/styles/mermaid.css"
     ],
     "configuration": {
       "title": "DocPilot",
@@ -247,7 +253,7 @@
     "compile:prod": "tsc -p ./tsconfig.prod.json && npm run copy-assets && npm run bundle-webview",
     "compile": "tsc -p ./ && npm run copy-assets && npm run bundle-webview",
     "compile-e2e": "tsc -p ./tsconfig.e2e.json --outDir out",
-    "copy-assets": "mkdir -p out/webview && cp -r src/webview/assets out/webview/ && cp -r src/webview/templates out/webview/ && cp -r src/webview/scripts out/webview/ && cp -r src/webview/styles out/webview/",
+    "copy-assets": "mkdir -p out/webview out/markdown && cp -r src/webview/assets out/webview/ && cp -r src/webview/templates out/webview/ && cp -r src/webview/scripts out/webview/ && cp -r src/webview/styles out/webview/ && cp -r src/markdown out/",
     "bundle-webview": "rollup -c",
     "watch": "tsc -watch -p ./",
     "check": "biome check src/",

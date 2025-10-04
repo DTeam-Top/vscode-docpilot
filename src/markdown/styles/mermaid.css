@@ -1,0 +1,103 @@
+/**
+ * Mermaid Diagram Styles for VSCode Markdown Preview
+ * Provides theme-aware styling for rendered Mermaid diagrams
+ */
+
+/* Mermaid diagram container */
+.mermaid-container {
+  margin: 1.5em 0;
+  padding: 1em;
+  text-align: center;
+  background-color: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* Rendered diagram */
+.mermaid-container.mermaid-rendered {
+  background-color: var(--vscode-editor-background);
+}
+
+/* SVG diagram styling */
+.mermaid-container svg {
+  max-width: 100%;
+  height: auto;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Error container */
+.mermaid-error-container {
+  background-color: var(--vscode-inputValidation-errorBackground);
+  border-color: var(--vscode-inputValidation-errorBorder);
+}
+
+/* Error message styling */
+.mermaid-error {
+  color: var(--vscode-errorForeground);
+  text-align: left;
+  padding: 0.5em;
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+}
+
+.mermaid-error strong {
+  display: block;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+}
+
+.mermaid-error pre {
+  background-color: var(--vscode-textBlockQuote-background);
+  border-left: 3px solid var(--vscode-textBlockQuote-border);
+  padding: 0.5em;
+  margin: 0.5em 0 0 0;
+  overflow-x: auto;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.9em;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Dark theme specific adjustments */
+.vscode-dark .mermaid-container,
+.vscode-high-contrast .mermaid-container {
+  background-color: var(--vscode-editor-background);
+}
+
+/* Light theme specific adjustments */
+.vscode-light .mermaid-container {
+  background-color: var(--vscode-editor-background);
+}
+
+/* Ensure text in diagrams is readable */
+.mermaid-container text {
+  font-family: var(--vscode-font-family) !important;
+}
+
+/* Responsive design for smaller viewports */
+@media (max-width: 768px) {
+  .mermaid-container {
+    padding: 0.5em;
+  }
+
+  .mermaid-container svg {
+    max-width: 100%;
+  }
+}
+
+/* Loading state (optional, for future enhancement) */
+.mermaid-container.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.mermaid-container.loading::after {
+  content: 'Rendering diagram...';
+  display: block;
+  color: var(--vscode-foreground);
+  font-size: 0.9em;
+  margin-top: 1em;
+}
