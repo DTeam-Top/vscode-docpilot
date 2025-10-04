@@ -5,6 +5,7 @@ VSCode extension for PDF viewing, AI-powered document analysis, and productivity
 ## Features
 
 ### PDF Viewer
+
 - **Automatic activation** when opening `.pdf` files via File → Open
 - **Local and remote** PDFs (filesystem paths or URLs)
 - **Navigation & zoom** controls with fit-to-width/page options
@@ -13,7 +14,16 @@ VSCode extension for PDF viewing, AI-powered document analysis, and productivity
 - **Object inspector** for analyzing PDF structure (images, tables, fonts, annotations, metadata, etc.)
 - **Theme integration** with VSCode dark/light modes
 
+#### Screenshots
+
+![pdf-viewer-01](./docs/screenshots/pdf-viewer-01.png)
+
+![pdf-viewer-03](./docs/screenshots/pdf-viewer-03.png)
+
+![pdf-viewer-04](./docs/screenshots/pdf-viewer-04.png)
+
 ### AI Document Analysis
+
 Requires active GitHub Copilot subscription.
 
 - **Document summarization** with smart caching
@@ -22,26 +32,46 @@ Requires active GitHub Copilot subscription.
 - **Multi-model support** (GPT-4, Gemini, etc.)
 - **Cache management** (stats, export, clear)
 
+#### Screenshots
+
+![pdf-viewer-02](./docs/screenshots/pdf-viewer-02.png)
+
 ### Quick Prompts
+
 - **Customizable text processing** for selected text in any editor
 - **Context menu integration** (right-click selected text)
 - **Template system** with `{selectedText}` placeholder
 - **Direct Copilot integration** for instant AI processing
 - **Built-in defaults** (Explain Code, Find Issues)
 
+#### Screenshots
+
+![quick-prompts-01](./docs/screenshots/quick-prompts-01.png)
+
+![quick-prompts-02](./docs/screenshots/quick-prompts-02.png)
+
 ### Markdown Enhancement
+
 - **Automatic Mermaid rendering** in markdown preview
 - **All diagram types** supported (flowcharts, sequence, class, state, ER, gantt, mindmap, etc.)
 - **Theme-aware** visualization
 - **Zero configuration** required
 
+#### Screenshots
+
+![mermaid-01](./docs/screenshots/mermaid-01.png)
+
+![mermaid-02](./docs/screenshots/mermaid-02.png)
+
 ## Installation
 
 **Marketplace:**
+
 - [VSCode Marketplace](https://marketplace.visualstudio.com/items?itemName=dteam-top.vscode-docpilot)
 - [Open VSX](https://open-vsx.org/extension/dteam-top/vscode-docpilot)
 
 **Development:**
+
 ```bash
 git clone https://github.com/DTeam-Top/vscode-docpilot
 cd vscode-docpilot
@@ -53,6 +83,7 @@ npm run compile
 ## Quick Start
 
 ### Opening PDFs
+
 ```bash
 # Automatic - just open a PDF file
 File → Open → select.pdf
@@ -66,6 +97,7 @@ Right-click .pdf in Explorer → "Open Local PDF"
 ```
 
 ### AI Commands
+
 Open Copilot Chat (Ctrl/Cmd+Alt+I) and use:
 
 ```bash
@@ -80,11 +112,13 @@ Open Copilot Chat (Ctrl/Cmd+Alt+I) and use:
 ```
 
 ### Quick Prompts
+
 1. Select text in any editor
 2. Right-click → DocPilot → Quick Prompts
 3. Choose a prompt (or create custom ones in settings)
 
 **Configure custom prompts:**
+
 ```json
 {
   "docpilot.quickPrompts": [
@@ -101,6 +135,7 @@ Open Copilot Chat (Ctrl/Cmd+Alt+I) and use:
 ```
 
 ### Mermaid Diagrams
+
 Create markdown files with Mermaid code blocks:
 
 ````markdown
@@ -118,6 +153,7 @@ Open preview (Ctrl/Cmd+Shift+V) to see rendered diagrams.
 ## Keyboard Shortcuts
 
 **PDF Viewer:**
+
 - `Ctrl/Cmd + F` - Search text
 - `Enter` - Next search result
 - `Shift + Enter` - Previous search result
@@ -143,6 +179,7 @@ See full configuration options in VSCode Settings UI.
 ## Development
 
 ### Build Commands
+
 ```bash
 npm run compile          # Build TypeScript + assets + bundle
 npm run watch            # Watch mode for development
@@ -161,6 +198,7 @@ npm run package          # Create .vsix package
 ```
 
 ### Architecture
+
 ```
 src/
 ├── extension.ts         # Entry point
@@ -179,6 +217,7 @@ src/
 ```
 
 **Key Technologies:**
+
 - **TypeScript 5.9** - Strict mode with ES2020 target for type safety
 - **PDF.js 5.3.93** - Mozilla's modern PDF rendering engine with ES modules
 - **VSCode Extension API 1.102+** - Custom editor, webview panels, chat participant
