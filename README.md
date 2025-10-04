@@ -16,11 +16,11 @@ VSCode extension for PDF viewing, AI-powered document analysis, and productivity
 
 #### Screenshots
 
-![pdf-viewer-01](./docs/screenshots/pdf-viewer-01.png)
+![pdf-viewer-01](https://github.com/DTeam-Top/vscode-docpilot/blob/main/docs/screenshots/pdf-viewer-01.png?raw=true)
 
-![pdf-viewer-03](./docs/screenshots/pdf-viewer-03.png)
+![pdf-viewer-03](https://github.com/DTeam-Top/vscode-docpilot/blob/main/docs/screenshots/pdf-viewer-03.png?raw=true)
 
-![pdf-viewer-04](./docs/screenshots/pdf-viewer-04.png)
+![pdf-viewer-04](https://github.com/DTeam-Top/vscode-docpilot/blob/main/docs/screenshots/pdf-viewer-04.png?raw=true)
 
 ### AI Document Analysis
 
@@ -34,7 +34,7 @@ Requires active GitHub Copilot subscription.
 
 #### Screenshots
 
-![pdf-viewer-02](./docs/screenshots/pdf-viewer-02.png)
+![pdf-viewer-02](https://github.com/DTeam-Top/vscode-docpilot/blob/main/docs/screenshots/pdf-viewer-02.png?raw=true)
 
 ### Quick Prompts
 
@@ -46,9 +46,9 @@ Requires active GitHub Copilot subscription.
 
 #### Screenshots
 
-![quick-prompts-01](./docs/screenshots/quick-prompts-01.png)
+![quick-prompts-01](https://github.com/DTeam-Top/vscode-docpilot/blob/main/docs/screenshots/quick-prompts-01.png?raw=true)
 
-![quick-prompts-02](./docs/screenshots/quick-prompts-02.png)
+![quick-prompts-02](https://github.com/DTeam-Top/vscode-docpilot/blob/main/docs/screenshots/quick-prompts-02.png?raw=true)
 
 ### Markdown Enhancement
 
@@ -59,9 +59,9 @@ Requires active GitHub Copilot subscription.
 
 #### Screenshots
 
-![mermaid-01](./docs/screenshots/mermaid-01.png)
+![mermaid-01](https://github.com/DTeam-Top/vscode-docpilot/blob/main/docs/screenshots/mermaid-01.png?raw=true)
 
-![mermaid-02](./docs/screenshots/mermaid-02.png)
+![mermaid-02](https://github.com/DTeam-Top/vscode-docpilot/blob/main/docs/screenshots/mermaid-02.png?raw=true)
 
 ## Installation
 
