@@ -33,6 +33,8 @@ Transform markdown files into professional presentations with one click.
 
 ![pdf-viewer-03](https://github.com/DTeam-Top/vscode-docpilot/blob/main/docs/screenshots/pdf-viewer-03.png?raw=true)
 
+![pdf-viewer-04](https://github.com/DTeam-Top/vscode-docpilot/blob/main/docs/screenshots/pdf-viewer-04.png?raw=true)
+
 ### AI Document Analysis
 
 Requires GitHub Copilot subscription.
@@ -55,6 +57,8 @@ Requires GitHub Copilot subscription.
 
 ![quick-prompts-01](https://github.com/DTeam-Top/vscode-docpilot/blob/main/docs/screenshots/quick-prompts-01.png?raw=true)
 
+![quick-prompts-02](https://github.com/DTeam-Top/vscode-docpilot/blob/main/docs/screenshots/quick-prompts-02.png?raw=true)
+
 ### Markdown Enhancement
 
 - **Auto Mermaid rendering** in preview and Reveal.js slides
@@ -64,6 +68,8 @@ Requires GitHub Copilot subscription.
 - **Zero configuration**
 
 ![mermaid-01](https://github.com/DTeam-Top/vscode-docpilot/blob/main/docs/screenshots/mermaid-01.png?raw=true)
+
+![mermaid-02](https://github.com/DTeam-Top/vscode-docpilot/blob/main/docs/screenshots/mermaid-02.png?raw=true)
 
 ## Installation
 
