@@ -1,5 +1,3 @@
-
-
 export const WEBVIEW_MESSAGES = {
   EXTRACT_ALL_TEXT: 'extractAllText',
   TEXT_EXTRACTED: 'textExtracted',

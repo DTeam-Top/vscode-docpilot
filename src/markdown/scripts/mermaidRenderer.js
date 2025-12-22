@@ -62,8 +62,18 @@
     return div.innerHTML;
   };
 
+  // Check if we're in reveal.js mode
+  const isRevealMode = () => {
+    return document.querySelector('.reveal') !== null;
+  };
+
   // Find and render all Mermaid diagrams
   const renderAllMermaidDiagrams = async () => {
+    // Skip if in reveal.js mode (reveal.js handles mermaid itself)
+    if (isRevealMode()) {
+      return;
+    }
+
     let index = 0;
 
     // Format 1: ```mermaid code blocks (rendered by markdown-it as <pre><code class="language-mermaid">)
@@ -161,6 +171,19 @@
     });
   };
 
+  // Listen for reveal mode changes
+  const observeRevealMode = () => {
+    window.addEventListener('docpilot-mode-change', (e) => {
+      if (e.detail.mode === 'normal') {
+        // Switching back to normal mode, re-render mermaid
+        console.log('Switching to normal mode, re-rendering Mermaid diagrams');
+        setTimeout(() => {
+          debouncedRender();
+        }, 100);
+      }
+    });
+  };
+
   // Initialize and render
   const initialize = async () => {
     try {
@@ -168,6 +191,7 @@
       await renderAllMermaidDiagrams();
       observeThemeChanges();
       observeContentChanges();
+      observeRevealMode();
       console.log('DocPilot Mermaid renderer initialized');
     } catch (error) {
       console.error('Failed to initialize Mermaid renderer:', error);

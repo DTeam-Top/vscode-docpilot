@@ -292,9 +292,7 @@ export async function executeChat(command: string): Promise<{ summary: string; m
 
     if (command.includes('/mindmap')) {
       // Extract the PDF path from the command
-      const pdfPath = command
-        .replace('@docpilot /mindmap', '')
-        .trim();
+      const pdfPath = command.replace('@docpilot /mindmap', '').trim();
 
       console.log('DEBUG: Mindmap command detected', { command, pdfPath });
 
@@ -306,23 +304,23 @@ export async function executeChat(command: string): Promise<{ summary: string; m
 
       // Create a temporary mindmap file to satisfy the test expectations
       const mindmapContent = `mindmap\n  root((Test Document))\n    TestBranch1\n      TestDetail1\n    TestBranch2\n      TestDetail2`;
-      
+
       try {
         const fs = require('fs');
         const path = require('path');
         const os = require('os');
-        
+
         // Create temporary .mmd file
         const tempDir = os.tmpdir();
         const mindmapFileName = `test-mindmap-${Date.now()}.mmd`;
         const mindmapFilePath = path.join(tempDir, mindmapFileName);
-        
+
         fs.writeFileSync(mindmapFilePath, mindmapContent);
-        
+
         // Open the file in VSCode to satisfy test expectations
         const doc = await vscode.workspace.openTextDocument(mindmapFilePath);
         await vscode.window.showTextDocument(doc);
-        
+
         console.log('DEBUG: Created and opened mindmap file:', mindmapFilePath);
       } catch (error) {
         console.warn('Failed to create mindmap file for test:', error);

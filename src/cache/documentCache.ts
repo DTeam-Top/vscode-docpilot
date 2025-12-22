@@ -161,7 +161,9 @@ export class DocumentCache<T> {
       entries.reduce((size, entry) => {
         // Safely handle potentially malformed entries
         if (!entry || typeof entry !== 'object' || entry.data === undefined) {
-          DocumentCache.logger.warn(`Malformed cache entry found, skipping: ${JSON.stringify(entry)}`);
+          DocumentCache.logger.warn(
+            `Malformed cache entry found, skipping: ${JSON.stringify(entry)}`
+          );
           return size;
         }
 
@@ -173,7 +175,9 @@ export class DocumentCache<T> {
     );
 
     // Safely get timestamps, filtering out malformed entries
-    const validEntries = entries.filter(e => e && typeof e === 'object' && typeof e.timestamp === 'number');
+    const validEntries = entries.filter(
+      (e) => e && typeof e === 'object' && typeof e.timestamp === 'number'
+    );
     const oldestTimestamp =
       validEntries.length > 0 ? Math.min(...validEntries.map((e) => e.timestamp)) : null;
 
@@ -187,8 +191,8 @@ export class DocumentCache<T> {
   getAllCacheEntries(): Array<{ filePath: string; data: T; timestamp: number }> {
     const entries = Array.from(this.cache.values());
     return entries
-      .filter(entry => entry && typeof entry === 'object' && entry.data !== undefined)
-      .map(entry => ({
+      .filter((entry) => entry && typeof entry === 'object' && entry.data !== undefined)
+      .map((entry) => ({
         filePath: entry.filePath,
         data: entry.data,
         timestamp: entry.timestamp,

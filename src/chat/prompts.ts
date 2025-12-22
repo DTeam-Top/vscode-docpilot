@@ -17,7 +17,7 @@ Provide:
 3. Main findings
 4. Document structure`;
     },
-    
+
     chunk: (chunk: DocumentChunk, fileName: string) => {
       return `Summarize this section of the PDF document:
 
@@ -34,7 +34,7 @@ Provide a comprehensive summary focusing on:
 
 Keep the summary detailed enough to preserve important information for later consolidation.`;
     },
-    
+
     consolidation: (summaries: string[], fileName: string, totalPages: number) => {
       const combinedSummaries = summaries
         .map((summary, index) => `## Section ${index + 1}\n${summary}`)
@@ -56,12 +56,12 @@ Create a unified summary that:
 
 The final summary should be comprehensive yet concise, giving readers a complete understanding of the document's content and significance.`;
     },
-    
+
     fallback: (shortExcerpt: string) => {
       return `Provide a brief summary of this PDF excerpt:\n\n${shortExcerpt}`;
-    }
+    },
   },
-  
+
   mindmap: {
     singleChunk: (fileName: string, text: string) => {
       return `Create a Mermaid mindmap from this PDF document:
@@ -97,7 +97,7 @@ mindmap
 
 Focus on the document's main themes, key findings, and logical structure.`;
     },
-    
+
     chunk: (chunk: DocumentChunk, fileName: string) => {
       return `Create a Mermaid mindmap section from this part of the PDF document:
 
@@ -123,7 +123,7 @@ Return only the branch structure (no "mindmap" declaration or root node), like:
         Detail1
 \`\`\``;
     },
-    
+
     consolidation: (mindmaps: string[], fileName: string, totalPages: number) => {
       const combinedMindmaps = mindmaps
         .map((mindmap, index) => `## Section ${index + 1}\n${mindmap}`)
@@ -147,9 +147,9 @@ Create a comprehensive mindmap that:
 
 The final mindmap should give readers a complete visual understanding of the document's structure and key concepts using proper Mermaid syntax.`;
     },
-    
+
     fallback: (shortExcerpt: string) => {
       return `Create a simple Mermaid mindmap from this PDF excerpt:\n\n${shortExcerpt}`;
-    }
-  }
+    },
+  },
 };

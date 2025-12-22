@@ -101,7 +101,9 @@ export class ChatParticipant {
     stream.markdown(`  - \`/mindmap\` - Open file picker\n\n`);
     stream.markdown(`- **\`/cache-stats\`** - Show cache statistics for summaries and mindmaps\n`);
     stream.markdown(`- **\`/clear-cache\`** - Clear all cached summaries and mindmaps\n`);
-    stream.markdown(`- **\`/cache-export\`** - Export all cached summaries and mindmaps to markdown\n\n`);
+    stream.markdown(
+      `- **\`/cache-export\`** - Export all cached summaries and mindmaps to markdown\n\n`
+    );
     stream.markdown(`### Examples\n\n`);
     stream.markdown(`\`\`\`\n`);
     stream.markdown(`@docpilot /summarise docs/report.pdf\n`);
@@ -129,7 +131,7 @@ export class ChatParticipant {
       // Ensure stats are valid objects with default values
       const safeStats = {
         summary: summaryStats || { totalEntries: 0, totalSizeKB: 0, oldestEntry: null },
-        mindmap: mindmapStats || { totalEntries: 0, totalSizeKB: 0, oldestEntry: null }
+        mindmap: mindmapStats || { totalEntries: 0, totalSizeKB: 0, oldestEntry: null },
       };
 
       const totalEntries = safeStats.summary.totalEntries + safeStats.mindmap.totalEntries;
@@ -168,15 +170,17 @@ export class ChatParticipant {
           cacheStats: {
             summary: safeStats.summary,
             mindmap: safeStats.mindmap,
-            combined: { totalEntries, totalSizeKB, oldestEntry: null }
+            combined: { totalEntries, totalSizeKB, oldestEntry: null },
           },
         },
       };
     } catch (error) {
       ChatParticipant.logger.error('Error handling cache stats', error);
       stream.markdown(`## ❌ Cache Stats Error\n\n`);
-      stream.markdown(`Failed to retrieve cache statistics: ${error instanceof Error ? error.message : 'Unknown error'}\n`);
-      
+      stream.markdown(
+        `Failed to retrieve cache statistics: ${error instanceof Error ? error.message : 'Unknown error'}\n`
+      );
+
       return {
         metadata: {
           command: CHAT_COMMANDS.CACHE_STATS,
@@ -205,8 +209,10 @@ export class ChatParticipant {
     } catch (error) {
       ChatParticipant.logger.error('Error clearing caches', error);
       stream.markdown(`## ❌ Cache Clear Error\n\n`);
-      stream.markdown(`Failed to clear caches: ${error instanceof Error ? error.message : 'Unknown error'}\n`);
-      
+      stream.markdown(
+        `Failed to clear caches: ${error instanceof Error ? error.message : 'Unknown error'}\n`
+      );
+
       return {
         metadata: {
           command: CHAT_COMMANDS.CLEAR_CACHE,
@@ -236,7 +242,9 @@ export class ChatParticipant {
       }
 
       stream.markdown(`## 📤 Cache Export\n\n`);
-      stream.markdown(`Found ${summaryEntries.length} summaries and ${mindmapEntries.length} mindmaps.\n\n`);
+      stream.markdown(
+        `Found ${summaryEntries.length} summaries and ${mindmapEntries.length} mindmaps.\n\n`
+      );
 
       // Show folder picker
       const folderUri = await vscode.window.showOpenDialog({
@@ -259,7 +267,7 @@ export class ChatParticipant {
 
       // Generate markdown content
       const markdownContent = this.generateCacheExportMarkdown(summaryEntries, mindmapEntries);
-      
+
       // Save file with timestamp
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
       const fileName = `docpilot-cache-export-${timestamp}.md`;
@@ -274,7 +282,9 @@ export class ChatParticipant {
       stream.markdown(`✅ Cache exported successfully!\n\n`);
       stream.markdown(`**File:** \`${fileName}\`\n`);
       stream.markdown(`**Location:** \`${folderUri[0].fsPath}\`\n`);
-      stream.markdown(`**Content:** ${summaryEntries.length} summaries, ${mindmapEntries.length} mindmaps\n`);
+      stream.markdown(
+        `**Content:** ${summaryEntries.length} summaries, ${mindmapEntries.length} mindmaps\n`
+      );
 
       return {
         metadata: {
@@ -288,8 +298,10 @@ export class ChatParticipant {
     } catch (error) {
       ChatParticipant.logger.error('Error exporting cache', error);
       stream.markdown(`## ❌ Cache Export Error\n\n`);
-      stream.markdown(`Failed to export cache: ${error instanceof Error ? error.message : 'Unknown error'}\n`);
-      
+      stream.markdown(
+        `Failed to export cache: ${error instanceof Error ? error.message : 'Unknown error'}\n`
+      );
+
       return {
         metadata: {
           command: CHAT_COMMANDS.CACHE_EXPORT,
@@ -337,11 +349,11 @@ export class ChatParticipant {
     // Generate content for each file
     for (const [fileName, content] of fileMap.entries()) {
       markdown += `## ${fileName}\n\n`;
-      
+
       if (content.summary) {
         markdown += `### Summary\n\n${content.summary}\n\n`;
       }
-      
+
       if (content.mindmap) {
         markdown += `### Mindmap\n\n\`\`\`mermaid\n${content.mindmap}\n\`\`\`\n\n`;
       }

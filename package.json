@@ -42,6 +42,11 @@
         "command": "docpilot.quickPrompts",
         "title": "Quick Prompts...",
         "category": "DocPilot"
+      },
+      {
+        "command": "docpilot.toggleRevealMode",
+        "title": "View as Reveal.js Slides",
+        "category": "DocPilot"
       }
     ],
     "menus": {
@@ -50,6 +55,11 @@
           "command": "docpilot.openLocalPdf",
           "when": "resourceExtname == .pdf",
           "group": "navigation"
+        },
+        {
+          "command": "docpilot.toggleRevealMode",
+          "when": "resourceExtname == .md",
+          "group": "docpilot"
         }
       ],
       "editor/context": [
@@ -244,6 +254,52 @@
           "type": "number",
           "default": 2000,
           "description": "The heartbeat interval in milliseconds."
+        },
+        "docpilot.reveal.theme": {
+          "type": "string",
+          "default": "black",
+          "enum": [
+            "black",
+            "white",
+            "league",
+            "beige",
+            "sky",
+            "night",
+            "serif",
+            "simple",
+            "solarized",
+            "blood",
+            "moon"
+          ],
+          "description": "Default reveal.js theme for slide presentations."
+        },
+        "docpilot.reveal.transition": {
+          "type": "string",
+          "default": "slide",
+          "enum": [
+            "none",
+            "fade",
+            "slide",
+            "convex",
+            "concave",
+            "zoom"
+          ],
+          "description": "Default transition effect between slides."
+        },
+        "docpilot.reveal.controls": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show navigation controls in slide mode."
+        },
+        "docpilot.reveal.progress": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show progress bar in slide mode."
+        },
+        "docpilot.reveal.slideNumber": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show slide numbers in slide mode."
         }
       }
     }

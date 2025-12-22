@@ -29,6 +29,19 @@ module.exports = [
       // Note: No minification to preserve dynamic import from CDN
     ]
   },
+  // JavaScript bundle - Slide Viewer for Webview
+  {
+    input: 'src/webview/scripts/slideViewer.js',
+    output: {
+      file: 'out/webview/scripts/slideViewer.min.js',
+      format: 'iife',
+      name: 'SlideViewer'
+    },
+    plugins: [
+      nodeResolve()
+      // Note: No minification to preserve dynamic import from CDN
+    ]
+  },
   // CSS bundle - PDF Viewer
   {
     input: 'src/webview/styles/pdfViewer.css',
@@ -48,6 +61,20 @@ module.exports = [
     input: 'src/markdown/styles/mermaid.css',
     output: {
       file: 'out/markdown/styles/mermaid.css'
+    },
+    plugins: [
+      postcss({
+        extract: true,
+        minimize: true,
+        sourceMap: false
+      })
+    ]
+  },
+  // CSS bundle - Slide Viewer styles for Webview
+  {
+    input: 'src/webview/styles/slideViewer.css',
+    output: {
+      file: 'out/webview/styles/slideViewer.min.css'
     },
     plugins: [
       postcss({

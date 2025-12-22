@@ -18,7 +18,7 @@ export class QuickPromptsCommand {
    */
   static register(extensionContext: vscode.ExtensionContext): vscode.Disposable {
     const command = new QuickPromptsCommand(extensionContext);
-    
+
     return vscode.commands.registerCommand('docpilot.quickPrompts', async () => {
       await command.execute();
     });
@@ -44,7 +44,9 @@ export class QuickPromptsCommand {
 
       const selectedText = editor.document.getText(selection);
       if (!selectedText.trim()) {
-        vscode.window.showWarningMessage('Selected text is empty. Please select some text to process.');
+        vscode.window.showWarningMessage(
+          'Selected text is empty. Please select some text to process.'
+        );
         return;
       }
 
@@ -70,7 +72,6 @@ export class QuickPromptsCommand {
 
       // Send to chat participant (same approach as summary)
       await this.sendToChatParticipant(selectedPrompt, selectedText);
-
     } catch (error) {
       QuickPromptsCommand.logger.error('Error executing quick prompts command', error);
       vscode.window.showErrorMessage(
@@ -83,20 +84,19 @@ export class QuickPromptsCommand {
    * Show the prompt picker with dynamic list
    */
   private async showPromptPicker(prompts: CustomPrompt[]): Promise<CustomPrompt | undefined> {
-    const quickPickItems = prompts.map(prompt => ({
+    const quickPickItems = prompts.map((prompt) => ({
       label: `$(symbol-string) ${prompt.name}`,
-      description: prompt.prompt.length > 50 
-        ? `${prompt.prompt.substring(0, 50)}...` 
-        : prompt.prompt,
+      description:
+        prompt.prompt.length > 50 ? `${prompt.prompt.substring(0, 50)}...` : prompt.prompt,
       detail: `Process selected text with custom prompt`,
-      prompt: prompt
+      prompt: prompt,
     }));
 
     const selected = await vscode.window.showQuickPick(quickPickItems, {
       placeHolder: 'Select a custom prompt to apply to the selected text',
       title: 'DocPilot Quick Prompts',
       matchOnDescription: true,
-      matchOnDetail: true
+      matchOnDetail: true,
     });
 
     return selected?.prompt;
@@ -114,9 +114,9 @@ export class QuickPromptsCommand {
       if (isTestEnvironment()) {
         QuickPromptsCommand.logger.info('Test mode: Skipping chat commands', {
           promptName: prompt.name,
-          processedPrompt
+          processedPrompt,
         });
-        
+
         vscode.window.showInformationMessage(
           `Test Mode: Quick prompt "${prompt.name}" executed successfully`
         );
@@ -128,18 +128,17 @@ export class QuickPromptsCommand {
 
       // Send the processed prompt directly to Copilot Chat (not through @docpilot)
       await vscode.commands.executeCommand('workbench.action.chat.open', {
-        query: processedPrompt
+        query: processedPrompt,
       });
 
       QuickPromptsCommand.logger.info('Processed custom prompt sent to chat', {
         promptName: prompt.name,
         selectedTextLength: selectedText.length,
-        processedPromptLength: processedPrompt.length
+        processedPromptLength: processedPrompt.length,
       });
-
     } catch (error) {
       QuickPromptsCommand.logger.error('Error sending to Copilot Chat', error);
-      
+
       // Fallback: Show error message
       vscode.window.showErrorMessage(
         `Failed to send to Copilot Chat. Error: ${error instanceof Error ? error.message : 'Unknown error'}`
