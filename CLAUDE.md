@@ -1,333 +1,182 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## Project Overview
 
-DocPilot is a VSCode extension that provides advanced PDF viewing and AI-powered document analysis. It combines PDF rendering with Copilot Chat integration for intelligent document processing.
+DocPilot: VSCode extension for PDF viewing, AI document analysis, and markdown enhancements.
 
-## Build & Development Commands
+**Core Features:**
+
+- PDF viewer with PDF.js v5.3.93 (navigation, zoom, search, screenshots, object inspector)
+- AI-powered document analysis via GitHub Copilot integration
+- Reveal.js slide presentations from markdown files
+- Mermaid diagram rendering in markdown preview
+- Quick Prompts for text processing with AI
+
+## Build Commands
 
 ```bash
-# Essential development commands
-npm install                    # Install dependencies
-npm run compile               # Compile TypeScript to out/ with asset copying
-npm run watch                 # Watch mode for development
-npm run copy-assets           # Copy webview assets to out/
+npm install              # Install dependencies
+npm run compile          # Compile TypeScript + copy assets + bundle
+npm run watch            # Watch mode for development
+npm run test             # All tests (unit + integration + e2e)
+npm run test:unit        # Unit tests only
+npm run test:integration # Integration tests
+npm run test:e2e         # Playwright E2E tests
+npm run lint             # Biome linting
+npm run format           # Biome formatting
+npm run package          # Create .vsix package
 
-# Testing
-npm run test                  # Run all tests (unit + integration + e2e)
-npm run test:unit            # Run unit tests only
-npm run test:integration     # Run integration tests only
-npm run test:e2e             # Run E2E tests with Playwright
-npm run compile-tests        # Compile tests separately
-npm run compile-e2e          # Compile E2E tests separately
-
-# Code quality
-npm run lint                 # Lint with Biome
-npm run format              # Format code with Biome  
-npm run check               # Run Biome check (lint + format)
-
-# VSCode extension development
-# Press F5 to launch Extension Development Host
-# Use Ctrl+Shift+P -> "Developer: Reload Window" to reload extension
+# Development: Press F5 to launch Extension Development Host
+# Reload: Ctrl/Cmd+Shift+P -> "Developer: Reload Window"
 ```
 
-## Architecture Overview
+## Architecture
+
+### File Structure
+
+```
+src/
+├── extension.ts                      # Main entry point
+├── cache/                            # Document/summary caching (2 files)
+├── chat/                             # Copilot participant & handlers (7 files)
+├── commands/                         # Commands (4 files)
+│   ├── openLocalPdf.ts
+│   ├── openPdfFromUrl.ts
+│   ├── quickPromptsCommand.ts
+│   └── toggleRevealModeCommand.ts
+├── editors/                          # Custom PDF editor (1 file)
+├── pdf/                              # Text/object extraction, chunking (3 files)
+├── markdown/                         # Mermaid preview enhancement
+│   ├── scripts/mermaidRenderer.js
+│   └── styles/mermaid.css
+├── webview/                          # Webview providers
+│   ├── webviewProvider.ts            # PDF viewer
+│   ├── slideViewerProvider.ts        # Reveal.js slides
+│   ├── webviewMessenger.ts           # Extension ↔ webview communication
+│   ├── templates/                    # HTML (pdfViewer.html, slideViewer.html)
+│   ├── scripts/                      # JavaScript modules (12 files)
+│   │   ├── pdfViewer.js              # Main PDF.js integration
+│   │   └── modules/                  # Modular components (10 files)
+│   ├── styles/                       # CSS (pdfViewer.css, slideViewer.css)
+│   └── assets/                       # SVG icons
+├── utils/                            # Utilities & constants (12 files)
+└── test/                             # Tests (unit, integration, e2e)
+```
 
 ### Core Components
 
-- **WebviewProvider** (`src/webview/webviewProvider.ts`): Central PDF viewer using PDF.js v5.3.93 with ES modules
-- **ChatParticipant** (`src/chat/chatParticipant.ts`): Copilot Chat integration with `/summarise`, `/mindmap`, `/cache-stats`, `/clear-cache`, `/cache-export` commands
-- **Custom Editor** (`src/editors/pdfCustomEditor.ts`): Automatic PDF activation via File → Open
-- **Text Processing** (`src/pdf/`): Advanced semantic chunking and extraction system
-- **PDF Object Inspector** (`src/webview/`): Dual-mode hierarchical viewer for comprehensive PDF structure analysis
-- **Enhanced Toolbar** (`src/webview/templates/`): Professional navigation, zoom, and content tools
-- **Quick Prompts** (`src/commands/quickPromptsCommand.ts`): Customizable text processing with context menu integration
-- **Markdown Preview Enhancement** (`src/markdown/`): Automatic Mermaid diagram rendering in markdown preview mode
+| Component | File | Purpose |
+|-----------|------|---------|
+| WebviewProvider | `webview/webviewProvider.ts` | PDF viewer using PDF.js v5.3.93 |
+| SlideViewerProvider | `webview/slideViewerProvider.ts` | Reveal.js presentations |
+| ChatParticipant | `chat/chatParticipant.ts` | Copilot integration (`/summarise`, `/mindmap`, etc.) |
+| PdfCustomEditor | `editors/pdfCustomEditor.ts` | Auto-activation for PDF files |
+| Quick Prompts | `commands/quickPromptsCommand.ts` | Text processing templates |
 
-### Webview Architecture
+### Key Technologies
 
-- **Templates**: Enhanced HTML in `src/webview/templates/pdfViewer.html` with PDF Object Inspector sidebar
-- **Scripts**: Modern PDF.js v5.3.93 integration in `src/webview/scripts/pdfViewer.js` with ES modules
-- **Assets**: Comprehensive SVG icon set in `src/webview/assets/` (navigation, zoom, content tools)
-- **Styling**: VSCode theme integration with dark/light mode support
-- Assets are copied to `out/webview/` during build and bundled via Rollup
-
-### Markdown Preview Architecture
-
-- **Scripts**: Mermaid renderer in `src/markdown/scripts/mermaidRenderer.js` for automatic diagram rendering
-- **Styling**: Theme-aware diagram styles in `src/markdown/styles/mermaid.css`
-- Files are copied to `out/markdown/` during build and bundled via Rollup
-
-### AI Integration
-
-- **Semantic Chunking**: Token-aware processing with 10% overlap between chunks
-- **Caching System**: File modification detection with persistent storage
-- **Multi-tier Processing**: Single-chunk → semantic chunking → excerpt fallback
-- **Progress Tracking**: Real-time updates during document analysis
-
-### Activation Methods
-
-1. **Automatic**: File → Open on PDF files (custom editor)
-2. **Manual Commands**: `docpilot.openLocalPdf`, `docpilot.openPdfFromUrl`
-3. **Context Menu**: Right-click PDF files in Explorer
-4. **Chat Integration**: `@docpilot /summarise [path-or-url]`, `@docpilot /mindmap [path-or-url]`
-5. **Quick Prompts**: Right-click selected text → DocPilot submenu or command palette
-
-## Key Technologies & Dependencies
-
-- **TypeScript**: Strict mode with ES2020 target (^5.9.2)
-- **PDF.js v5.3.93**: Mozilla's modern PDF rendering engine with ES modules
-- **VSCode Extension API**: Language Model API for Copilot integration (^1.102.0)
-- **Biome**: Code formatting and linting (^2.1.3)
-- **Mocha + Chai + Sinon**: Testing framework for unit and integration tests
-- **Playwright**: End-to-end testing framework (^1.54.2) for real VSCode extension testing
+- TypeScript 5.9 (strict mode, ES2020)
+- PDF.js v5.3.93 (CDN, ES modules)
+- Reveal.js v5.2.1 (CDN)
+- Mermaid v11 (CDN)
+- VSCode Extension API ^1.102.0 (Language Model API)
+- Rollup (bundling), Biome (lint/format)
+- Mocha + Chai + Sinon (testing)
+- Playwright (E2E tests)
 
 ## Development Guidelines
 
 ### Code Style
 
-- Use TypeScript strict mode - all types must be explicit
-- Follow existing patterns in `/src` directory structure
-- Use `// biome-ignore lint: <rule> <reason>` for lint exceptions
-- Implement proper resource disposal (event listeners, webviews)
-- Use async/await for asynchronous operations
+- TypeScript strict mode - explicit types required
+- Use `// biome-ignore lint:<rule> <reason>` for exceptions
+- Proper resource disposal (listeners, webviews)
+- Async/await for async operations
+- Follow existing patterns in `/src`
 
-### VSCode Integration Best Practices
+### Testing
 
-- Use VSCode's built-in UI components (QuickPick, InputBox)
-- Implement proper webview message handling via postMessage API
-- Handle both local files and remote URLs gracefully
-- Follow VSCode theme integration patterns
-- Use proper security measures for webview content
-
-### Testing Requirements
-
-- All new features require unit, integration, and E2E tests where applicable
-- Test files follow pattern: `*.test.ts` for unit, `*.integration.test.ts` for integration, `*.e2e.test.ts` for E2E
-- Use test utilities in `src/test/helpers/` for PDF operations
-- Integration tests use real VSCode extension host environment
-- E2E tests use Playwright to test full extension functionality in VSCode
-- Environment configuration via `.env` file for Copilot authentication
+- Test patterns: `*.test.ts` (unit), `*.integration.test.ts`, `*.e2e.test.ts`
+- Use helpers in `src/test/helpers/` for PDF operations
+- Integration tests use real VSCode extension host
+- E2E tests use Playwright
+- Environment config via `.env` for Copilot auth
 
 ### Message Communication
 
 Constants in `src/utils/constants.ts`:
 
 - `WEBVIEW_MESSAGES`: WebView ↔ Extension communication
-- `CHAT_COMMANDS`: Chat participant commands (`/summarise`, etc.)
+- `CHAT_COMMANDS`: Chat participant commands
 
 ### Error Handling
 
-- Use `ChatErrorHandler` for chat-related errors
-- Implement proper user feedback via `vscode.window.showErrorMessage`
-- Log errors using centralized `Logger` instance
-- Graceful degradation for oversized documents
+- `ChatErrorHandler` for chat errors
+- `vscode.window.showErrorMessage` for user feedback
+- Centralized `Logger` instance
+- Graceful degradation for large documents
 
-## File Structure Patterns
-
-```
-src/
-├── extension.ts              # Main activation entry point
-├── cache/                    # Summary caching with file watching (2 files)
-├── chat/                     # Copilot Chat participant & handlers (7 files)
-├── commands/                 # PDF opening & quick prompts commands (3 files)
-├── editors/                  # Custom PDF editor provider (1 file)
-├── pdf/                      # Text extraction, chunking & object extraction (3 files)
-├── types/interfaces.ts       # Shared TypeScript interfaces
-├── utils/                    # Shared utilities & constants (12 files)
-├── markdown/                 # Markdown preview enhancement
-│   ├── scripts/              # Markdown preview JavaScript
-│   │   └── mermaidRenderer.js  # Mermaid diagram rendering
-│   └── styles/               # Markdown preview CSS
-│       └── mermaid.css       # Mermaid diagram theme-aware styles
-├── webview/                  # PDF viewer implementation
-│   ├── assets/               # SVG icons (navigation, zoom, content tools)
-│   ├── scripts/              # PDF viewer JavaScript (12 files)
-│   │   ├── pdfViewer.js      # Main PDF.js v5.3.93 integration with ES modules
-│   │   └── modules/          # Modular components (10 files: renderer, inspector, extractor, etc.)
-│   ├── styles/               # PDF viewer CSS
-│   │   └── pdfViewer.css     # PDF viewer styling
-│   ├── templates/            # Enhanced HTML with content extraction sidebar
-│   ├── webviewProvider.ts    # Central webview management
-│   └── webviewMessenger.ts   # Extension ↔ Webview communication
-└── test/                     # Multi-tier test suite
-    ├── suite/
-    │   ├── unit/             # Unit tests (3 files)
-    │   └── integration/      # Integration tests (6 files)
-    ├── e2e/                  # Playwright E2E tests (5 files)
-    └── helpers/              # Test utilities and fixtures
-```
-
-## Important Implementation Notes
-
-- Assets must be copied to `out/webview/` - handled by `copy-assets` script
-- WebView panels are tracked and reused to prevent duplicates
-- PDF.js v5.3.93 library loaded via ES modules from CDN with modern async initialization
-- Chat participant automatically registers slash commands from handled commands
-- Text extraction has 30s timeout with retry logic for reliability
-- Cache invalidation happens automatically on file modification detection
-- PDF Object Inspector provides dual-mode hierarchical viewer for comprehensive document structure analysis
-- Enhanced toolbar with comprehensive navigation, zoom, and content tools
-- Full VSCode theme integration with dark/light mode support
-- E2E testing requires VSCode extension environment and Playwright setup
-- Quick Prompts system integrates with VSCode context menus and settings configuration
-- Quick Prompts use template substitution with `{selectedText}` placeholder for dynamic content
-
-## PDF Object Inspector Features
-
-### Dual-Mode Architecture
-
-- **Object-Centric Mode**: View all objects by type across the document (Images, Tables, Fonts, Annotations, Form Fields, Attachments, Bookmarks, JavaScript, Metadata)
-- **Page-Centric Mode**: View all objects organized by individual pages with cross-page object relationships
-- **Mode Switching**: Seamless toggle between viewing modes with shared cache efficiency
-
-### Advanced Object Extraction
-
-- **Comprehensive Coverage**: Extracts all PDF object types available via PDF.js v5.3.93 APIs
-- **Cross-Page Objects**: Proper handling of shared resources (fonts, form fields) with page reference indicators
-- **Object Properties**: Detailed information including dimensions, coordinates, properties, and metadata
-- **Export Capabilities**: Image extraction, table CSV export, metadata JSON export
-
-### Performance & UX Optimizations
-
-- **Lazy Loading**: User-controlled scanning with "click to scan" interface prevents automatic processing
-- **Progressive Display**: Real-time object discovery with batched results (20 pages, 15 objects per batch)
-- **Shared Cache**: Cross-mode efficiency with intelligent caching and race condition protection
-- **Progressive Loading**: Batch processing for large documents with "Load More" pagination
-- **Visual Feedback**: Loading indicators, progress tracking, and status messages during scanning
-
-### Technical Implementation
-
-- **PDFObjectInspector Class**: Central object management with dual-mode support in `src/webview/scripts/pdfViewer.js`
-- **Cache Integration**: File hash-based caching with automatic invalidation on PDF changes
-- **VSCode Integration**: Full theme support, accessibility compliance, and standard UI patterns
-- **Error Handling**: Graceful degradation and timeout management for large documents
-
-## Markdown Preview Enhancement - Mermaid Rendering
-
-DocPilot extends VSCode's markdown preview to automatically render Mermaid diagrams as visual graphics.
-
-### Architecture
-
-- **Extension Point**: Uses VSCode's `markdown.previewScripts` and `markdown.previewStyles` contribution points
-- **Renderer**: `src/markdown/scripts/mermaidRenderer.js` - Automatically detects and renders Mermaid code
-- **Styling**: `src/markdown/styles/mermaid.css` - Theme-aware diagram styling
-- **CDN Import**: Loads Mermaid.js v11 from `https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs`
-
-### Supported Formats
-
-The renderer detects and processes two Mermaid code block formats:
-
-1. **Markdown code blocks**: ` ```mermaid ` (rendered as `<pre><code class="language-mermaid">`)
-2. **HTML pre blocks**: `<pre class="mermaid">`
-
-### Key Features
-
-- **Automatic Detection**: MutationObserver watches for new content and theme changes
-- **Theme Integration**: Automatically switches between dark/light Mermaid themes based on VSCode theme
-- **Error Handling**: Invalid syntax displays user-friendly error messages instead of breaking preview
-- **Performance**: Debounced rendering prevents excessive re-renders during rapid changes
-- **Lazy Rendering**: Diagrams only render when content is added (not on every DOM mutation)
-
-### Technical Details
-
-- **Initialization**: Mermaid configured with `startOnLoad: false` for manual control
-- **Rendering**: Uses `mermaid.render()` to generate SVG from code blocks
-- **Theme Detection**: Reads `document.body.className` to detect `vscode-dark` or `vscode-light`
-- **Content Updates**: MutationObserver on `document.body` detects preview refreshes
-- **Rollup Processing**: Bundled as IIFE format without minification to preserve CDN imports
-
-### Implementation Guidelines
-
-- **No npm installation**: Mermaid loaded from CDN at runtime, not bundled
-- **No minification**: Rollup config excludes minify plugin to preserve dynamic imports
-- **Container classes**: `.mermaid-container` for diagrams, `.mermaid-error-container` for errors
-- **VSCode variables**: Uses `--vscode-*` CSS variables for theme integration
-- **Testing**: E2E tests verify rendering with both correct diagrams and error handling
-- **Frame Navigation**: Markdown preview uses nested iframes - tests must use `childFrames()` to access content
+## Critical Implementation Details
 
 ### Build Process
 
-1. **Copy**: `copy-assets` copies source files to `out/markdown/`
-2. **Bundle**: Rollup processes files:
-   - JavaScript: Converts to IIFE, preserves imports
-   - CSS: Minifies with PostCSS + cssnano
-3. **Register**: `package.json` contributions point to bundled files
+1. **TypeScript compilation** → `out/`
+2. **Asset copying** → `npm run copy-assets` (webview assets to `out/webview/`, markdown to `out/markdown/`)
+3. **Rollup bundling** → Processes webview scripts/styles
 
-### File Structure
+**Important**: Assets MUST be copied to `out/` for webview to load them.
 
-```
-src/markdown/
-├── scripts/
-│   └── mermaidRenderer.js    # Main rendering logic
-└── styles/
-    └── mermaid.css            # Theme-aware styling
+### Webview Architecture
 
-out/markdown/
-├── scripts/
-│   └── mermaidRenderer.js    # Bundled (IIFE)
-└── styles/
-    └── mermaid.css            # Minified
-```
+**PDF Viewer:**
 
-## Text Search Implementation Lessons (July 2025)
+- Templates: `src/webview/templates/pdfViewer.html`
+- Scripts: `src/webview/scripts/pdfViewer.js` (ES modules, PDF.js v5.3.93)
+- Panels tracked by URI to prevent duplicates
+- Text extraction: 30s timeout with retry logic
+- Object Inspector: Dual-mode (object-centric/page-centric), lazy loading, batch processing
 
-### Problem 1: HTML onclick handlers not finding functions
+**Slide Viewer:**
 
-**Reason**: Functions defined in module scope aren't accessible to HTML onclick handlers  
-**Solution**: Attach functions to window object - follow existing pattern at end of `pdfViewer.js`
+- Template: `src/webview/templates/slideViewer.html`
+- CDN: Reveal.js 5.2.1 + plugins (Markdown, Highlight, Notes, Mermaid, Math)
+- Slide separators: `---` (horizontal), `----` (vertical)
+- Theme auto-mapping: VSCode dark → black, light → white
+- Panel tracking by URI, auto-refresh on file changes
+- Exit: Double ESC closes panel
+
+**Markdown Preview:**
+
+- Extension points: `markdown.previewScripts`, `markdown.previewStyles`
+- Renderer: `mermaidRenderer.js` (CDN import, MutationObserver)
+- Formats: ` ```mermaid ` blocks or `<pre class="mermaid">`
+- Theme-aware (dark/light switching)
+- Rollup: IIFE format, no minification (preserves CDN imports)
+- Testing: Use `childFrames()` to access nested iframes
+
+### Window Object Exposure
+
+HTML onclick handlers need functions exposed on `window`:
 
 ```javascript
+// At end of pdfViewer.js
 window.toggleSearch = toggleSearch;
 window.searchNext = searchNext;
 ```
 
-### Problem 2: "Page container not found" errors  
+### Selectors & Patterns
 
-**Reason**: Used wrong selector `[data-page-number="${pageNum}"]` instead of existing pattern  
-**Solution**: Use correct selector matching page creation: `#page-${pageNum}`
+- Page containers: `#page-${pageNum}` (NOT `[data-page-number="${pageNum}"]`)
+- Text layers: Lazy-loaded, check `textLayer.classList.contains('hidden')` before use
+- Always study existing patterns before implementing similar features
 
-### Problem 3: Text layer not available for highlighting
+### PDF.js Operations
 
-**Reason**: Text layers are lazy-loaded and may be hidden initially  
-**Solution**: Check and render text layer before highlighting
-
-```javascript
-if (textLayer.classList.contains('hidden') || textLayer.children.length === 0) {
-  await renderTextLayer(pageNum);
-}
-```
-
-### Key Learning: Study existing patterns first
-
-Always examine how similar features work in the codebase before implementing new ones. This prevents selector mismatches, scope issues, and architectural inconsistencies.
-
-## Enhanced Object Extraction Implementation Lessons (July 2025)
-
-### Problem 1: Browse button not working in custom editor context
-
-**Reason**: PDFs opened via File → Open use `pdfCustomEditor.ts` but lack extraction message handlers  
-**Solution**: Add delegation methods to route extraction messages to `WebviewProvider`
-
-```typescript
-case WEBVIEW_MESSAGES.BROWSE_SAVE_FOLDER:
-  await this.delegateToWebviewProvider('handleBrowseSaveFolder', panel);
-  break;
-```
-
-### Problem 2: Infinite loops in PDF.js image object retrieval
-
-**Reason**: `page.objs.get()` can hang indefinitely when PDF objects are malformed or large  
-**Solution**: Implement timeout promises and operation limits
+**Critical**: PDF.js operations can hang. Always use timeouts:
 
 ```javascript
 const imgPromise = new Promise((resolve, reject) => {
-  const timeout = setTimeout(() => {
-    reject(new Error(`Timeout getting image ${imgName}`));
-  }, 5000); // 5 second timeout
-  
+  const timeout = setTimeout(() => reject(new Error('Timeout')), 5000);
   page.objs.get(imgName, (img) => {
     clearTimeout(timeout);
     resolve(img || null);
@@ -335,40 +184,21 @@ const imgPromise = new Promise((resolve, reject) => {
 });
 ```
 
-### Problem 3: Incorrect timing calculations showing "0s"
+### Dual Context Handling
 
-**Reason**: Extension-side `processingTime` didn't include webview collection phase  
-**Solution**: Pass `webviewStartTime` from webview to extension for complete timing
+PDFs opened via File → Open use `pdfCustomEditor.ts`. Add delegation for message handlers:
 
-```javascript
-// In webview
-extractionState.startTime = Date.now();
-// Pass to extension
-message.data.webviewStartTime = extractionState.startTime;
+```typescript
+case WEBVIEW_MESSAGES.BROWSE_SAVE_FOLDER:
+  await this.delegateToWebviewProvider('handleBrowseSaveFolder', panel);
+  break;
 ```
 
-### Problem 4: Circular dependencies in extraction architecture
+### Progressive Operations
 
-**Reason**: Original design had extension request webview data, then webview call back to extension  
-**Solution**: Redesign flow - webview collects ALL data first, then sends to extension once
-
-```javascript
-// Webview collects everything first
-const objectData = await collectObjectDataAndExtract();
-// Then sends complete data to extension
-vscode.postMessage({
-  type: WEBVIEW_MESSAGES.EXTRACT_OBJECTS,
-  data: { selectedTypes, saveFolder, fileName, objectData, webviewStartTime }
-});
-```
-
-### Problem 5: UI responsiveness during extraction
-
-**Reason**: Long-running operations blocked UI updates  
-**Solution**: Implement progressive extraction with batch processing and real-time progress
+Long-running operations need batching with UI yield points:
 
 ```javascript
-// Process in small batches with yield points
 for (let i = 0; i < pages.length; i += BATCH_SIZE) {
   // Process batch
   updateProgress((i / pages.length) * 100);
@@ -376,10 +206,9 @@ for (let i = 0; i < pages.length; i += BATCH_SIZE) {
 }
 ```
 
-### Problem 6: TypeScript any types causing maintenance issues
+### Type Safety
 
-**Reason**: Using `any` types bypassed type checking, leading to runtime errors  
-**Solution**: Create proper interfaces for all data structures
+Always create proper interfaces - avoid `any`:
 
 ```typescript
 interface ObjectExtractionRequest {
@@ -391,19 +220,75 @@ interface ObjectExtractionRequest {
 }
 ```
 
-### Key Learnings: Complex Feature Development
+## Configuration
 
-1. **Architecture First**: Design message flows and data structures before implementation
-2. **Timeout Everything**: PDF.js operations can hang - always use timeouts and limits
-3. **Progressive UX**: Long operations need progress indicators and UI yield points  
-4. **Type Safety**: Proper interfaces prevent runtime errors and improve maintainability
-5. **Dual Context Handling**: VSCode extensions have multiple entry points requiring delegation patterns
-6. **Performance Monitoring**: Track timing across webview-extension boundaries for accurate metrics
+Key settings (`docpilot.*`):
+
+- `textProcessing.chunkSizeRatio`: 0.8
+- `textProcessing.overlapRatio`: 0.1
+- `pdfViewer.maxCachedTextLayers`: 10
+- `timeouts.textExtractionMs`: 30000
+- `reveal.theme`: 11 themes (black, white, league, etc.)
+- `reveal.transition`: 6 transitions (none, fade, slide, etc.)
+- `quickPrompts`: Array of `{name, prompt}` with `{selectedText}` placeholder
+
+## Activation
+
+Extension activates via:
+
+- `onCommand:*` (for each command)
+- `onCustomEditor:docpilot.pdfEditor`
+- "*" (for immediate activation)
+
+## Quick Reference
+
+**CDN Resources:**
+
+- PDF.js: `https://cdn.jsdelivr.net/npm/pdfjs-dist@5.3.93/`
+- Reveal.js: `https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/`
+- Mermaid: `https://cdn.jsdelivr.net/npm/mermaid@11/`
+
+**Never bundle CDN resources** - always load at runtime.
+
+**Webview Security (CSP):**
+
+- Allows CDN via `connect-src`, `script-src`, `style-src`
+- `unsafe-inline` required for Reveal.js init
+- `unsafe-eval` required for KaTeX math
 
 ## Troubleshooting
 
-- **Webview issues**: Check VSCode Developer Tools console
-- **PDF.js problems**: Refer to Mozilla PDF.js documentation  
-- **Extension loading**: Use Output panel for extension logging
-- **Test failures**: Run `npm run compile-tests` before running tests
-- **Asset issues**: Ensure `npm run copy-assets` completed successfully
+| Issue | Solution |
+|-------|----------|
+| Webview not loading | Check VSCode Developer Tools console |
+| PDF.js errors | Verify CDN connectivity, check timeouts |
+| Extension not activating | Check `activationEvents` in package.json |
+| Test failures | Run `npm run compile-tests` first |
+| Assets missing | Run `npm run copy-assets` |
+| Command not found | Verify extension activated (check Output panel) |
+
+## Key Learnings
+
+**Architecture:**
+
+- Design message flows before implementation
+- Webview collects data first, then sends to extension (avoid circular dependencies)
+- Track timing across webview-extension boundaries
+
+**Performance:**
+
+- Always timeout PDF.js operations (5s recommended)
+- Use progressive rendering with batch processing
+- Implement UI yield points for long operations
+
+**VSCode Patterns:**
+
+- Extensions have multiple entry points (commands, custom editors, chat)
+- Delegation patterns needed for dual-context features
+- Panel tracking prevents duplicate webviews
+
+**Testing:**
+
+- E2E tests for Reveal.js should verify rendering, navigation, theme application
+- Mock file system for markdown reading
+- Test panel reuse and cleanup on disposal
