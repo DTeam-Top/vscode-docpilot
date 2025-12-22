@@ -15,9 +15,9 @@ Transform markdown files into professional presentations with one click.
 - **VSCode theme integration**: Auto dark/light mode mapping
 - **Customizable**: controls, progress bar, slide numbers
 
-![reveal-01](https://github.com/DTeam-Top/vscode-docpilot/blob/main/docs/screenshots/reveal-01.png?raw=true)
+![slides-preview-01](https://github.com/DTeam-Top/vscode-docpilot/blob/main/docs/screenshots/slides-preview-01.png?raw=true)
 
-![reveal-02](https://github.com/DTeam-Top/vscode-docpilot/blob/main/docs/screenshots/reveal-02.png?raw=true)
+![slides-preview-02](https://github.com/DTeam-Top/vscode-docpilot/blob/main/docs/screenshots/slides-preview-02.png?raw=true)
 
 ### PDF Viewer
 
@@ -68,10 +68,12 @@ Requires GitHub Copilot subscription.
 ## Installation
 
 **Marketplace:**
+
 - [VSCode Marketplace](https://marketplace.visualstudio.com/items?itemName=dteam-top.vscode-docpilot)
 - [Open VSX](https://open-vsx.org/extension/dteam-top/vscode-docpilot)
 
 **Development:**
+
 ```bash
 git clone https://github.com/DTeam-Top/vscode-docpilot
 cd vscode-docpilot
@@ -86,6 +88,7 @@ npm install && npm run compile
 Right-click `.md` file → **"View as Reveal.js Slides"**
 
 **Markdown format:**
+
 ```markdown
 # Title Slide
 
@@ -126,6 +129,7 @@ Open Copilot Chat (Ctrl/Cmd+Alt+I):
 3. Choose prompt
 
 **Custom prompts:**
+
 ```json
 {
   "docpilot.quickPrompts": [
@@ -140,6 +144,7 @@ Open Copilot Chat (Ctrl/Cmd+Alt+I):
 ## Keyboard Shortcuts
 
 **Reveal.js:**
+
 - Arrow Keys / Space - Navigate
 - ESC - Exit presentation
 - F - Fullscreen
@@ -147,6 +152,7 @@ Open Copilot Chat (Ctrl/Cmd+Alt+I):
 - O - Overview
 
 **PDF:**
+
 - Ctrl/Cmd+F - Search
 - Enter / Shift+Enter - Next/Previous result
 - Ctrl/Cmd + +/-/0 - Zoom
@@ -178,6 +184,7 @@ npm run package          # Create .vsix
 ```
 
 **Architecture:**
+
 ```
 src/
 ├── extension.ts         # Entry point
