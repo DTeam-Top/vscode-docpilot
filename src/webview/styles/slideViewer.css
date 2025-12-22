@@ -60,3 +60,8 @@ html, body {
   top: 0 !important;
   left: 0 !important;
 }
+
+.mermaid.hljs {
+  line-height: 0.8em;
+  background: oklch(97% 0.014 254.604);
+}

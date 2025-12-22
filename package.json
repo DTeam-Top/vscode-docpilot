@@ -2,7 +2,7 @@
   "name": "vscode-docpilot",
   "displayName": "DocPilot",
   "description": "AI-Powered PDF Assistant & Quick Prompts Manager for VSCode",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "license": "MIT",
   "publisher": "dteam-top",
   "icon": "resources/docpilot-icon.png",
@@ -18,7 +18,7 @@
     "Chat"
   ],
   "activationEvents": [
-    "onChatParticipant:docpilot"
+    "*"
   ],
   "files": [
     "out",
