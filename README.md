@@ -209,6 +209,17 @@ src/
 
 **Tech stack:** TypeScript 5.9, PDF.js 5.3.93, Reveal.js 5.2.1, Mermaid v11, VSCode Extension API, Rollup, Biome, Playwright
 
+## Publishment
+
+```bash
+npm publish
+```
+
+For any authentication failures, try:
+
+- npm registry: `npm login`
+- vscode PAT: `npx vsce login ${publisher}`
+
 ## Limitations
 
 - AI features require GitHub Copilot subscription
