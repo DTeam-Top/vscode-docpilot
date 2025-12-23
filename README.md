@@ -124,8 +124,13 @@ Open Copilot Chat (Ctrl/Cmd+Alt+I):
 
 ```bash
 @docpilot /summarise path/to/file.pdf
-@docpilot /mindmap path/to/file.pdf
-@docpilot /cache-stats
+@docpilot /summarise https://example.com/doc.pdf
+@docpilot /summarise                    # Shows file picker
+
+@docpilot /mindmap path/to/file.pdf     # Generate Mermaid mindmap
+@docpilot /cache-stats                  # View cache info
+@docpilot /clear-cache                  # Clear all caches
+@docpilot /cache-export                 # Export to markdown
 ```
 
 ### Quick Prompts
