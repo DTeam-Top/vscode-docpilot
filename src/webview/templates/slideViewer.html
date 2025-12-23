@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slide Viewer - {{fileName}}</title>
+    <link rel="stylesheet" href="{{cssUri}}">
+</head>
+<body>
+    <!-- Loading indicator -->
+    <div id="loadingIndicator" class="loading-container">
+        <div class="loading-spinner"></div>
+        <p>Loading slides...</p>
+    </div>
+
+    <!-- Reveal.js container -->
+    <div class="reveal">
+        <div class="slides" id="slidesContainer">
+            <!-- Slides will be injected here by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Script loaded from bundled file -->
+    <script src="{{scriptUri}}"></script>
+</body>
+</html>

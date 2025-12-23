@@ -1,20 +1,33 @@
 # DocPilot
 
-VSCode extension for PDF viewing, AI-powered document analysis, and productivity tools.
+VSCode extension for PDF viewing, Reveal.js slide presentations, AI-powered document analysis, and productivity tools.
 
 ## Features
 
+### Reveal.js Slide Presentations
+
+Transform markdown files into professional presentations with one click.
+
+- **Slide separators**: `---` (horizontal), `----` (vertical)
+- **Rich plugins**: Markdown, syntax highlighting, speaker notes, Mermaid diagrams, math (KaTeX)
+- **11 themes**: black, white, league, beige, sky, night, serif, simple, solarized, blood, moon
+- **6 transitions**: none, fade, slide, convex, concave, zoom
+- **VSCode theme integration**: Auto dark/light mode mapping
+- **Customizable**: controls, progress bar, slide numbers
+
+![slides-preview-01](https://github.com/DTeam-Top/vscode-docpilot/blob/main/docs/screenshots/slides-preview-01.png?raw=true)
+
+![slides-preview-02](https://github.com/DTeam-Top/vscode-docpilot/blob/main/docs/screenshots/slides-preview-02.png?raw=true)
+
 ### PDF Viewer
 
-- **Automatic activation** when opening `.pdf` files via File → Open
-- **Local and remote** PDFs (filesystem paths or URLs)
-- **Navigation & zoom** controls with fit-to-width/page options
-- **Text search** with keyboard navigation (Ctrl/Cmd+F)
-- **Screenshot tool** with drag-to-select and clipboard support
-- **Object inspector** for analyzing PDF structure (images, tables, fonts, annotations, metadata, etc.)
-- **Theme integration** with VSCode dark/light modes
-
-#### Screenshots
+- **Auto-activation** when opening `.pdf` files
+- **Local & remote** PDFs (filesystem or URLs)
+- **Navigation & zoom** with fit-to-width/page
+- **Text search** (Ctrl/Cmd+F)
+- **Screenshot tool** with drag-to-select
+- **Object inspector** (images, tables, fonts, annotations, metadata)
+- **Theme integration** (dark/light modes)
 
 ![pdf-viewer-01](https://github.com/DTeam-Top/vscode-docpilot/blob/main/docs/screenshots/pdf-viewer-01.png?raw=true)
 
@@ -24,27 +37,23 @@ VSCode extension for PDF viewing, AI-powered document analysis, and productivity
 
 ### AI Document Analysis
 
-Requires active GitHub Copilot subscription.
+Requires GitHub Copilot subscription.
 
-- **Document summarization** with smart caching
-- **Mindmap generation** in Mermaid format
+- **Summarization** with smart caching
+- **Mindmap generation** (Mermaid format)
 - **Semantic chunking** for large documents
 - **Multi-model support** (GPT-4, Gemini, etc.)
 - **Cache management** (stats, export, clear)
-
-#### Screenshots
 
 ![pdf-viewer-02](https://github.com/DTeam-Top/vscode-docpilot/blob/main/docs/screenshots/pdf-viewer-02.png?raw=true)
 
 ### Quick Prompts
 
-- **Customizable text processing** for selected text in any editor
+- **Customizable text processing** with AI
 - **Context menu integration** (right-click selected text)
-- **Template system** with `{selectedText}` placeholder
-- **Direct Copilot integration** for instant AI processing
+- **Template system** (`{selectedText}` placeholder)
+- **Direct Copilot integration**
 - **Built-in defaults** (Explain Code, Find Issues)
-
-#### Screenshots
 
 ![quick-prompts-01](https://github.com/DTeam-Top/vscode-docpilot/blob/main/docs/screenshots/quick-prompts-01.png?raw=true)
 
@@ -52,12 +61,11 @@ Requires active GitHub Copilot subscription.
 
 ### Markdown Enhancement
 
-- **Automatic Mermaid rendering** in markdown preview
-- **All diagram types** supported (flowcharts, sequence, class, state, ER, gantt, mindmap, etc.)
+- **Auto Mermaid rendering** in preview and Reveal.js slides
+- **All diagram types** (flowcharts, sequence, class, state, ER, gantt, mindmap, etc.)
 - **Theme-aware** visualization
-- **Zero configuration** required
-
-#### Screenshots
+- **Math equations** (KaTeX in slides)
+- **Zero configuration**
 
 ![mermaid-01](https://github.com/DTeam-Top/vscode-docpilot/blob/main/docs/screenshots/mermaid-01.png?raw=true)
 
@@ -75,30 +83,44 @@ Requires active GitHub Copilot subscription.
 ```bash
 git clone https://github.com/DTeam-Top/vscode-docpilot
 cd vscode-docpilot
-npm install
-npm run compile
-# Press F5 in VSCode to launch Extension Development Host
+npm install && npm run compile
+# Press F5 to launch Extension Development Host
 ```
 
 ## Quick Start
 
-### Opening PDFs
+### Reveal.js Slides
 
-```bash
-# Automatic - just open a PDF file
-File → Open → select.pdf
+Right-click `.md` file → **"View as Reveal.js Slides"**
 
-# Command palette
-Ctrl/Cmd+Shift+P → "DocPilot: Open Local PDF"
-Ctrl/Cmd+Shift+P → "DocPilot: Open PDF from URL"
+**Markdown format:**
 
-# Context menu
-Right-click .pdf in Explorer → "Open Local PDF"
+```markdown
+# Title Slide
+
+---
+
+## Slide 1
+Content here
+
+---
+
+## Slide 2
+
+----
+
+### Vertical Slide 2.1
 ```
+
+### PDFs
+
+- **Automatic**: File → Open → select `.pdf`
+- **Command**: Ctrl/Cmd+Shift+P → "DocPilot: Open Local PDF"
+- **Context menu**: Right-click `.pdf` → "Open Local PDF"
 
 ### AI Commands
 
-Open Copilot Chat (Ctrl/Cmd+Alt+I) and use:
+Open Copilot Chat (Ctrl/Cmd+Alt+I):
 
 ```bash
 @docpilot /summarise path/to/file.pdf
@@ -113,11 +135,11 @@ Open Copilot Chat (Ctrl/Cmd+Alt+I) and use:
 
 ### Quick Prompts
 
-1. Select text in any editor
+1. Select text
 2. Right-click → DocPilot → Quick Prompts
-3. Choose a prompt (or create custom ones in settings)
+3. Choose prompt
 
-**Configure custom prompts:**
+**Custom prompts:**
 
 ```json
 {
@@ -125,121 +147,79 @@ Open Copilot Chat (Ctrl/Cmd+Alt+I) and use:
     {
       "name": "Explain Code",
       "prompt": "Explain this code:\n\n{selectedText}"
-    },
-    {
-      "name": "Find Bugs",
-      "prompt": "Review for bugs:\n\n{selectedText}"
     }
   ]
 }
 ```
 
-### Mermaid Diagrams
-
-Create markdown files with Mermaid code blocks:
-
-````markdown
-# My Document
-
-```mermaid
-flowchart TD
-    A[Start] --> B[Process]
-    B --> C[End]
-```
-````
-
-Open preview (Ctrl/Cmd+Shift+V) to see rendered diagrams.
-
 ## Keyboard Shortcuts
 
-**PDF Viewer:**
+**Reveal.js:**
 
-- `Ctrl/Cmd + F` - Search text
-- `Enter` - Next search result
-- `Shift + Enter` - Previous search result
-- `ESC` - Close search
-- `Ctrl/Cmd + +/-/0` - Zoom in/out/reset
-- `Ctrl/Cmd + Scroll` - Zoom with mouse
+- Arrow Keys / Space - Navigate
+- ESC - Exit presentation
+- F - Fullscreen
+- S - Speaker notes
+- O - Overview
+
+**PDF:**
+
+- Ctrl/Cmd+F - Search
+- Enter / Shift+Enter - Next/Previous result
+- Ctrl/Cmd + +/-/0 - Zoom
 
 ## Configuration
 
-Key settings (access via VSCode Settings):
-
 ```json
 {
+  "docpilot.reveal.theme": "black",
+  "docpilot.reveal.transition": "slide",
+  "docpilot.reveal.controls": true,
   "docpilot.textProcessing.chunkSizeRatio": 0.8,
-  "docpilot.textProcessing.overlapRatio": 0.1,
   "docpilot.pdfViewer.maxCachedTextLayers": 10,
   "docpilot.timeouts.textExtractionMs": 30000
 }
 ```
 
-See full configuration options in VSCode Settings UI.
+See full options in VSCode Settings UI.
 
 ## Development
 
-### Build Commands
-
 ```bash
-npm run compile          # Build TypeScript + assets + bundle
-npm run watch            # Watch mode for development
-npm run bundle-webview   # Bundle webview scripts/styles
-
+npm run compile          # Build TypeScript + assets
+npm run watch            # Watch mode
 npm run test             # All tests
-npm run test:unit        # Unit tests only
-npm run test:integration # Integration tests only
-npm run test:e2e         # End-to-end tests (Playwright)
-
-npm run lint             # Lint with Biome
-npm run format           # Format with Biome
-npm run check            # Lint + format check
-
-npm run package          # Create .vsix package
+npm run test:e2e         # E2E tests (Playwright)
+npm run lint             # Biome linting
+npm run package          # Create .vsix
 ```
 
-### Architecture
+**Architecture:**
 
 ```
 src/
 ├── extension.ts         # Entry point
-├── chat/                # Copilot integration (@docpilot commands)
-├── commands/            # VSCode commands (open PDF, quick prompts)
-├── editors/             # Custom PDF editor provider
-├── webview/             # PDF viewer frontend
-│   ├── scripts/         # JavaScript modules (PDF.js integration)
-│   ├── styles/          # CSS (theme-aware)
-│   └── templates/       # HTML templates
-├── pdf/                 # Text/object extraction, chunking
-├── cache/               # Summary/document caching
-├── markdown/            # Mermaid preview scripts
-├── utils/               # Shared utilities
+├── chat/                # Copilot integration
+├── commands/            # Commands (PDF, Reveal.js, Quick Prompts)
+├── webview/             # PDF & slide viewers
+├── pdf/                 # Text/object extraction
+├── cache/               # Document caching
 └── test/                # Unit/integration/E2E tests
 ```
 
-**Key Technologies:**
-
-- **TypeScript 5.9** - Strict mode with ES2020 target for type safety
-- **PDF.js 5.3.93** - Mozilla's modern PDF rendering engine with ES modules
-- **VSCode Extension API 1.102+** - Custom editor, webview panels, chat participant
-- **Language Model API** - GitHub Copilot integration for AI features
-- **Mermaid v11** - Diagram rendering loaded from CDN
-- **Rollup** - Module bundling with esbuild minification for webview assets
-- **Biome** - Fast linting and code formatting
-- **Mocha + Chai + Sinon** - Unit and integration testing framework
-- **Playwright** - End-to-end testing in real VSCode environment
+**Tech stack:** TypeScript 5.9, PDF.js 5.3.93, Reveal.js 5.2.1, Mermaid v11, VSCode Extension API, Rollup, Biome, Playwright
 
 ## Limitations
 
-- AI features require active GitHub Copilot subscription
-- Initial load time scales with document size
-- Very large documents (>100MB) may have performance issues
-
-## License
-
-MIT License - see [LICENSE](LICENSE) file for details.
+- AI features require GitHub Copilot subscription
+- Large documents (>100MB) may have performance issues
 
 ## Links
 
 - [Repository](https://github.com/DTeam-Top/vscode-docpilot)
 - [Issues](https://github.com/DTeam-Top/vscode-docpilot/issues)
 - [VSCode Marketplace](https://marketplace.visualstudio.com/items?itemName=dteam-top.vscode-docpilot)
+
+## License
+
+MIT License - see [LICENSE](LICENSE)

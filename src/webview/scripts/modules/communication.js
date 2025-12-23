@@ -6,10 +6,10 @@ import {
   handleExtractionError,
   updateExtractionProgress,
 } from './extractor.js';
-import { 
+import {
   handleScreenshotFolderSelected,
   handleScreenshotSaveCompleted,
-  handleScreenshotSaveError 
+  handleScreenshotSaveError,
 } from './screenshot.js';
 /* global PDF_CONFIG */
 
@@ -114,11 +114,11 @@ async function handleExtensionMessage(event) {
 
     case 'folderSelected':
       console.log('Folder selected:', message.data.folderPath);
-      
+
       // Check if screenshot modal is open to determine which handler to call
       const screenshotModal = document.getElementById('screenshotModalOverlay');
       const isScreenshotModalOpen = screenshotModal && screenshotModal.style.display === 'flex';
-      
+
       if (isScreenshotModalOpen) {
         handleScreenshotFolderSelected(message.data.folderPath);
       } else {

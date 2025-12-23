@@ -72,12 +72,12 @@ export function startScreenshot() {
 
   const overlay = document.getElementById('screenshotOverlay');
   overlay.classList.add('active');
-  
+
   // Change button appearance to indicate active state
   const screenshotBtn = document.getElementById('screenshotBtn');
   screenshotBtn.style.backgroundColor = 'var(--vscode-button-background)';
   screenshotBtn.title = 'Click and drag to select area (ESC to cancel)';
-  
+
   console.log('Screenshot mode activated');
 }
 
@@ -89,10 +89,10 @@ export function stopScreenshot() {
 
   screenshotState.isActive = false;
   screenshotState.isSelecting = false;
-  
+
   const overlay = document.getElementById('screenshotOverlay');
   overlay.classList.remove('active');
-  
+
   const selectionRect = screenshotState.selectionRect;
   if (selectionRect) {
     selectionRect.classList.remove('visible');
@@ -102,7 +102,7 @@ export function stopScreenshot() {
   const screenshotBtn = document.getElementById('screenshotBtn');
   screenshotBtn.style.backgroundColor = '';
   screenshotBtn.title = 'Take Screenshot';
-  
+
   console.log('Screenshot mode deactivated');
 }
 
@@ -111,14 +111,14 @@ export function stopScreenshot() {
  */
 function handleMouseDown(e) {
   if (!screenshotState.isActive) return;
-  
+
   e.preventDefault();
   screenshotState.isSelecting = true;
   screenshotState.startX = e.clientX;
   screenshotState.startY = e.clientY;
   screenshotState.currentX = e.clientX;
   screenshotState.currentY = e.clientY;
-  
+
   updateSelectionRectangle();
 }
 
@@ -127,11 +127,11 @@ function handleMouseDown(e) {
  */
 function handleMouseMove(e) {
   if (!screenshotState.isActive || !screenshotState.isSelecting) return;
-  
+
   e.preventDefault();
   screenshotState.currentX = e.clientX;
   screenshotState.currentY = e.clientY;
-  
+
   updateSelectionRectangle();
 }
 
@@ -140,20 +140,20 @@ function handleMouseMove(e) {
  */
 function handleMouseUp(e) {
   if (!screenshotState.isActive || !screenshotState.isSelecting) return;
-  
+
   e.preventDefault();
   screenshotState.isSelecting = false;
-  
+
   const width = Math.abs(screenshotState.currentX - screenshotState.startX);
   const height = Math.abs(screenshotState.currentY - screenshotState.startY);
-  
+
   // Minimum selection size validation
   if (width < 10 || height < 10) {
     console.log('Selection too small, canceling screenshot');
     stopScreenshot();
     return;
   }
-  
+
   // Capture the selected area
   captureSelectedArea();
 }
@@ -163,7 +163,7 @@ function handleMouseUp(e) {
  */
 function handleOverlayClick(e) {
   if (!screenshotState.isActive || screenshotState.isSelecting) return;
-  
+
   // If clicking on overlay itself (not during selection), cancel
   if (e.target.id === 'screenshotOverlay') {
     stopScreenshot();
@@ -175,7 +175,7 @@ function handleOverlayClick(e) {
  */
 function handleKeyDown(e) {
   if (!screenshotState.isActive) return;
-  
+
   if (e.key === 'Escape') {
     e.preventDefault();
     stopScreenshot();
@@ -188,12 +188,12 @@ function handleKeyDown(e) {
 function updateSelectionRectangle() {
   const rect = screenshotState.selectionRect;
   if (!rect) return;
-  
+
   const left = Math.min(screenshotState.startX, screenshotState.currentX);
   const top = Math.min(screenshotState.startY, screenshotState.currentY);
   const width = Math.abs(screenshotState.currentX - screenshotState.startX);
   const height = Math.abs(screenshotState.currentY - screenshotState.startY);
-  
+
   rect.style.left = `${left}px`;
   rect.style.top = `${top}px`;
   rect.style.width = `${width}px`;
@@ -210,35 +210,37 @@ async function captureSelectedArea() {
     const top = Math.min(screenshotState.startY, screenshotState.currentY);
     const width = Math.abs(screenshotState.currentX - screenshotState.startX);
     const height = Math.abs(screenshotState.currentY - screenshotState.startY);
-    
+
     console.log(`Capturing area: ${left}, ${top}, ${width}x${height}`);
-    
+
     // Create a canvas to capture the selected area
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     canvas.width = width;
     canvas.height = height;
-    
+
     // Get the device pixel ratio for high-DPI displays
     const devicePixelRatio = window.devicePixelRatio || 1;
-    const backingStoreRatio = ctx.webkitBackingStorePixelRatio ||
-                             ctx.mozBackingStorePixelRatio ||
-                             ctx.msBackingStorePixelRatio ||
-                             ctx.oBackingStorePixelRatio ||
-                             ctx.backingStorePixelRatio || 1;
+    const backingStoreRatio =
+      ctx.webkitBackingStorePixelRatio ||
+      ctx.mozBackingStorePixelRatio ||
+      ctx.msBackingStorePixelRatio ||
+      ctx.oBackingStorePixelRatio ||
+      ctx.backingStorePixelRatio ||
+      1;
     const ratio = devicePixelRatio / backingStoreRatio;
-    
+
     // Scale canvas for high-DPI
     canvas.width = width * ratio;
     canvas.height = height * ratio;
     canvas.style.width = width + 'px';
     canvas.style.height = height + 'px';
     ctx.scale(ratio, ratio);
-    
+
     // Use html2canvas to capture the main content area
     // Note: We'll need to import html2canvas or use a simpler approach
     await captureUsingDrawWindow(canvas, ctx, left, top, width, height);
-    
+
     // Convert to blob
     canvas.toBlob((blob) => {
       if (blob) {
@@ -249,7 +251,6 @@ async function captureSelectedArea() {
         stopScreenshot();
       }
     }, 'image/png');
-    
   } catch (error) {
     console.error('Error capturing screenshot:', error);
     stopScreenshot();
@@ -264,80 +265,75 @@ async function captureUsingDrawWindow(canvas, ctx, left, top, width, height) {
     // Get all visible elements within the selected area
     const mainContent = document.querySelector('.main-content');
     const pdfContainer = document.querySelector('.pdf-container');
-    
+
     if (!mainContent || !pdfContainer) {
       throw new Error('PDF container not found');
     }
-    
+
     // Set background to white
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, width, height);
-    
+
     // Get container bounds for coordinate translation
     const containerRect = pdfContainer.getBoundingClientRect();
-    
+
     // Find all PDF page canvases within the selection area
     const pageElements = document.querySelectorAll('.pdf-page');
-    
+
     for (const pageElement of pageElements) {
       const pageRect = pageElement.getBoundingClientRect();
       const canvas = pageElement.querySelector('canvas');
-      
+
       if (!canvas) continue;
-      
+
       // Check if this page intersects with our selection
       const pageLeft = pageRect.left;
       const pageTop = pageRect.top;
       const pageRight = pageRect.right;
       const pageBottom = pageRect.bottom;
-      
+
       const selectionLeft = left;
       const selectionTop = top;
       const selectionRight = left + width;
       const selectionBottom = top + height;
-      
+
       // Calculate intersection
       const intersectionLeft = Math.max(pageLeft, selectionLeft);
       const intersectionTop = Math.max(pageTop, selectionTop);
       const intersectionRight = Math.min(pageRight, selectionRight);
       const intersectionBottom = Math.min(pageBottom, selectionBottom);
-      
+
       if (intersectionLeft < intersectionRight && intersectionTop < intersectionBottom) {
         // This page intersects with our selection
         const srcX = Math.max(0, selectionLeft - pageLeft);
         const srcY = Math.max(0, selectionTop - pageTop);
         const srcWidth = Math.min(canvas.width, intersectionRight - intersectionLeft);
         const srcHeight = Math.min(canvas.height, intersectionBottom - intersectionTop);
-        
+
         const destX = intersectionLeft - selectionLeft;
         const destY = intersectionTop - selectionTop;
-        
+
         // Draw the intersecting portion of this page canvas
-        ctx.drawImage(
-          canvas,
-          srcX, srcY, srcWidth, srcHeight,
-          destX, destY, srcWidth, srcHeight
-        );
+        ctx.drawImage(canvas, srcX, srcY, srcWidth, srcHeight, destX, destY, srcWidth, srcHeight);
       }
     }
-    
+
     console.log(`Captured ${pageElements.length} pages in selected area`);
-    
   } catch (error) {
     console.error('Error in screenshot capture:', error);
-    
+
     // Fallback: create a placeholder image
     ctx.fillStyle = '#f0f0f0';
     ctx.fillRect(0, 0, width, height);
-    
+
     ctx.fillStyle = '#666';
     ctx.font = '16px Arial';
     ctx.textAlign = 'center';
     ctx.fillText('Screenshot Captured', width / 2, height / 2 - 20);
-    
+
     ctx.font = '12px Arial';
     ctx.fillText(`Area: ${width} × ${height}`, width / 2, height / 2);
-    
+
     const timestamp = new Date().toLocaleString();
     ctx.fillText(timestamp, width / 2, height / 2 + 20);
   }
@@ -348,7 +344,7 @@ async function captureUsingDrawWindow(canvas, ctx, left, top, width, height) {
  */
 function showScreenshotModal() {
   stopScreenshot(); // Hide overlay
-  
+
   const modal = document.getElementById('screenshotModalOverlay');
   modal.style.display = 'flex';
 }
@@ -359,25 +355,25 @@ function showScreenshotModal() {
 function closeScreenshotModal() {
   const modal = document.getElementById('screenshotModalOverlay');
   modal.style.display = 'none';
-  
+
   // Reset modal state
   const folderSection = document.getElementById('folderSection');
   const folderInput = document.getElementById('screenshotFolderPath');
   const saveBtn = document.getElementById('saveToFileBtn');
-  
+
   if (folderSection) {
     folderSection.style.display = 'none';
   }
-  
+
   if (folderInput) {
     folderInput.value = '';
   }
-  
+
   if (saveBtn) {
     saveBtn.textContent = '📁 Save to File';
     saveBtn.disabled = false;
   }
-  
+
   // Reset state
   screenshotState.capturedImageData = null;
   screenshotState.selectedFolder = null;
@@ -391,18 +387,18 @@ function handleSaveToFile() {
     console.error('No captured image data available');
     return;
   }
-  
+
   // Check if folder is already selected
   if (screenshotState.selectedFolder) {
     // Folder already selected, proceed with save immediately
     proceedWithSave();
     return;
   }
-  
+
   // Show folder selection section
   const folderSection = document.getElementById('folderSection');
   const saveBtn = document.getElementById('saveToFileBtn');
-  
+
   if (folderSection) {
     folderSection.style.display = 'block';
     saveBtn.textContent = '💾 Save Screenshot';
@@ -415,19 +411,19 @@ function handleSaveToFile() {
  */
 function browseSaveFolder() {
   console.log('Browse save folder clicked');
-  
+
   if (!state.vscode) {
     console.error('VSCode API not available');
     return;
   }
 
   console.log('Sending BROWSE_SAVE_FOLDER message to extension...');
-  
+
   // Send message to extension to open folder picker
   state.vscode.postMessage({
-    type: WEBVIEW_MESSAGES.BROWSE_SAVE_FOLDER
+    type: WEBVIEW_MESSAGES.BROWSE_SAVE_FOLDER,
   });
-  
+
   console.log('BROWSE_SAVE_FOLDER message sent');
 }
 
@@ -436,17 +432,17 @@ function browseSaveFolder() {
  */
 export function handleScreenshotFolderSelected(folderPath) {
   console.log('Screenshot folder selected:', folderPath);
-  
+
   screenshotState.selectedFolder = folderPath;
-  
+
   // Update UI
   const folderInput = document.getElementById('screenshotFolderPath');
   const saveBtn = document.getElementById('saveToFileBtn');
-  
+
   if (folderInput) {
     folderInput.value = folderPath;
   }
-  
+
   if (saveBtn) {
     saveBtn.disabled = false;
   }
@@ -460,24 +456,26 @@ function proceedWithSave() {
     console.error('Missing image data or folder selection');
     return;
   }
-  
+
   // Generate filename: screenshot-page-{pageNum}-{YYYYMMDD}-{HHMMSS}.png
   const now = new Date();
-  const dateStr = now.getFullYear().toString() +
-                  (now.getMonth() + 1).toString().padStart(2, '0') +
-                  now.getDate().toString().padStart(2, '0');
-  const timeStr = now.getHours().toString().padStart(2, '0') +
-                  now.getMinutes().toString().padStart(2, '0') +
-                  now.getSeconds().toString().padStart(2, '0');
-  
+  const dateStr =
+    now.getFullYear().toString() +
+    (now.getMonth() + 1).toString().padStart(2, '0') +
+    now.getDate().toString().padStart(2, '0');
+  const timeStr =
+    now.getHours().toString().padStart(2, '0') +
+    now.getMinutes().toString().padStart(2, '0') +
+    now.getSeconds().toString().padStart(2, '0');
+
   const currentPage = state.currentPage || 1;
   const fileName = `screenshot-page-${currentPage}-${dateStr}-${timeStr}.png`;
-  
+
   // Convert blob to data URL for sending to extension
   const reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = function (e) {
     const dataUrl = e.target.result;
-    
+
     // Send message to extension to save file
     state.vscode.postMessage({
       type: WEBVIEW_MESSAGES.SCREENSHOT_SAVE_FILE,
@@ -485,12 +483,12 @@ function proceedWithSave() {
         fileName: fileName,
         imageData: dataUrl,
         currentPage: currentPage,
-        saveFolder: screenshotState.selectedFolder
-      }
+        saveFolder: screenshotState.selectedFolder,
+      },
     });
   };
   reader.readAsDataURL(screenshotState.capturedImageData);
-  
+
   // Don't close modal here - wait for save completion message from extension
 }
 
@@ -502,32 +500,32 @@ async function handleCopyToClipboard() {
     console.error('No captured image data available');
     return;
   }
-  
+
   try {
     // Use the Clipboard API to copy the image
     await navigator.clipboard.write([
       new ClipboardItem({
-        'image/png': screenshotState.capturedImageData
-      })
+        'image/png': screenshotState.capturedImageData,
+      }),
     ]);
-    
+
     // Show success message
     state.vscode.postMessage({
       type: 'SCREENSHOT_COPY_SUCCESS',
-      data: { message: 'Screenshot copied to clipboard!' }
+      data: { message: 'Screenshot copied to clipboard!' },
     });
-    
+
     console.log('Screenshot copied to clipboard');
   } catch (error) {
     console.error('Failed to copy to clipboard:', error);
-    
+
     // Fallback: show error message
     state.vscode.postMessage({
       type: 'SCREENSHOT_COPY_ERROR',
-      data: { error: 'Failed to copy screenshot to clipboard' }
+      data: { error: 'Failed to copy screenshot to clipboard' },
     });
   }
-  
+
   closeScreenshotModal();
 }
 

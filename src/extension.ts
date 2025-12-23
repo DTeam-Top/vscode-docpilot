@@ -3,6 +3,7 @@ import { ChatParticipant } from './chat/chatParticipant';
 import { OpenLocalPdfCommand } from './commands/openLocalPdf';
 import { OpenPdfFromUrlCommand } from './commands/openPdfFromUrl';
 import { QuickPromptsCommand } from './commands/quickPromptsCommand';
+import { registerToggleRevealModeCommand } from './commands/toggleRevealModeCommand';
 import { PdfCustomEditorProvider } from './editors/pdfCustomEditor';
 import { Logger } from './utils/logger';
 import { configuration } from './utils/configuration';
@@ -20,7 +21,8 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
       OpenLocalPdfCommand.register(context),
       OpenPdfFromUrlCommand.register(context),
-      QuickPromptsCommand.register(context)
+      QuickPromptsCommand.register(context),
+      registerToggleRevealModeCommand(context)
     );
 
     // Register custom PDF editor for automatic activation when opening PDFs via File -> Open
@@ -32,7 +34,7 @@ export function activate(context: vscode.ExtensionContext): void {
         if (event.affectsConfiguration('docpilot')) {
           configuration.refresh();
           logger.info('DocPilot configuration refreshed', {
-            quickPromptsCount: configuration.quickPrompts.length
+            quickPromptsCount: configuration.quickPrompts.length,
           });
         }
       })
@@ -44,9 +46,10 @@ export function activate(context: vscode.ExtensionContext): void {
     logger.info('Extension activation complete', {
       chatParticipantId: 'docpilot.chat-participant',
       commandsRegistered: [
-        'docpilot.openLocalPdf', 
+        'docpilot.openLocalPdf',
         'docpilot.openPdfFromUrl',
-        'docpilot.quickPrompts'
+        'docpilot.quickPrompts',
+        'docpilot.toggleRevealMode',
       ],
       customEditorRegistered: 'docpilot.pdfEditor',
       customPromptsCount: configuration.quickPrompts.length,

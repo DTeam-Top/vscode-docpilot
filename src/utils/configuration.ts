@@ -91,8 +91,8 @@ class ConfigurationManager {
     return this.get<number>('timeouts.heartbeatIntervalMs')!;
   }
 
-  public get quickPrompts(): Array<{name: string; prompt: string}> {
-    return this.get<Array<{name: string; prompt: string}>>('quickPrompts') || [];
+  public get quickPrompts(): Array<{ name: string; prompt: string }> {
+    return this.get<Array<{ name: string; prompt: string }>>('quickPrompts') || [];
   }
 
   /**
