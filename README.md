@@ -220,6 +220,8 @@ For any authentication failures, try:
 - npm registry: `npm login`
 - vscode PAT: `npx vsce login ${publisher}`
 
+The Marketplace rejects extension icons larger than 1024×1024 (`resources/docpilot-icon.png` is 512×512).
+
 ## Limitations
 
 - AI features require GitHub Copilot subscription

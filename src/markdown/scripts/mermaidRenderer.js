@@ -3,9 +3,23 @@
  * Automatically renders Mermaid diagrams in markdown preview mode
  */
 
-(async () => {
-  // Import Mermaid from CDN
-  const mermaid = await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs');
+(() => {
+  // Mermaid is imported from CDN on first use, so nothing is loaded when
+  // VSCode's built-in Mermaid renderer handles the preview
+  let mermaidPromise = null;
+  const loadMermaid = () => {
+    mermaidPromise ??= import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs')
+      .then((module) => {
+        initializeMermaid(module.default);
+        return module.default;
+      })
+      .catch((error) => {
+        // Allow a retry on the next render (e.g. after a network hiccup)
+        mermaidPromise = null;
+        throw error;
+      });
+    return mermaidPromise;
+  };
 
   // Detect VSCode theme
   const getTheme = () => {
@@ -17,8 +31,8 @@
   };
 
   // Initialize Mermaid with VSCode theme
-  const initializeMermaid = () => {
-    mermaid.default.initialize({
+  const initializeMermaid = (mermaid) => {
+    mermaid.initialize({
       startOnLoad: false,
       theme: getTheme(),
       securityLevel: 'loose',
@@ -31,19 +45,22 @@
   };
 
   // Create a container for the rendered diagram
-  const createDiagramContainer = (index) => {
+  const createDiagramContainer = (index, code) => {
     const container = document.createElement('div');
     container.className = 'mermaid-container';
     container.setAttribute('data-diagram-index', index);
+    // Keep the original source so the diagram can be re-rendered (e.g. on theme change)
+    container.setAttribute('data-mermaid-source', code);
     return container;
   };
 
   // Render a single Mermaid diagram
-  const renderDiagram = async (code, container, index) => {
+  const renderDiagram = async (mermaid, code, container, index) => {
     try {
       const id = `mermaid-diagram-${Date.now()}-${index}`;
-      const { svg } = await mermaid.default.render(id, code);
+      const { svg } = await mermaid.render(id, code);
       container.innerHTML = svg;
+      container.classList.remove('mermaid-error-container');
       container.classList.add('mermaid-rendered');
     } catch (error) {
       console.error('Mermaid rendering error:', error);
@@ -51,6 +68,7 @@
         <strong>Mermaid Syntax Error</strong>
         <pre>${escapeHtml(error.message || 'Unknown error')}</pre>
       </div>`;
+      container.classList.remove('mermaid-rendered');
       container.classList.add('mermaid-error-container');
     }
   };
@@ -67,50 +85,69 @@
     return document.querySelector('.reveal') !== null;
   };
 
+  // VSCode 1.143+ ships a built-in Mermaid renderer (vscode.mermaid-markdown-features) whose
+  // markdown-it plugin adds this marker to the preview. When present, defer to it entirely:
+  // running both makes them race over the same blocks.
+  const hasBuiltInMermaid = () => {
+    return document.getElementById('markdown-mermaid') !== null;
+  };
+
+  // A block must still hold Mermaid source text. If it is inside one of our containers,
+  // or already contains an SVG (rendered by another renderer, e.g. VS Code's built-in
+  // preview or another extension), its textContent is SVG labels + CSS, not Mermaid source.
+  const isUnrenderedSource = (element) => {
+    return !element.closest('.mermaid-container') && !element.querySelector('svg');
+  };
+
   // Find and render all Mermaid diagrams
   const renderAllMermaidDiagrams = async () => {
     // Skip if in reveal.js mode (reveal.js handles mermaid itself)
-    if (isRevealMode()) {
+    if (isRevealMode() || hasBuiltInMermaid()) {
       return;
     }
 
-    let index = 0;
-
     // Format 1: ```mermaid code blocks (rendered by markdown-it as <pre><code class="language-mermaid">)
-    const codeBlocks = document.querySelectorAll('pre > code.language-mermaid');
-    for (const codeBlock of codeBlocks) {
-      // Skip if already rendered
-      if (codeBlock.closest('.mermaid-container')) {
-        continue;
-      }
-
-      const code = codeBlock.textContent.trim();
-      if (code) {
-        const container = createDiagramContainer(index++);
-        await renderDiagram(code, container, index);
-
-        // Replace the entire <pre><code> structure
-        const preElement = codeBlock.parentElement;
-        if (preElement && preElement.tagName === 'PRE') {
-          preElement.replaceWith(container);
-        }
-      }
+    // Format 2: <pre class="mermaid"> HTML blocks
+    const selector = 'pre > code.language-mermaid, pre.mermaid';
+    const blocks = [...document.querySelectorAll(selector)].filter(isUnrenderedSource);
+    if (blocks.length === 0) {
+      return;
     }
 
-    // Format 2: <pre class="mermaid"> HTML blocks
-    const preBlocks = document.querySelectorAll('pre.mermaid');
-    for (const preBlock of preBlocks) {
-      // Skip if already rendered
-      if (preBlock.classList.contains('mermaid-container')) {
+    const mermaid = await loadMermaid();
+    let index = document.querySelectorAll('.mermaid-container').length;
+    for (const block of blocks) {
+      // Re-check: the DOM may have changed while Mermaid was loading or rendering
+      if (!block.isConnected || !isUnrenderedSource(block)) {
         continue;
       }
 
-      const code = preBlock.textContent.trim();
-      if (code) {
-        const container = createDiagramContainer(index++);
-        await renderDiagram(code, container, index);
-        preBlock.replaceWith(container);
+      const code = block.textContent.trim();
+      if (!code) {
+        continue;
       }
+
+      const container = createDiagramContainer(index, code);
+      await renderDiagram(mermaid, code, container, index++);
+
+      // Replace the entire <pre> element (for Format 1, the parent of <code>)
+      const preElement = block.tagName === 'PRE' ? block : block.parentElement;
+      preElement.replaceWith(container);
+    }
+  };
+
+  // Re-render existing diagrams from their stored source (e.g. after a theme change)
+  const rerenderAllMermaidDiagrams = async () => {
+    const containers = document.querySelectorAll('.mermaid-container[data-mermaid-source]');
+    if (containers.length === 0) {
+      return;
+    }
+
+    const mermaid = await loadMermaid();
+    initializeMermaid(mermaid);
+    for (const container of containers) {
+      const index = container.getAttribute('data-diagram-index');
+      await renderDiagram(mermaid, container.getAttribute('data-mermaid-source'), container, index);
     }
   };
 
@@ -121,7 +158,9 @@
       clearTimeout(renderTimeout);
     }
     renderTimeout = setTimeout(() => {
-      renderAllMermaidDiagrams();
+      renderAllMermaidDiagrams().catch((error) => {
+        console.error('Failed to render Mermaid diagrams:', error);
+      });
     }, 100);
   };
 
@@ -130,13 +169,10 @@
     const observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-          // Theme changed - reinitialize and re-render
-          initializeMermaid();
-          // Re-render all diagrams with new theme
-          document.querySelectorAll('.mermaid-container').forEach((container) => {
-            container.classList.remove('mermaid-rendered');
+          // Theme changed - reinitialize and re-render all diagrams with the new theme
+          rerenderAllMermaidDiagrams().catch((error) => {
+            console.error('Failed to re-render Mermaid diagrams:', error);
           });
-          debouncedRender();
           break;
         }
       }
@@ -151,17 +187,11 @@
   // Watch for content changes (markdown preview updates)
   const observeContentChanges = () => {
     const observer = new MutationObserver((mutations) => {
-      // Check if new content was added
-      let hasNewContent = false;
       for (const mutation of mutations) {
         if (mutation.addedNodes.length > 0) {
-          hasNewContent = true;
+          debouncedRender();
           break;
         }
-      }
-
-      if (hasNewContent) {
-        debouncedRender();
       }
     });
 
@@ -187,7 +217,6 @@
   // Initialize and render
   const initialize = async () => {
     try {
-      initializeMermaid();
       await renderAllMermaidDiagrams();
       observeThemeChanges();
       observeContentChanges();

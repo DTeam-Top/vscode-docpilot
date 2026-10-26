@@ -148,7 +148,9 @@ Constants in `src/utils/constants.ts`:
 **Markdown Preview:**
 
 - Extension points: `markdown.previewScripts`, `markdown.previewStyles`
-- Renderer: `mermaidRenderer.js` (CDN import, MutationObserver)
+- Renderer: `mermaidRenderer.js` (CDN import, MutationObserver); skips blocks that already contain an SVG (rendered by another renderer)
+- VSCode 1.143+ has a built-in Mermaid renderer (`vscode.mermaid-markdown-features`, marker `#markdown-mermaid`); DocPilot defers to it and only loads Mermaid when it is absent
+- E2E: DocPilot renderer tests launch with `--disable-extension=vscode.mermaid-markdown-features`; open files via `runCommand`/`fillFileDialog` in `e2eSetup.ts` (simple file dialog, exact command match)
 - Formats: ` ```mermaid ` blocks or `<pre class="mermaid">`
 - Theme-aware (dark/light switching)
 - Rollup: IIFE format, no minification (preserves CDN imports)
